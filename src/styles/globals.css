@@ -1,27 +1,33 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────
-   Haba-Chewoah · Dare Citrus × Two-Face Design System
-   Tokens mirror brand-tokens.jsx from the design handoff.
+   Haba-Chewoah · Two-Face × Dare Citrus design system
+   Tokens come from .claude/ui/project/brand-tokens.jsx
+   (refined palette — dustier pink, softer ink, line/shadow tokens, dark mode).
    ───────────────────────────────────────────────────────────── */
 
 @theme {
-  --color-hc-bg: #faf7ee;
+  --color-hc-bg: #f6f3eb;
   --color-hc-surface: #ffffff;
-  --color-hc-ink: #1b1726;
-  --color-hc-ink-soft: #2a2438;
-  --color-hc-muted: #6b6478;
-  --color-hc-muted-soft: #a8a2b5;
+  --color-hc-surface-alt: #fbf8f1;
+  --color-hc-ink: #1f1b2e;
+  --color-hc-ink-soft: #2d2840;
+  --color-hc-muted: #7a7388;
+  --color-hc-muted-soft: #b8b2c2;
   --color-hc-brand: #d8ff3c;
-  --color-hc-brand-ink: #1b1726;
-  --color-hc-accent: #ff4d8d;
+  --color-hc-brand-strong: #c7ee2b;
+  --color-hc-brand-ink: #1f1b2e;
+  --color-hc-accent: #e8769a;
   --color-hc-accent-ink: #ffffff;
-  --color-hc-ring: #1b1726;
+  --color-hc-line: rgb(31 27 46 / 0.08);
+  --color-hc-line-strong: rgb(31 27 46 / 0.16);
 
-  --color-hc-bg-dark: #0f0b1a;
-  --color-hc-surface-dark: #1b1726;
-  --color-hc-ink-dark: #f5f1e6;
-  --color-hc-ring-dark: #d8ff3c;
+  --shadow-hc: 0 1px 2px rgb(31 27 46 / 0.04),
+    0 6px 18px rgb(31 27 46 / 0.05);
+  --shadow-hc-soft: 0 1px 2px rgb(31 27 46 / 0.04);
+  --shadow-hc-lg: 0 2px 4px rgb(31 27 46 / 0.05),
+    0 12px 32px rgb(31 27 46 / 0.08);
+  --shadow-hc-stamp: 4px 4px 0 #1f1b2e;
 
   --font-display: var(--font-bricolage), "Bricolage Grotesque", system-ui,
     sans-serif;
@@ -36,9 +42,47 @@
   --radius-hc-5: 2rem;
 }
 
+/* Dark theme — applied via [data-theme="dark"] on <html>. */
+:root[data-theme="dark"] {
+  --color-hc-bg: #13111c;
+  --color-hc-surface: #1c1a28;
+  --color-hc-surface-alt: #221f30;
+  --color-hc-ink: #efeae0;
+  --color-hc-ink-soft: #d6d0c2;
+  --color-hc-muted: #8a8398;
+  --color-hc-muted-soft: #5c5668;
+  --color-hc-brand: #d8ff3c;
+  --color-hc-brand-strong: #e5ff5c;
+  --color-hc-brand-ink: #13111c;
+  --color-hc-accent: #e8769a;
+  --color-hc-accent-ink: #13111c;
+  --color-hc-line: rgb(239 234 224 / 0.08);
+  --color-hc-line-strong: rgb(239 234 224 / 0.16);
+
+  --shadow-hc: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 18px rgb(0 0 0 / 0.25);
+  --shadow-hc-soft: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-hc-lg: 0 2px 4px rgb(0 0 0 / 0.3), 0 12px 32px rgb(0 0 0 / 0.4);
+  --shadow-hc-stamp: 4px 4px 0 #efeae0;
+}
+
+/* `dark:*` variant follows `[data-theme="dark"]` instead of media-query. */
+@custom-variant dark (&:where([data-theme="dark"] *, [data-theme="dark"]));
+
 html,
 body {
   background: var(--color-hc-bg);
   color: var(--color-hc-ink);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes hc-title-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

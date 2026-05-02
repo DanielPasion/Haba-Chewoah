@@ -1,0 +1,183 @@
+// Habit Tracking App with Social Features
+// Auth: Discord OAuth only
+// Docs: https://dbml.dbdiagram.io/docs
+//
+// Conventions:
+// - All FKs are ON DELETE CASCADE unless noted otherwise (see migrations/001_init.sql)
+// - All status/type strings are enforced via CHECK constraints in SQL (see migrations)
+// - Hard deletes only — no soft delete columns anywhere
+// - All timestamps are stored in UTC; user-local conversion happens at query time
+//   using users.timezone
+
+Table users {
+  id GUID [primary key]
+  discord_id varchar [unique, not null, note: 'auth only, never displayed']
+  username varchar [unique, not null]
+  bio text
+  avatar_url varchar
+  timezone varchar [default: 'UTC', note: 'IANA tz, e.g. America/Los_Angeles']
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+  
+  indexes {
+    discord_id
+    username
+  }
+}
+
+// ============================================
+// HABITS
+// ============================================
+
+Table habits {
+  id GUID [primary key]
+  user_id GUID [ref: > users.id, not null]
+  name varchar [not null]
+  description text
+  icon varchar
+  color varchar
+  
+  frequency_type varchar [not null, note: 'daily, weekly, n_per_period']
+  target_count int [default: 1, note: 'times per day/week, or N for n_per_period']
+  period_days int [note: 'only used for n_per_period']
+  
+  // Challenge fields (null for non-challenge habits)
+  start_date date
+  end_date date
+  required_completions int [note: 'null = use frequency rules to determine success']
+  status varchar [default: 'active', note: 'active, succeeded, failed, abandoned']
+  
+  is_public boolean [default: true]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp
+  
+  indexes {
+    user_id
+    (user_id, status)
+  }
+}
+
+Table habit_schedules {
+  id GUID [primary key]
+  habit_id GUID [ref: > habits.id, not null]
+  day_of_week int [note: '0=Sunday, 6=Saturday']
+  reminder_time time
+  reminder_enabled boolean [default: true]
+  
+  indexes {
+    habit_id
+  }
+}
+
+Table habit_logs {
+  id GUID [primary key]
+  habit_id GUID [ref: > habits.id, not null]
+  user_id GUID [ref: > users.id, not null]
+  completed_at timestamp [not null]
+  notes text
+  created_at timestamp [default: `now()`]
+  
+  indexes {
+    habit_id
+    user_id
+    (user_id, completed_at)
+    (habit_id, completed_at)
+  }
+}
+
+// ============================================
+// SOCIAL
+// ============================================
+
+Table follows {
+  follower_id GUID [ref: > users.id]
+  following_id GUID [ref: > users.id]
+  created_at timestamp [default: `now()`]
+  
+  indexes {
+    (follower_id, following_id) [pk]
+    following_id
+  }
+}
+
+Table blocks {
+  blocker_id GUID [ref: > users.id]
+  blocked_id GUID [ref: > users.id]
+  created_at timestamp [default: `now()`]
+  
+  indexes {
+    (blocker_id, blocked_id) [pk]
+    blocked_id
+  }
+}
+
+Table reports {
+  id GUID [primary key]
+  reporter_id GUID [ref: > users.id, not null]
+  target_type varchar [not null, note: 'user, comment, habit_log']
+  target_id GUID [not null, note: 'polymorphic — no FK; cleanup job required']
+  reason varchar [not null]
+  status varchar [default: 'pending', note: 'pending, reviewed, dismissed']
+  created_at timestamp [default: `now()`]
+  
+  indexes {
+    (target_type, target_id)
+    status
+  }
+}
+
+Table likes {
+  user_id GUID [ref: > users.id]
+  habit_log_id GUID [ref: > habit_logs.id]
+  created_at timestamp [default: `now()`]
+  
+  indexes {
+    (user_id, habit_log_id) [pk]
+    habit_log_id
+  }
+}
+
+Table comments {
+  id GUID [primary key]
+  user_id GUID [ref: > users.id, not null]
+  habit_log_id GUID [ref: > habit_logs.id, not null]
+  content text [not null, note: '@mentions are plain text, parsed at render time']
+  created_at timestamp [default: `now()`]
+  
+  indexes {
+    habit_log_id
+    user_id
+  }
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+Table notifications {
+  id GUID [primary key]
+  user_id GUID [ref: > users.id, not null, note: 'recipient']
+  actor_id GUID [ref: > users.id, note: 'who triggered it']
+  type varchar [note: 'follow, like, comment']
+  habit_log_id GUID [ref: > habit_logs.id]
+  comment_id GUID [ref: > comments.id]
+  is_read boolean [default: false]
+  created_at timestamp [default: `now()`]
+  
+  indexes {
+    (user_id, is_read)
+    (user_id, created_at)
+  }
+}
+
+Table device_tokens {
+  user_id GUID [ref: > users.id, not null]
+  token varchar [primary key]
+  platform varchar [note: 'ios, android, web']
+  created_at timestamp [default: `now()`]
+  last_used_at timestamp
+  
+  indexes {
+    user_id
+  }
+}
