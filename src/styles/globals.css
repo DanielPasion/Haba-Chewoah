@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────
+   Haba-Chewoah · Dare Citrus × Two-Face Design System
+   Tokens mirror brand-tokens.jsx from the design handoff.
+   ───────────────────────────────────────────────────────────── */
+
+@theme {
+  --color-hc-bg: #faf7ee;
+  --color-hc-surface: #ffffff;
+  --color-hc-ink: #1b1726;
+  --color-hc-ink-soft: #2a2438;
+  --color-hc-muted: #6b6478;
+  --color-hc-muted-soft: #a8a2b5;
+  --color-hc-brand: #d8ff3c;
+  --color-hc-brand-ink: #1b1726;
+  --color-hc-accent: #ff4d8d;
+  --color-hc-accent-ink: #ffffff;
+  --color-hc-ring: #1b1726;
+
+  --color-hc-bg-dark: #0f0b1a;
+  --color-hc-surface-dark: #1b1726;
+  --color-hc-ink-dark: #f5f1e6;
+  --color-hc-ring-dark: #d8ff3c;
+
+  --font-display: var(--font-bricolage), "Bricolage Grotesque", system-ui,
+    sans-serif;
+  --font-sans: var(--font-inter), Inter, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace,
+    "SF Mono", monospace;
+
+  --radius-hc-1: 0.5rem;
+  --radius-hc-2: 0.75rem;
+  --radius-hc-3: 1.125rem;
+  --radius-hc-4: 1.5rem;
+  --radius-hc-5: 2rem;
+}
+
+html,
+body {
+  background: var(--color-hc-bg);
+  color: var(--color-hc-ink);
+  font-family: var(--font-sans);
+}
