@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Haba-Chewoah · Brand Exploration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Space+Grotesk:wght@400;500;600;700&family=Archivo+Black&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: "Space Grotesk", system-ui, sans-serif; }
+  *, *::before, *::after { box-sizing: border-box; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="brand-system.jsx"></script>
+<script type="text/babel" src="logos.jsx"></script>
+<script type="text/babel" src="lockups.jsx"></script>
+<script type="text/babel">
+const { useState } = React;
+
+// ─────────────────────────────────────────────────────────────
+// Cover artboard — title, intro, design rationale
+// ─────────────────────────────────────────────────────────────
+function CoverArtboard() {
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: '#1B1726', color: '#F5F1E6',
+      padding: 48, position: 'relative', overflow: 'hidden',
+      fontFamily: '"Space Grotesk", system-ui, sans-serif',
+      display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+    }}>
+      <div>
+        <div style={{
+          fontSize: 11, fontFamily: 'JetBrains Mono, monospace',
+          letterSpacing: 2, opacity: 0.55, textTransform: 'uppercase',
+          marginBottom: 18,
+        }}>v1 · brand exploration · may 1, 2026</div>
+        <div style={{
+          fontFamily: '"Bricolage Grotesque", sans-serif',
+          fontSize: 72, fontWeight: 800, letterSpacing: -3, lineHeight: 0.95,
+        }}>
+          haba<span style={{ color: '#D8FF3C' }}>-</span>chewoah
+        </div>
+        <div style={{
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: 13, letterSpacing: 1.5, opacity: 0.5,
+          marginTop: 14, textTransform: 'uppercase',
+        }}>habitual · i·bet·cha·won't</div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 32, fontSize: 14, lineHeight: 1.55, opacity: 0.85 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6, color: '#D8FF3C' }}>Brief</div>
+          A habit-based BeReal-style social app. People log streaks publicly (or to a folder) and dare each other to keep going. Gen Z, playful, cheeky.
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6, color: '#D8FF3C' }}>Direction</div>
+          Dare-energy first. The name's tongue-in-cheek; the brand should sound like it's elbowing you in the ribs.
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6, color: '#D8FF3C' }}>What's here</div>
+          3 color directions (light + dark) × 5 logo concepts × all 7 lockups (horizontal, stacked, app icon, favicon, monogram, wordmark, animated).
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Concept Showcase — large hero artboard for each concept
+// ─────────────────────────────────────────────────────────────
+function ConceptHero({ concept, scheme }) {
+  const c = scheme.light;
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      background: c.bg, color: c.ink,
+      padding: 36, display: 'flex', flexDirection: 'column', gap: 20,
+      fontFamily: '"Space Grotesk", system-ui, sans-serif',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', letterSpacing: 1.6, opacity: 0.55, textTransform: 'uppercase', marginBottom: 4 }}>
+            Concept · {concept.id}
+          </div>
+          <div style={{ fontSize: 32, fontWeight: 700, letterSpacing: -0.8, lineHeight: 1 }}>{concept.name}</div>
+        </div>
+        <div style={{
+          fontSize: 10, padding: '4px 10px', borderRadius: 99,
+          background: c.brand, color: c.brandInk, fontWeight: 700, letterSpacing: 0.5,
+          fontFamily: 'JetBrains Mono, monospace',
+        }}>·{scheme.name.toUpperCase()}·</div>
+      </div>
+
+      <div style={{ flex: 1, display: 'grid', placeItems: 'center', gap: 20 }}>
+        <concept.Mascot size={200} brand={c.brand} ink={c.ink} accent={c.accent} />
+      </div>
+      <concept.Wordmark size={0.7} ink={c.ink} brand={c.brand} accent={c.accent} />
+      <div style={{ fontSize: 13, opacity: 0.7, lineHeight: 1.5, maxWidth: '90%' }}>{concept.tagline}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Mode pair — light + dark side by side for one scheme
+// ─────────────────────────────────────────────────────────────
+function ColorModePair({ scheme }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', height: '100%', width: '100%' }}>
+      <SchemeCard scheme={scheme} mode="light" />
+      <SchemeCard scheme={scheme} mode="dark" />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Token table — displays the full color token list cleanly
+// ─────────────────────────────────────────────────────────────
+function TokenTable({ scheme }) {
+  const tokens = ['bg', 'surface', 'ink', 'muted', 'brand', 'brandInk', 'accent', 'accentInk', 'ring'];
+  return (
+    <div style={{
+      width: '100%', height: '100%', background: '#FCFAF5',
+      padding: 24, fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        fontSize: 16, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700,
+        marginBottom: 4, letterSpacing: -0.3, color: '#1B1726',
+      }}>{scheme.name} · Tokens</div>
+      <div style={{ fontSize: 10, opacity: 0.55, marginBottom: 14, color: '#1B1726' }}>
+        Use these names directly in code · CSS vars: --hc-{'<token>'}
+      </div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', color: '#1B1726' }}>
+        <thead>
+          <tr style={{ fontSize: 9, opacity: 0.5, textTransform: 'uppercase', letterSpacing: 1 }}>
+            <td style={{ padding: '6px 6px', textAlign: 'left' }}>token</td>
+            <td style={{ padding: '6px 6px' }}>light</td>
+            <td style={{ padding: '6px 6px' }}>dark</td>
+          </tr>
+        </thead>
+        <tbody>
+          {tokens.map((t) => (
+            <tr key={t} style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+              <td style={{ padding: '8px 6px', fontWeight: 600 }}>{t}</td>
+              <td style={{ padding: '8px 6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 18, height: 18, borderRadius: 3, background: scheme.light[t], boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)' }} />
+                  {scheme.light[t]}
+                </div>
+              </td>
+              <td style={{ padding: '8px 6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 18, height: 18, borderRadius: 3, background: scheme.dark[t], boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)' }} />
+                  {scheme.dark[t]}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Schemes Section
+// ─────────────────────────────────────────────────────────────
+function SchemesSection() {
+  return (
+    <DCSection id="schemes" title="01 · Color Schemes" subtitle="Three directions. Light is primary; dark is secondary. Pick a vibe.">
+      {Object.entries(SCHEMES).map(([key, scheme]) => (
+        <DCArtboard key={key} id={key} label={`${scheme.name} · light + dark`} width={820} height={520}>
+          <ColorModePair scheme={scheme} />
+        </DCArtboard>
+      ))}
+      {Object.entries(SCHEMES).map(([key, scheme]) => (
+        <DCArtboard key={`${key}-tokens`} id={`${key}-tokens`} label={`${scheme.name} · tokens`} width={360} height={520}>
+          <TokenTable scheme={scheme} />
+        </DCArtboard>
+      ))}
+    </DCSection>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Concept Sections — one per logo concept, with all 7 lockups
+// ─────────────────────────────────────────────────────────────
+function ConceptSection({ concept, scheme, sectionNum }) {
+  return (
+    <DCSection
+      id={`concept-${concept.id}`}
+      title={`0${sectionNum} · ${concept.name}`}
+      subtitle={concept.tagline}
+    >
+      <DCArtboard id="hero" label="Hero · all-in-one" width={520} height={520}>
+        <ConceptHero concept={concept} scheme={scheme} />
+      </DCArtboard>
+      <DCArtboard id="horizontal" label="Horizontal lockup" width={560} height={240}>
+        <HorizontalLockup concept={concept} scheme={scheme} />
+      </DCArtboard>
+      <DCArtboard id="stacked" label="Stacked lockup" width={380} height={360}>
+        <StackedLockup concept={concept} scheme={scheme} />
+      </DCArtboard>
+      <DCArtboard id="app-icon" label="App Icon" width={400} height={420}>
+        <AppIconLockup concept={concept} scheme={scheme} />
+      </DCArtboard>
+      <DCArtboard id="favicon" label="Favicon scale" width={520} height={300}>
+        <FaviconLockup concept={concept} scheme={scheme} />
+      </DCArtboard>
+      <DCArtboard id="monogram" label="Monogram" width={560} height={260}>
+        <MonogramLockup concept={concept} scheme={scheme} />
+      </DCArtboard>
+      <DCArtboard id="wordmark" label="Wordmark only" width={420} height={400}>
+        <WordmarkLockup concept={concept} scheme={scheme} />
+      </DCArtboard>
+      <DCArtboard id="animated" label="Animated / loading" width={360} height={400}>
+        <AnimatedLockup concept={concept} scheme={scheme} />
+      </DCArtboard>
+    </DCSection>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Tweaks panel — let user swap which color scheme drives the lockups
+// ─────────────────────────────────────────────────────────────
+function SchemePicker({ schemeKey, setSchemeKey }) {
+  return (
+    <div style={{
+      position: 'fixed', top: 16, right: 16, zIndex: 50,
+      background: '#1B1726', color: '#F5F1E6',
+      padding: '12px 14px', borderRadius: 12,
+      fontFamily: '"Space Grotesk", sans-serif', fontSize: 12,
+      boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+      display: 'flex', flexDirection: 'column', gap: 8,
+      minWidth: 200,
+    }}>
+      <div style={{ fontSize: 9, letterSpacing: 1.5, opacity: 0.5, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase' }}>
+        Logo color scheme
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {Object.entries(SCHEMES).map(([k, s]) => (
+          <button key={k} onClick={() => setSchemeKey(k)}
+            style={{
+              border: 'none', cursor: 'pointer', textAlign: 'left',
+              padding: '8px 10px', borderRadius: 6,
+              background: schemeKey === k ? s.light.brand : 'transparent',
+              color: schemeKey === k ? s.light.brandInk : '#F5F1E6',
+              fontFamily: 'inherit', fontSize: 12, fontWeight: schemeKey === k ? 700 : 500,
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+            <div style={{ display: 'flex', gap: 2 }}>
+              <div style={{ width: 12, height: 12, borderRadius: 2, background: s.light.brand }} />
+              <div style={{ width: 12, height: 12, borderRadius: 2, background: s.light.accent }} />
+              <div style={{ width: 12, height: 12, borderRadius: 2, background: s.light.ink }} />
+            </div>
+            {s.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// App
+// ─────────────────────────────────────────────────────────────
+function App() {
+  const [schemeKey, setSchemeKey] = useState('citrus');
+  const scheme = SCHEMES[schemeKey];
+
+  return (
+    <>
+      <SchemePicker schemeKey={schemeKey} setSchemeKey={setSchemeKey} />
+      <DesignCanvas>
+        <DCSection id="cover" title="Haba-Chewoah" subtitle="Brand exploration · v1">
+          <DCArtboard id="cover" label="Read me first" width={900} height={460}>
+            <CoverArtboard />
+          </DCArtboard>
+        </DCSection>
+
+        <SchemesSection />
+
+        {CONCEPTS.map((concept, i) => (
+          <ConceptSection key={concept.id} concept={concept} scheme={scheme} sectionNum={i + 2} />
+        ))}
+      </DesignCanvas>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

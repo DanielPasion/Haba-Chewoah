@@ -1,5 +1,7 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Haba-Chewoah · Prisma schema
+// Mirrors .claude/db/schema.dbml + 001_init.sql.
+// Read .claude/db/NOTES.md for cascades, enum enforcement, polymorphic
+// reports cleanup, timezone handling, streaks, blocks, etc.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,34 +12,120 @@ datasource db {
   provider = "postgresql"
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// ============================================================
+// ENUMS
+// ============================================================
 
-  createdBy   User   @relation(fields: [createdById], references: [id])
-  createdById String
+enum FrequencyType {
+  daily
+  weekly
+  n_per_period
 
-  @@index([name])
+  @@map("frequency_type")
 }
 
-// Necessary for Next auth
+enum HabitStatus {
+  active
+  succeeded
+  failed
+  abandoned
+
+  @@map("habit_status")
+}
+
+enum ReportTargetType {
+  user
+  comment
+  habit_log
+
+  @@map("report_target_type")
+}
+
+enum ReportStatus {
+  pending
+  reviewed
+  dismissed
+
+  @@map("report_status")
+}
+
+enum NotificationType {
+  follow
+  like
+  comment
+
+  @@map("notification_type")
+}
+
+enum DevicePlatform {
+  ios
+  android
+  web
+
+  @@map("device_platform")
+}
+
+// ============================================================
+// USERS + NEXTAUTH (Discord OAuth only)
+//
+// NextAuth's adapter requires Account / Session / VerificationToken.
+// User holds both the auth shell (name/email/image populated by NextAuth
+// from Discord) and the app profile (discordId, username, bio, timezone).
+// discordId and username are nullable in Prisma — populated by the
+// signIn callback on first OAuth round-trip and required by app code
+// before the user is considered "onboarded".
+// ============================================================
+
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime? @db.Timestamptz
+  image         String?
+
+  discordId String?  @unique @map("discord_id")
+  username  String?  @unique
+  bio       String?
+  timezone  String   @default("UTC")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  accounts Account[]
+  sessions Session[]
+
+  habits                 Habit[]
+  habitLogs              HabitLog[]
+  followers              Follow[]       @relation("Following")
+  following              Follow[]       @relation("Follower")
+  blockers               Block[]        @relation("Blocked")
+  blocking               Block[]        @relation("Blocker")
+  reports                Report[]
+  likes                  Like[]
+  comments               Comment[]
+  notifications          Notification[] @relation("Recipient")
+  triggeredNotifications Notification[] @relation("Actor")
+  deviceTokens           DeviceToken[]
+
+  @@index([discordId])
+  @@index([username])
+  @@map("users")
+}
+
 model Account {
   id                       String  @id @default(cuid())
-  userId                   String
+  userId                   String  @db.Uuid
   type                     String
   provider                 String
   providerAccountId        String
-  refresh_token            String? // @db.Text
-  access_token             String? // @db.Text
+  refresh_token            String?
+  access_token             String?
   expires_at               Int?
   token_type               String?
   scope                    String?
-  id_token                 String? // @db.Text
+  id_token                 String?
   session_state            String?
-  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   refresh_token_expires_in Int?
+  user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -45,26 +133,192 @@ model Account {
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique
-  userId       String
-  expires      DateTime
+  userId       String   @db.Uuid
+  expires      DateTime @db.Timestamptz
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  posts         Post[]
 }
 
 model VerificationToken {
   identifier String
   token      String   @unique
-  expires    DateTime
+  expires    DateTime @db.Timestamptz
 
   @@unique([identifier, token])
+}
+
+// ============================================================
+// HABITS
+// ============================================================
+
+model Habit {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  icon        String?
+  color       String?
+
+  frequencyType FrequencyType @map("frequency_type")
+  targetCount   Int           @default(1) @map("target_count")
+  periodDays    Int?          @map("period_days")
+
+  startDate           DateTime?   @map("start_date") @db.Date
+  endDate             DateTime?   @map("end_date") @db.Date
+  requiredCompletions Int?        @map("required_completions")
+  status              HabitStatus @default(active)
+
+  isPublic  Boolean  @default(true) @map("is_public")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  schedules HabitSchedule[]
+  logs      HabitLog[]
+
+  @@index([userId])
+  @@index([userId, status])
+  @@map("habits")
+}
+
+model HabitSchedule {
+  id              String    @id @default(uuid()) @db.Uuid
+  habitId         String    @map("habit_id") @db.Uuid
+  habit           Habit     @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  dayOfWeek       Int?      @map("day_of_week")
+  reminderTime    DateTime? @map("reminder_time") @db.Time
+  reminderEnabled Boolean   @default(true) @map("reminder_enabled")
+
+  @@index([habitId])
+  @@map("habit_schedules")
+}
+
+model HabitLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  habitId     String   @map("habit_id") @db.Uuid
+  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  userId      String   @map("user_id") @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completedAt DateTime @map("completed_at") @db.Timestamptz
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  likes         Like[]
+  comments      Comment[]
+  notifications Notification[]
+
+  @@index([habitId])
+  @@index([userId])
+  @@index([userId, completedAt])
+  @@index([habitId, completedAt])
+  @@map("habit_logs")
+}
+
+// ============================================================
+// SOCIAL
+// ============================================================
+
+model Follow {
+  followerId  String   @map("follower_id") @db.Uuid
+  followingId String   @map("following_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Block {
+  blockerId String   @map("blocker_id") @db.Uuid
+  blockedId String   @map("blocked_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  blocker User @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("blocks")
+}
+
+// reports.targetId is polymorphic — no FK. Cleanup job required (see NOTES.md §3).
+model Report {
+  id         String           @id @default(uuid()) @db.Uuid
+  reporterId String           @map("reporter_id") @db.Uuid
+  reporter   User             @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType ReportTargetType @map("target_type")
+  targetId   String           @map("target_id") @db.Uuid
+  reason     String
+  status     ReportStatus     @default(pending)
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([targetType, targetId])
+  @@index([status])
+  @@map("reports")
+}
+
+model Like {
+  userId     String   @map("user_id") @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habitLogId String   @map("habit_log_id") @db.Uuid
+  habitLog   HabitLog @relation(fields: [habitLogId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([userId, habitLogId])
+  @@index([habitLogId])
+  @@map("likes")
+}
+
+model Comment {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  habitLogId String   @map("habit_log_id") @db.Uuid
+  habitLog   HabitLog @relation(fields: [habitLogId], references: [id], onDelete: Cascade)
+  content    String
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  notifications Notification[]
+
+  @@index([habitLogId])
+  @@index([userId])
+  @@map("comments")
+}
+
+// ============================================================
+// NOTIFICATIONS + PUSH
+// ============================================================
+
+model Notification {
+  id         String           @id @default(uuid()) @db.Uuid
+  userId     String           @map("user_id") @db.Uuid
+  user       User             @relation("Recipient", fields: [userId], references: [id], onDelete: Cascade)
+  actorId    String?          @map("actor_id") @db.Uuid
+  actor      User?            @relation("Actor", fields: [actorId], references: [id], onDelete: Cascade)
+  type       NotificationType
+  habitLogId String?          @map("habit_log_id") @db.Uuid
+  habitLog   HabitLog?        @relation(fields: [habitLogId], references: [id], onDelete: Cascade)
+  commentId  String?          @map("comment_id") @db.Uuid
+  comment    Comment?         @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  isRead     Boolean          @default(false) @map("is_read")
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model DeviceToken {
+  token      String         @id
+  userId     String         @map("user_id") @db.Uuid
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform   DevicePlatform
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  lastUsedAt DateTime?      @map("last_used_at") @db.Timestamptz
+
+  @@index([userId])
+  @@map("device_tokens")
 }

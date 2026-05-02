@@ -120,12 +120,18 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
-exports.Prisma.PostScalarFieldEnum = {
+exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  email: 'email',
+  emailVerified: 'emailVerified',
+  image: 'image',
+  discordId: 'discordId',
+  username: 'username',
+  bio: 'bio',
+  timezone: 'timezone',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  createdById: 'createdById'
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.AccountScalarFieldEnum = {
@@ -151,18 +157,101 @@ exports.Prisma.SessionScalarFieldEnum = {
   expires: 'expires'
 };
 
-exports.Prisma.UserScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  email: 'email',
-  emailVerified: 'emailVerified',
-  image: 'image'
-};
-
 exports.Prisma.VerificationTokenScalarFieldEnum = {
   identifier: 'identifier',
   token: 'token',
   expires: 'expires'
+};
+
+exports.Prisma.HabitScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  description: 'description',
+  icon: 'icon',
+  color: 'color',
+  frequencyType: 'frequencyType',
+  targetCount: 'targetCount',
+  periodDays: 'periodDays',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  requiredCompletions: 'requiredCompletions',
+  status: 'status',
+  isPublic: 'isPublic',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.HabitScheduleScalarFieldEnum = {
+  id: 'id',
+  habitId: 'habitId',
+  dayOfWeek: 'dayOfWeek',
+  reminderTime: 'reminderTime',
+  reminderEnabled: 'reminderEnabled'
+};
+
+exports.Prisma.HabitLogScalarFieldEnum = {
+  id: 'id',
+  habitId: 'habitId',
+  userId: 'userId',
+  completedAt: 'completedAt',
+  notes: 'notes',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FollowScalarFieldEnum = {
+  followerId: 'followerId',
+  followingId: 'followingId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.BlockScalarFieldEnum = {
+  blockerId: 'blockerId',
+  blockedId: 'blockedId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ReportScalarFieldEnum = {
+  id: 'id',
+  reporterId: 'reporterId',
+  targetType: 'targetType',
+  targetId: 'targetId',
+  reason: 'reason',
+  status: 'status',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.LikeScalarFieldEnum = {
+  userId: 'userId',
+  habitLogId: 'habitLogId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.CommentScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  habitLogId: 'habitLogId',
+  content: 'content',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  actorId: 'actorId',
+  type: 'type',
+  habitLogId: 'habitLogId',
+  commentId: 'commentId',
+  isRead: 'isRead',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.DeviceTokenScalarFieldEnum = {
+  token: 'token',
+  userId: 'userId',
+  platform: 'platform',
+  createdAt: 'createdAt',
+  lastUsedAt: 'lastUsedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -179,14 +268,58 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+exports.FrequencyType = exports.$Enums.FrequencyType = {
+  daily: 'daily',
+  weekly: 'weekly',
+  n_per_period: 'n_per_period'
+};
 
+exports.HabitStatus = exports.$Enums.HabitStatus = {
+  active: 'active',
+  succeeded: 'succeeded',
+  failed: 'failed',
+  abandoned: 'abandoned'
+};
+
+exports.ReportTargetType = exports.$Enums.ReportTargetType = {
+  user: 'user',
+  comment: 'comment',
+  habit_log: 'habit_log'
+};
+
+exports.ReportStatus = exports.$Enums.ReportStatus = {
+  pending: 'pending',
+  reviewed: 'reviewed',
+  dismissed: 'dismissed'
+};
+
+exports.NotificationType = exports.$Enums.NotificationType = {
+  follow: 'follow',
+  like: 'like',
+  comment: 'comment'
+};
+
+exports.DevicePlatform = exports.$Enums.DevicePlatform = {
+  ios: 'ios',
+  android: 'android',
+  web: 'web'
+};
 
 exports.Prisma.ModelName = {
-  Post: 'Post',
+  User: 'User',
   Account: 'Account',
   Session: 'Session',
-  User: 'User',
-  VerificationToken: 'VerificationToken'
+  VerificationToken: 'VerificationToken',
+  Habit: 'Habit',
+  HabitSchedule: 'HabitSchedule',
+  HabitLog: 'HabitLog',
+  Follow: 'Follow',
+  Block: 'Block',
+  Report: 'Report',
+  Like: 'Like',
+  Comment: 'Comment',
+  Notification: 'Notification',
+  DeviceToken: 'DeviceToken'
 };
 
 /**
