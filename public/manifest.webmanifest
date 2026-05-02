@@ -1,0 +1,26 @@
+{
+  "name": "Haba-Chewoah",
+  "short_name": "Haba-Chewoah",
+  "description": "Bet on yourself. Log your streak. Dare your friends.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F6F3EB",
+  "theme_color": "#1F1B2E",
+  "categories": ["lifestyle", "social", "productivity"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ]
+}

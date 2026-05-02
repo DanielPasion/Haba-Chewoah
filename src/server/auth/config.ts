@@ -31,6 +31,10 @@ async function deriveUsername(seed: string | null | undefined): Promise<string> 
 export const authConfig = {
   providers: [DiscordProvider],
   adapter: PrismaAdapter(db),
+  pages: {
+    signIn: "/auth/signin",
+    error: "/auth/error",
+  },
   callbacks: {
     session: ({ session, user }) => ({
       ...session,
