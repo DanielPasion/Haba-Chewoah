@@ -25,11 +25,38 @@ const securityHeaders = [
   },
 ];
 
+/**
+ * Allowlist hosts for `next/image`. We parse R2_PUBLIC_URL outside the env
+ * validator because next.config runs without it; a missing/invalid value
+ * should warn-and-skip rather than crash the build.
+ *
+ * @type {Array<import("next").NextConfig extends { images?: { remotePatterns?: infer R } } ? (R extends Array<infer P> ? P : never) : never>}
+ */
+const remotePatterns = [
+  { protocol: "https", hostname: "cdn.discordapp.com", pathname: "/avatars/**" },
+];
+
+if (process.env.R2_PUBLIC_URL) {
+  try {
+    const u = new URL(process.env.R2_PUBLIC_URL);
+    if (u.protocol === "https:" || u.protocol === "http:") {
+      remotePatterns.push({
+        protocol: /** @type {"http" | "https"} */ (u.protocol.slice(0, -1)),
+        hostname: u.hostname,
+        pathname: "/**",
+      });
+    }
+  } catch {
+    console.warn("[next.config] R2_PUBLIC_URL is not a valid URL; skipping image allowlist entry");
+  }
+}
+
 /** @type {import("next").NextConfig} */
 const config = {
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  images: { remotePatterns },
 };
 
 export default config;
