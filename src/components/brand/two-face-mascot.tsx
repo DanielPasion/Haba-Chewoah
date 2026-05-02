@@ -1,3 +1,5 @@
+import { BRAND } from "./colors";
+
 type Mood = "default" | "wink" | "sweat" | "smug" | "dead" | "celebrate";
 
 type TwoFaceMascotProps = {
@@ -14,13 +16,13 @@ export function TwoFaceMascot({
   size = 200,
   mood = "default",
   bg,
-  brand = "#D8FF3C",
-  ink = "#1B1726",
-  accent = "#FF4D8D",
+  brand = BRAND.brand,
+  ink = BRAND.inkLegacy,
+  accent = BRAND.mascotTongue,
   className,
 }: TwoFaceMascotProps) {
   const left = brand;
-  const right = "#FFFFFF";
+  const right = BRAND.white;
   const headFill = bg ?? ink;
 
   return (

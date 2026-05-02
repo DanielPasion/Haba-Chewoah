@@ -1,21 +1,10 @@
-import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { StickerCard } from "~/components/brand/sticker-card";
 
 export default function Loading() {
   return (
-    <main className="grid min-h-screen place-items-center bg-hc-bg px-6">
+    <main className="grid min-h-dvh place-items-center bg-hc-bg px-6">
       <div className="flex flex-col items-center gap-7 text-center">
-        <div
-          className="grid place-items-center rounded-hc-5 bg-hc-brand"
-          style={{
-            width: 160,
-            height: 160,
-            border: "2px solid var(--color-hc-ink)",
-            boxShadow: "var(--shadow-hc-stamp)",
-            animation: "hc-title-fade 0.4s ease-out",
-          }}
-        >
-          <TwoFaceMascot size={120} />
-        </div>
+        <StickerCard size={160} mascotSize={120} rotate={-2} shadowOffset={4} />
 
         <div className="flex flex-col items-center gap-3">
           <div className="flex gap-2.5">

@@ -2,6 +2,7 @@ import { type Metadata } from "next";
 import Link from "next/link";
 
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { buttonClass } from "~/components/ui";
 
 export const metadata: Metadata = { title: "Sign-in error" };
 
@@ -36,7 +37,7 @@ export default async function AuthErrorPage({
   const { title, sub } = COPY[code] ?? COPY.Default!;
 
   return (
-    <main className="grid min-h-screen place-items-center bg-hc-bg px-6">
+    <main className="grid min-h-dvh place-items-center bg-hc-bg px-6">
       <div className="flex w-full max-w-[420px] flex-col items-center gap-7 text-center">
         <TwoFaceMascot size={140} mood="dead" />
         <div className="flex flex-col gap-2">
@@ -53,7 +54,7 @@ export default async function AuthErrorPage({
         </div>
         <Link
           href="/auth/signin"
-          className="rounded-hc-2 bg-hc-ink px-6 py-3 font-sans text-sm font-bold text-hc-brand"
+          className={buttonClass({ variant: "primary", size: "md" })}
         >
           try again
         </Link>

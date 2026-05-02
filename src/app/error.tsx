@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { Button, buttonClass } from "~/components/ui";
 
 export default function ErrorBoundary({
   error,
@@ -17,7 +18,7 @@ export default function ErrorBoundary({
   }, [error]);
 
   return (
-    <main className="grid min-h-screen place-items-center bg-hc-bg px-6">
+    <main className="grid min-h-dvh place-items-center bg-hc-bg px-6">
       <div className="flex w-full max-w-[440px] flex-col items-center gap-7 text-center">
         <TwoFaceMascot size={140} mood="sweat" />
 
@@ -41,16 +42,12 @@ export default function ErrorBoundary({
         </div>
 
         <div className="flex w-full flex-col gap-2.5">
-          <button
-            type="button"
-            onClick={reset}
-            className="cursor-pointer rounded-hc-2 bg-hc-ink px-6 py-3.5 font-sans text-base font-bold text-hc-brand"
-          >
+          <Button variant="primary" size="lg" fullWidth onClick={reset}>
             try again
-          </button>
+          </Button>
           <Link
             href="/"
-            className="rounded-hc-2 border-[1.5px] border-hc-ink px-6 py-3 text-center font-sans text-sm font-semibold text-hc-ink"
+            className={buttonClass({ variant: "secondary", size: "md", fullWidth: true })}
           >
             ← back to landing
           </Link>
