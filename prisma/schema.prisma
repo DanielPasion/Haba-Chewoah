@@ -68,12 +68,21 @@ enum DevicePlatform {
 // ============================================================
 // USERS + NEXTAUTH (Discord OAuth only)
 //
-// NextAuth's adapter requires Account / Session / VerificationToken.
-// User holds both the auth shell (name/email/image populated by NextAuth
-// from Discord) and the app profile (discordId, username, bio, timezone).
-// discordId and username are nullable in Prisma — populated by the
-// signIn callback on first OAuth round-trip and required by app code
-// before the user is considered "onboarded".
+// Per design (.claude/db/schema.dbml): users.discord_id is the immutable
+// auth-only identity (NOT NULL UNIQUE), users.username is the user-chosen
+// public handle and is NULL until the user completes /create-account.
+// `username IS NULL` is the canonical "needs onboarding" signal — no
+// boolean flag duplicates this state.
+//
+// Auth-required exceptions (NOT in design canon, kept because NextAuth's
+// PrismaAdapter requires them):
+//   - User.name / email / emailVerified / image (auth shell, populated
+//     from Discord profile)
+//   - Account / Session / VerificationToken tables
+// `image` is mapped to the design column `avatar_url`.
+//
+// `discordId` is set during the Discord provider's `profile()` callback
+// so the very first INSERT satisfies NOT NULL — see src/server/auth/config.ts.
 // ============================================================
 
 model User {
@@ -81,9 +90,9 @@ model User {
   name          String?
   email         String?   @unique
   emailVerified DateTime? @db.Timestamptz
-  image         String?
+  image         String?   @map("avatar_url")
 
-  discordId String?  @unique @map("discord_id")
+  discordId String   @unique @map("discord_id")
   username  String?  @unique
   bio       String?
   timezone  String   @default("UTC")

@@ -358,13 +358,16 @@ Decision: **deferred**. Add when it becomes a UX gap.
 - Streaks table (chosen against — computed on read)
 - Habit templates (chosen against — fully self-determined)
 - Achievements/badges table (chosen against — computed only)
-- Sessions/refresh tokens (Discord OAuth handles auth state)
-- Email verification / password reset tokens (no passwords; Discord OAuth only)
 - Private accounts (chosen against)
 - Reminder details column (chosen against)
 - `count` on habit logs (chosen against — multiple events = multiple rows)
 
 If any of these come back into scope, they're additive and won't break existing data.
+
+> **Note on auth tables.** Earlier drafts of this list excluded
+> `sessions` and `verification_tokens`. We've since had to add them — see
+> §16 — because `@auth/prisma-adapter` requires them with the database
+> session strategy.
 
 ---
 
@@ -391,3 +394,66 @@ users
 
 reports.target_id — NO FK, polymorphic, cleanup job required
 ```
+
+---
+
+## 16. Auth Model (Discord-only) and the `username` Onboarding Indicator
+
+The "design docs are canonical" rule has one carve-out: anything required by
+`@auth/prisma-adapter` to make NextAuth work. Everything below is part of
+that carve-out.
+
+### Identity vs handle
+
+- **`users.discord_id`** — Discord OAuth subject. Set during the provider's
+  `profile()` callback in `src/server/auth/config.ts`, so the very first
+  INSERT done by `PrismaAdapter.createUser` already has it. NOT NULL UNIQUE.
+  Auth-only — never displayed in UI.
+- **`users.username`** — user-chosen public handle. **Nullable.** Stays
+  NULL until the user picks one through `/create-account`. We do **not**
+  derive it from the Discord profile.
+
+### `username IS NULL` is the onboarding indicator
+
+This is the single source of truth for "has the user finished onboarding?":
+
+- `session?.user && username === null` → user is authenticated but has no
+  handle yet. They can only access `/create-account`. Every other
+  authenticated route redirects them there.
+- `session?.user && username !== null` → fully onboarded. They cannot
+  re-enter `/create-account` (it redirects to `/feed`).
+
+There is no separate `onboarded` boolean — the username's existence is the
+flag. Don't add one; you'd have to keep two things in sync.
+
+### Auth-required tables and fields
+
+The following exist purely because the Prisma adapter needs them. They are
+not in the original DBML draft and should be treated as infrastructure, not
+domain data:
+
+| Item | Reason |
+| --- | --- |
+| `accounts` | OAuth provider tokens; provider+account_id unique |
+| `sessions` | DB session strategy (we're not using JWT) |
+| `verification_tokens` | Adapter requires the table even though Discord-only OAuth never writes to it |
+| `users.name` | NextAuth shell field; populated from Discord |
+| `users.email` | NextAuth shell field; populated from Discord |
+| `users.email_verified` | NextAuth shell field; unused for OAuth-only |
+| `users.image` (Prisma name; column is `avatar_url`) | NextAuth shell field |
+
+### Cascades for auth tables
+
+`accounts.user_id`, `sessions.user_id` → `users.id` ON DELETE CASCADE. A
+hard-delete of a user wipes their auth artifacts along with everything
+else (matches the broader cascade doctrine in §1).
+
+### Why NOT JWT sessions
+
+We could drop `sessions` and `verification_tokens` by switching to
+`session: { strategy: "jwt" }`. We didn't, because:
+- DB sessions let you revoke from the server (delete the row).
+- DB sessions let you query "who is logged in right now" trivially.
+- The cost is two extra tables and one extra round-trip per auth check.
+
+Revisit if write volume becomes a concern.

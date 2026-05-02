@@ -23,23 +23,77 @@ CREATE TYPE device_platform AS ENUM ('ios', 'android', 'web');
 
 -- ============================================================
 -- USERS
+--   `username` is nullable — NULL means the user has authenticated via
+--   Discord but has not yet picked a public handle through /create-account.
+--   Once set, it must match the regex.
+--   `discord_id` is set during OAuth (in the provider's `profile()`
+--   callback), so the very first INSERT satisfies NOT NULL.
+--
+--   NextAuth-adapter-required fields (`name`, `email`, `email_verified`)
+--   are kept here as the only allowed deviation from "design canonical".
 -- ============================================================
 
 CREATE TABLE users (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   discord_id     varchar NOT NULL UNIQUE,
-  username       varchar NOT NULL UNIQUE,
+  username       varchar UNIQUE,
   bio            text,
   avatar_url     varchar,
   timezone       varchar NOT NULL DEFAULT 'UTC',
   created_at     timestamptz NOT NULL DEFAULT now(),
-  updated_at     timestamptz,
+  updated_at     timestamptz NOT NULL DEFAULT now(),
 
-  CONSTRAINT username_format CHECK (username ~ '^[a-zA-Z0-9_]{3,32}$')
+  -- [auth-required] NextAuth adapter shell
+  name           varchar,
+  email          varchar UNIQUE,
+  email_verified timestamptz,
+
+  CONSTRAINT username_format CHECK (
+    username IS NULL OR username ~ '^[a-zA-Z0-9_]{3,32}$'
+  )
 );
 
 CREATE INDEX users_discord_id_idx ON users (discord_id);
 CREATE INDEX users_username_idx   ON users (username);
+
+-- ============================================================
+-- AUTH TABLES (NextAuth / @auth/prisma-adapter required)
+-- Database session strategy. All cascade from users so a user
+-- deletion wipes their auth artifacts.
+-- ============================================================
+
+CREATE TABLE accounts (
+  id                       varchar PRIMARY KEY,
+  user_id                  uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type                     varchar NOT NULL,
+  provider                 varchar NOT NULL,
+  provider_account_id      varchar NOT NULL,
+  refresh_token            varchar,
+  access_token             varchar,
+  expires_at               int,
+  token_type               varchar,
+  scope                    varchar,
+  id_token                 varchar,
+  session_state            varchar,
+  refresh_token_expires_in int,
+
+  UNIQUE (provider, provider_account_id)
+);
+
+CREATE TABLE sessions (
+  id            varchar PRIMARY KEY,
+  session_token varchar NOT NULL UNIQUE,
+  user_id       uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires       timestamptz NOT NULL
+);
+
+CREATE TABLE verification_tokens (
+  identifier varchar NOT NULL,
+  token      varchar NOT NULL UNIQUE,
+  expires    timestamptz NOT NULL,
+
+  UNIQUE (identifier, token)
+);
 
 -- ============================================================
 -- HABITS
