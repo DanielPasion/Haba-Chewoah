@@ -42,7 +42,7 @@ export default async function CreateAccountPage() {
 
   return (
     <main className="grid min-h-dvh w-full place-items-center bg-hc-bg px-6 py-10">
-      <div className="flex w-full max-w-[460px] flex-col items-center gap-8">
+      <div className="flex w-full max-w-115 flex-col items-center gap-8">
         <Link href="/">
           <LogoText size={20} />
         </Link>
@@ -52,10 +52,9 @@ export default async function CreateAccountPage() {
             className="font-display text-4xl font-extrabold leading-none text-hc-ink"
             style={{ letterSpacing: "-0.04em" }}
           >
-            claim your nickname{" "}
-            <span className="text-hc-accent">→</span>
+            claim your username <span className="text-hc-accent">→</span>
           </h1>
-          <p className="max-w-[340px] text-sm text-hc-muted">
+          <p className="max-w-85 text-sm text-hc-muted">
             Pick a handle, a vibe, and a timezone. You can change all of this
             later.
           </p>
