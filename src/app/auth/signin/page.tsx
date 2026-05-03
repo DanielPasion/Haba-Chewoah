@@ -41,10 +41,6 @@ export default async function SignInPage({
           >
             log in <span className="text-hc-accent">→</span>
           </h1>
-          <p className="max-w-[320px] text-sm text-hc-muted">
-            We use Discord. No passwords, no email gymnastics — one click and
-            you&apos;re in.
-          </p>
         </div>
 
         {params.error && <ErrorBanner code={params.error} />}

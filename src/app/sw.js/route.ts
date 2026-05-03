@@ -72,8 +72,6 @@ self.addEventListener("fetch", (event) => {
     );
     return;
   }
-
-  // Other same-origin GETs: pass through to network without caching.
 });
 `;
 

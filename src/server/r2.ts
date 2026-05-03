@@ -9,17 +9,11 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { env } from "~/env";
 
-/**
- * R2 is S3-compatible. The endpoint is account-scoped:
- *   https://<account_id>.r2.cloudflarestorage.com
- * Region must be "auto" — R2 doesn't honor region routing.
- *
- * `requestChecksumCalculation: "WHEN_REQUIRED"` is critical: recent versions
- * of @aws-sdk/client-s3 (post-Jan 2025) default to "WHEN_SUPPORTED", which
- * bakes `x-amz-sdk-checksum-algorithm` into presigned PutObject URLs. R2
- * rejects/blocks those, and the browser surfaces it as a CORS/network error.
- * Same story for response checksum validation.
- */
+// `requestChecksumCalculation: "WHEN_REQUIRED"` is critical: post-Jan-2025
+// @aws-sdk/client-s3 defaults to "WHEN_SUPPORTED", which bakes
+// `x-amz-sdk-checksum-algorithm` into presigned PutObject URLs. R2 rejects
+// those and the browser surfaces it as a CORS/network error. Same for
+// response checksum validation. Region must be "auto" — R2 ignores it.
 const r2 = new S3Client({
   region: "auto",
   endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -55,16 +49,9 @@ export type AvatarUploadGrant = {
 
 const AVATAR_PRESIGN_EXPIRES_SECONDS = 300; // 5 min — covers slow mobile uploads
 
-/**
- * Issue a short-lived presigned PUT URL (5 min) scoped to a specific user's
- * avatar prefix. The browser uploads directly to R2 — we never proxy bytes.
- *
- * The URL is *time-limited*, not single-use: the holder can PUT to the same
- * key any number of times within the expiry window. That's fine because the
- * key itself is server-generated and unguessable (UUID), and namespaced as
- * `users/<userId>/avatar/<uuid>.<ext>`. The matching `isOwnedAvatarKey`
- * check at write-time prevents another user from claiming the key as theirs.
- */
+// Time-limited, not single-use: the holder can PUT to the key any number of
+// times within the expiry window. Safe because the key is server-generated
+// (UUID) and `isOwnedAvatarKey` prevents another user from claiming it.
 export async function presignAvatarUpload({
   userId,
   contentType,
@@ -98,12 +85,7 @@ export async function presignAvatarUpload({
   };
 }
 
-/**
- * Best-effort delete of an R2 object. Used to clean up uploads that won't be
- * referenced — e.g., a user grabs a presigned URL, completes the upload, then
- * the profile-save step fails (username taken, race lost). Fire-and-forget;
- * we never want a cleanup failure to mask the real error from the caller.
- */
+// Fire-and-forget — a cleanup failure must never mask the real error.
 export async function deleteAvatarObject(objectKey: string): Promise<void> {
   try {
     await r2.send(
@@ -114,11 +96,7 @@ export async function deleteAvatarObject(objectKey: string): Promise<void> {
   }
 }
 
-/**
- * Verify that an object key belongs to the given user. Used server-side
- * before persisting an avatar URL so a malicious client can't claim
- * another user's object as their own.
- */
+// Server-side guard so a malicious client can't claim another user's object.
 export function isOwnedAvatarKey(objectKey: string, userId: string): boolean {
   return (
     objectKey.startsWith(`users/${userId}/avatar/`) &&
@@ -131,13 +109,8 @@ export function publicUrlForKey(objectKey: string): string {
   return `${env.R2_PUBLIC_URL}/${objectKey}`;
 }
 
-/**
- * Inverse of `publicUrlForKey` for cleanup paths. Returns the object key only
- * when the URL is an R2 avatar we host *and* belongs to the given user; otherwise
- * null. Used by /profile/edit to delete the user's prior avatar when they
- * replace it — Discord CDN URLs (e.g., the OAuth-provided default) and other
- * external URLs return null so we never try to delete something we don't own.
- */
+// Returns null for non-R2 URLs (e.g. Discord CDN avatars) so cleanup paths
+// never try to delete storage we don't own.
 export function ownedAvatarKeyFromPublicUrl(
   url: string,
   userId: string,

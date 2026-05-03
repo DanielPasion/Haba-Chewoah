@@ -4,9 +4,6 @@ type QRBlockProps = {
 };
 
 export function QRBlock({ size = 110, caption = "install · scan" }: QRBlockProps) {
-  // Visual-only faux-QR: 13×13 deterministic noise pattern with three filled
-  // corner anchors. Real install URL on phones lives in the manifest's
-  // start_url; this is decorative until we ship a real QR.
   const cells = Array.from({ length: 169 }, (_, i) => {
     const x = i % 13;
     const y = Math.floor(i / 13);

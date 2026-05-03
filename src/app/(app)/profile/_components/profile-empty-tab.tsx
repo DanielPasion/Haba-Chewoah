@@ -2,11 +2,6 @@ import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 
 type Kind = "habits" | "logs";
 
-/**
- * Shared empty-state for the habits + logs tabs. Profile is the only piece of
- * the app implemented right now — these tabs intentionally don't render real
- * content. The dashed card is a placeholder shape that mirrors the future grid.
- */
 export function ProfileEmptyTab({
   kind,
   hint,

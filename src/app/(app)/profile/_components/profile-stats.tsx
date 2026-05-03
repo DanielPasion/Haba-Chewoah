@@ -1,9 +1,5 @@
 type Stat = { label: string; value: number };
 
-/**
- * Horizontal block of profile stat counters (followers, top streak, etc.).
- * Reused by both mobile + desktop layouts; mobile wraps, desktop spreads.
- */
 export function ProfileStats({
   stats,
   variant = "mobile",

@@ -44,10 +44,6 @@ export type CreateProfileResult =
   | { ok: true }
   | { ok: false; field?: "username" | "bio" | "timezone" | "avatar"; message: string };
 
-/**
- * Issue a presigned R2 PUT URL for the *current* user's avatar. Auth is
- * enforced here — anyone calling this without a session gets nothing.
- */
 export async function getAvatarUploadUrl(input: {
   contentType: string;
 }): Promise<{ ok: true; grant: AvatarUploadGrant } | { ok: false; message: string }> {
@@ -68,23 +64,10 @@ export async function getAvatarUploadUrl(input: {
   }
 }
 
-/**
- * Persist the user's chosen username, bio, timezone, and avatar. Validates:
- *  - session present
- *  - user has not already onboarded (username still null)
- *  - input matches schema (regex, lengths)
- *  - avatar object key, if supplied, is namespaced under the caller's userId
- *
- * The DB write is `updateMany` with `username: null` in the WHERE clause,
- * which makes the "first writer wins" check atomic at the DB layer instead of
- * relying on the in-memory session snapshot. Without this, a double-submit
- * with two different usernames could split-brain (one write wins username,
- * the other wins avatar).
- *
- * On success, redirects to /feed (no return reaches the client). On any
- * failure path after the avatar was uploaded to R2, we best-effort delete
- * the orphaned object so we don't accumulate storage cost on aborted signups.
- */
+// `updateMany` with `username: null` in the WHERE clause makes "first writer
+// wins" atomic at the DB layer. Without this, a double-submit with two
+// different usernames could split-brain (one write wins username, the other
+// wins avatar) since the in-memory session snapshot is racey.
 export async function createProfile(formData: FormData): Promise<CreateProfileResult> {
   const session = await auth();
   if (!session?.user) {
