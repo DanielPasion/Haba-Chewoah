@@ -10,6 +10,7 @@ import {
   type AvatarUploadGrant,
   deleteAvatarObject,
   isOwnedAvatarKey,
+  ownedAvatarKeyFromPublicUrl,
   presignAvatarUpload,
   publicUrlForKey,
 } from "~/server/r2";
@@ -72,14 +73,15 @@ export async function getAvatarUploadUrl(input: {
 }
 
 /**
- * Update the current user's display name, bio, timezone, and (optionally) the
- * avatar URL. Username is *not* editable here — it's a unique identity slot
- * that lives on share-links and @-mentions; changing it is a separate flow.
+ * Update the current user's bio, timezone, and (optionally) the avatar URL.
+ * Username is *not* editable here — it's a unique identity slot that lives on
+ * share-links and @-mentions; changing it is a separate flow.
  *
  * The avatar handling mirrors create-account: the client has already PUT the
  * file directly to R2 by the time this action runs. We just validate the key
  * is namespaced under the caller's userId, then persist `image`. If the DB
- * write later fails, we best-effort delete the orphaned object.
+ * write fails we best-effort delete the orphan; if it succeeds, we delete the
+ * user's *prior* R2 avatar so swaps don't leak storage.
  */
 export async function updateProfile(
   formData: FormData,
@@ -121,6 +123,19 @@ export async function updateProfile(
     };
   }
 
+  // Capture the prior image *before* the write so we can clean it up from R2
+  // after a successful avatar replace. Without this every swap leaks the old
+  // object indefinitely. Skipped (set to null) when the user isn't replacing
+  // the avatar at all.
+  const priorImage = avatarObjectKey
+    ? (
+        await db.user.findUnique({
+          where: { id: session.user.id },
+          select: { image: true },
+        })
+      )?.image ?? null
+    : null;
+
   try {
     await db.user.update({
       where: { id: session.user.id },
@@ -135,6 +150,17 @@ export async function updateProfile(
   } catch (err) {
     if (avatarObjectKey) await deleteAvatarObject(avatarObjectKey);
     throw err;
+  }
+
+  // Best-effort delete of the prior R2 avatar after a successful replace.
+  // `ownedAvatarKeyFromPublicUrl` returns null for non-R2 URLs (e.g., the
+  // Discord CDN avatar set during OAuth), so we never touch storage we
+  // don't own. Must run before `redirect()` — that throws NEXT_REDIRECT.
+  if (avatarObjectKey && priorImage) {
+    const priorKey = ownedAvatarKeyFromPublicUrl(priorImage, session.user.id);
+    if (priorKey && priorKey !== avatarObjectKey) {
+      await deleteAvatarObject(priorKey);
+    }
   }
 
   // The profile page is a server component reading from the DB — bust its
