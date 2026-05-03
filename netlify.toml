@@ -1,0 +1,15 @@
+# Netlify build configuration.
+#
+# The Next.js Runtime is auto-detected; no `[build].command` needed unless we
+# diverge from package.json's `build` script.
+
+[build.environment]
+  # Netlify's secrets scanner flags any env-var value that appears in source
+  # or build output. The two keys below are intentionally non-secret —
+  # they're public identifiers that legitimately appear in code:
+  #   - R2_BUCKET = "haba-chewoah"  (the project slug; in package.json,
+  #                                  brand mockups, the bucket URL itself)
+  #   - AUTH_URL  = "https://haba-chewoah.com"  (the public canonical URL)
+  # Real secrets (AUTH_SECRET, AUTH_DISCORD_*, DATABASE_URL,
+  # R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY) stay scanned.
+  SECRETS_SCAN_OMIT_KEYS = "R2_BUCKET,AUTH_URL"

@@ -19,7 +19,7 @@ export default function Loading() {
             ))}
           </div>
           <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-hc-muted">
-            logging your bet…
+            Haba-Haba
           </div>
         </div>
       </div>
