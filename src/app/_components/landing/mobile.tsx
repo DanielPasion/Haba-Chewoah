@@ -10,7 +10,13 @@ import { InstallButton } from "./install-button";
 
 export function MobileLanding({ signedIn }: { signedIn: boolean }) {
   return (
-    <div className="flex h-full w-full flex-col bg-hc-bg px-5 pt-4 pb-5">
+    <div
+      className="flex h-full w-full flex-col bg-hc-bg px-5"
+      style={{
+        paddingTop: "max(1rem, env(safe-area-inset-top))",
+        paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))",
+      }}
+    >
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <AppIcon size={32} radius={8} />

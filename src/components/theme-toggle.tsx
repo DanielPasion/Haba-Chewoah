@@ -10,11 +10,21 @@ const STORAGE_KEY = "hc-theme";
 
 function readTheme(): Theme {
   if (typeof window === "undefined") return "light";
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored === "dark" || stored === "light") return stored;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
+  // iOS Safari throws SecurityError on localStorage access when storage is
+  // blocked (Private Browsing, "Block all cookies", strict Tracking Prevention).
+  // An uncaught throw here escapes the root layout and produces the generic
+  // "Application error: a client-side exception has occurred" page.
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored === "dark" || stored === "light") return stored;
+  } catch {}
+  try {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  } catch {
+    return "light";
+  }
 }
 
 function applyTheme(theme: Theme) {
@@ -34,7 +44,9 @@ export function ThemeToggle() {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
     applyTheme(next);
-    window.localStorage.setItem(STORAGE_KEY, next);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next);
+    } catch {}
   };
 
   return (
