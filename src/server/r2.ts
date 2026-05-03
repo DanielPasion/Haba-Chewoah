@@ -1,6 +1,10 @@
 import "server-only";
 
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { env } from "~/env";
@@ -49,13 +53,17 @@ export type AvatarUploadGrant = {
   maxBytes: number;
 };
 
+const AVATAR_PRESIGN_EXPIRES_SECONDS = 300; // 5 min — covers slow mobile uploads
+
 /**
- * Issue a single-use presigned PUT URL scoped to a specific user's avatar
- * prefix. The browser uploads directly to R2 — we never proxy bytes.
+ * Issue a short-lived presigned PUT URL (5 min) scoped to a specific user's
+ * avatar prefix. The browser uploads directly to R2 — we never proxy bytes.
  *
- * Object keys are unguessable (UUID) and ownership-namespaced
- * (`users/<userId>/avatar/<uuid>.<ext>`) so a later "save profile" call
- * can verify the caller owns the key before persisting it.
+ * The URL is *time-limited*, not single-use: the holder can PUT to the same
+ * key any number of times within the expiry window. That's fine because the
+ * key itself is server-generated and unguessable (UUID), and namespaced as
+ * `users/<userId>/avatar/<uuid>.<ext>`. The matching `isOwnedAvatarKey`
+ * check at write-time prevents another user from claiming the key as theirs.
  */
 export async function presignAvatarUpload({
   userId,
@@ -78,7 +86,9 @@ export async function presignAvatarUpload({
     ContentLength: undefined,
   });
 
-  const uploadUrl = await getSignedUrl(r2, command, { expiresIn: 60 });
+  const uploadUrl = await getSignedUrl(r2, command, {
+    expiresIn: AVATAR_PRESIGN_EXPIRES_SECONDS,
+  });
 
   return {
     uploadUrl,
@@ -86,6 +96,22 @@ export async function presignAvatarUpload({
     publicUrl: `${env.R2_PUBLIC_URL}/${objectKey}`,
     maxBytes: AVATAR_MAX_BYTES,
   };
+}
+
+/**
+ * Best-effort delete of an R2 object. Used to clean up uploads that won't be
+ * referenced — e.g., a user grabs a presigned URL, completes the upload, then
+ * the profile-save step fails (username taken, race lost). Fire-and-forget;
+ * we never want a cleanup failure to mask the real error from the caller.
+ */
+export async function deleteAvatarObject(objectKey: string): Promise<void> {
+  try {
+    await r2.send(
+      new DeleteObjectCommand({ Bucket: env.R2_BUCKET, Key: objectKey }),
+    );
+  } catch (err) {
+    console.warn("[r2] orphan delete failed", { objectKey, err });
+  }
 }
 
 /**

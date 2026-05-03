@@ -7,6 +7,7 @@ import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import {
   type AvatarUploadGrant,
+  deleteAvatarObject,
   isOwnedAvatarKey,
   presignAvatarUpload,
   publicUrlForKey,
@@ -74,7 +75,15 @@ export async function getAvatarUploadUrl(input: {
  *  - input matches schema (regex, lengths)
  *  - avatar object key, if supplied, is namespaced under the caller's userId
  *
- * On success, redirects to /feed (no return reaches the client).
+ * The DB write is `updateMany` with `username: null` in the WHERE clause,
+ * which makes the "first writer wins" check atomic at the DB layer instead of
+ * relying on the in-memory session snapshot. Without this, a double-submit
+ * with two different usernames could split-brain (one write wins username,
+ * the other wins avatar).
+ *
+ * On success, redirects to /feed (no return reaches the client). On any
+ * failure path after the avatar was uploaded to R2, we best-effort delete
+ * the orphaned object so we don't accumulate storage cost on aborted signups.
  */
 export async function createProfile(formData: FormData): Promise<CreateProfileResult> {
   const session = await auth();
@@ -82,8 +91,7 @@ export async function createProfile(formData: FormData): Promise<CreateProfileRe
     return { ok: false, message: "not signed in" };
   }
   if (session.user.username) {
-    // Already onboarded — should never happen via the page, but a manual
-    // POST could try. Refuse the second-write rather than silently overwrite.
+    // Fast-fail; the atomic updateMany below is the real guard.
     return { ok: false, message: "profile already exists" };
   }
 
@@ -111,6 +119,7 @@ export async function createProfile(formData: FormData): Promise<CreateProfileRe
   const { username, bio, timezone, avatarObjectKey } = parsed.data;
 
   if (avatarObjectKey && !isOwnedAvatarKey(avatarObjectKey, session.user.id)) {
+    // Don't attempt cleanup — we don't trust this key belongs to us.
     return {
       ok: false,
       field: "avatar",
@@ -119,8 +128,8 @@ export async function createProfile(formData: FormData): Promise<CreateProfileRe
   }
 
   try {
-    await db.user.update({
-      where: { id: session.user.id },
+    const result = await db.user.updateMany({
+      where: { id: session.user.id, username: null },
       data: {
         username,
         bio,
@@ -130,6 +139,11 @@ export async function createProfile(formData: FormData): Promise<CreateProfileRe
           : {}),
       },
     });
+    if (result.count === 0) {
+      // Either the row vanished or another concurrent submit beat us to it.
+      if (avatarObjectKey) await deleteAvatarObject(avatarObjectKey);
+      return { ok: false, message: "profile already exists" };
+    }
   } catch (err) {
     // P2002 = unique constraint violation. Username is the only unique
     // field on this update path.
@@ -139,6 +153,7 @@ export async function createProfile(formData: FormData): Promise<CreateProfileRe
       "code" in err &&
       (err as { code: unknown }).code === "P2002"
     ) {
+      if (avatarObjectKey) await deleteAvatarObject(avatarObjectKey);
       return {
         ok: false,
         field: "username",
