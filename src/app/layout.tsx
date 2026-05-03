@@ -13,13 +13,19 @@ export const metadata: Metadata = {
     template: "%s · Haba-Chewoah",
   },
   description:
-    "Bet on yourself. Log your streak. Dare your friends. A habit-based social app.",
+    "Track your habits. Share your streaks. A habit-based social app.",
   applicationName: "Haba-Chewoah",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     title: "Haba-Chewoah",
     statusBarStyle: "black-translucent",
+  },
+  // Next.js 15 only emits the modern unprefixed `mobile-web-app-capable` from
+  // appleWebApp.capable, but iOS < 17 still needs the apple-prefixed tag to
+  // hide Safari chrome when launched from the home screen. Emit both.
+  other: {
+    "apple-mobile-web-app-capable": "yes",
   },
 };
 

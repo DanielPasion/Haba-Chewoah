@@ -131,6 +131,23 @@ export function publicUrlForKey(objectKey: string): string {
   return `${env.R2_PUBLIC_URL}/${objectKey}`;
 }
 
+/**
+ * Inverse of `publicUrlForKey` for cleanup paths. Returns the object key only
+ * when the URL is an R2 avatar we host *and* belongs to the given user; otherwise
+ * null. Used by /profile/edit to delete the user's prior avatar when they
+ * replace it — Discord CDN URLs (e.g., the OAuth-provided default) and other
+ * external URLs return null so we never try to delete something we don't own.
+ */
+export function ownedAvatarKeyFromPublicUrl(
+  url: string,
+  userId: string,
+): string | null {
+  const prefix = `${env.R2_PUBLIC_URL}/`;
+  if (!url.startsWith(prefix)) return null;
+  const key = url.slice(prefix.length);
+  return isOwnedAvatarKey(key, userId) ? key : null;
+}
+
 export const AVATAR_LIMITS = {
   maxBytes: AVATAR_MAX_BYTES,
   acceptMime: Array.from(ALLOWED_AVATAR_MIME),

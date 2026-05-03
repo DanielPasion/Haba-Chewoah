@@ -1,7 +1,10 @@
 import { type Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { auth } from "~/server/auth";
+import { db } from "~/server/db";
+
+import { ProfileView } from "../_components/profile-view";
 
 type Params = Promise<{ username: string }>;
 
@@ -14,26 +17,42 @@ export async function generateMetadata({
   return { title: `@${username}` };
 }
 
+/**
+ * Public profile page. Defense-in-depth auth check (the (app) layout already
+ * gates this, but rely on it here too — a leak here shows private content).
+ *
+ * The username segment is matched case-insensitively against `users.username`
+ * via `mode: "insensitive"`, which keeps share-links forgiving.
+ */
 export default async function UserProfilePage({ params }: { params: Params }) {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin");
   if (!session.user.username) redirect("/create-account");
 
   const { username } = await params;
-  const isSelf = session.user.username === username;
+
+  const user = await db.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" } },
+    select: {
+      id: true,
+      username: true,
+      bio: true,
+      image: true,
+    },
+  });
+
+  if (!user?.username) notFound();
+
+  const isOwn = user.id === session.user.id;
 
   return (
-    <main>
-      <h1
-        className="font-display text-4xl font-extrabold leading-none text-hc-ink"
-        style={{ letterSpacing: "-0.04em" }}
-      >
-        profile
-      </h1>
-      <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.15em] text-hc-muted">
-        @{username}
-        {isSelf && " · this is you"}
-      </p>
-    </main>
+    <ProfileView
+      isOwn={isOwn}
+      user={{
+        username: user.username,
+        bio: user.bio,
+        imageUrl: user.image,
+      }}
+    />
   );
 }

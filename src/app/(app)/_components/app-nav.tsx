@@ -24,19 +24,38 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/profile", label: "profile", icon: PROFILE_ICON },
 ];
 
+/**
+ * Mobile bottom tab bar — three slots: home · center plus · profile. Mirrors
+ * `.claude/ui/project/profile-page.jsx` (`ProfileTabBar`). The center plus is
+ * the BeReal-style "log or create" FAB; it's intentionally inert until the
+ * log-create flow is implemented.
+ */
+const MOBILE_TAB_ITEMS: NavItem[] = [
+  { href: "/feed", label: "home", icon: HOME_ICON },
+  { href: "/profile", label: "profile", icon: PROFILE_ICON },
+];
+
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function NavIcon({ children }: { children: React.ReactNode }) {
+function NavIcon({
+  children,
+  size = 20,
+  strokeWidth = 2,
+}: {
+  children: React.ReactNode;
+  size?: number;
+  strokeWidth?: number;
+}) {
   return (
     <svg
-      width="20"
-      height="20"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth={strokeWidth}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
@@ -134,56 +153,50 @@ export function AppMobileTopBar() {
   );
 }
 
-export function AppMobileTabBar({
-  signOutAction,
-}: {
-  signOutAction: () => Promise<void>;
-}) {
+export function AppMobileTabBar() {
   const pathname = usePathname();
   return (
-    <nav className="sticky bottom-0 z-10 flex items-center justify-around border-t border-hc-line bg-hc-surface px-4 pb-2 pt-2.5 md:hidden">
-      {NAV_ITEMS.map((item) => {
-        const active = isActive(pathname, item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1 ${
-              active ? "text-hc-ink" : "text-hc-muted opacity-60"
-            }`}
-          >
-            <NavIcon>{item.icon}</NavIcon>
-            <span className="font-mono text-[9px] font-semibold uppercase tracking-wider">
-              {item.label}
-            </span>
-          </Link>
-        );
-      })}
+    <nav className="sticky bottom-0 z-10 flex items-center justify-around border-t border-hc-line bg-hc-surface px-4 pt-2.5 pb-2 md:hidden">
+      <MobileTabLink item={MOBILE_TAB_ITEMS[0]!} pathname={pathname} />
 
-      <form action={signOutAction} className="flex">
-        <button
-          type="submit"
-          aria-label="sign out"
-          className="flex flex-col items-center gap-0.5 px-3 py-1 text-hc-muted opacity-60 hover:opacity-100"
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-          </svg>
-          <span className="font-mono text-[9px] font-semibold uppercase tracking-wider">
-            sign out
-          </span>
-        </button>
-      </form>
+      {/* Center plus FAB — mirrors mockup's "log or create" button. Disabled
+          until the log-create flow lands. */}
+      <button
+        type="button"
+        disabled
+        title="log or create — coming soon"
+        aria-label="log or create"
+        className="-mt-[22px] grid size-14 cursor-not-allowed place-items-center rounded-full border border-hc-line bg-hc-brand text-hc-brand-ink shadow-hc disabled:opacity-90"
+      >
+        <NavIcon size={24} strokeWidth={3}>
+          <path d="M12 5v14M5 12h14" />
+        </NavIcon>
+      </button>
+
+      <MobileTabLink item={MOBILE_TAB_ITEMS[1]!} pathname={pathname} />
     </nav>
+  );
+}
+
+function MobileTabLink({
+  item,
+  pathname,
+}: {
+  item: NavItem;
+  pathname: string;
+}) {
+  const active = isActive(pathname, item.href);
+  return (
+    <Link
+      href={item.href}
+      className={`flex flex-col items-center gap-0.5 px-3 py-1 ${
+        active ? "text-hc-ink" : "text-hc-muted opacity-60"
+      }`}
+    >
+      <NavIcon size={22}>{item.icon}</NavIcon>
+      <span className="font-mono text-[9px] font-semibold uppercase tracking-wider">
+        {item.label}
+      </span>
+    </Link>
   );
 }

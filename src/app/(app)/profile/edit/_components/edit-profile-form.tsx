@@ -7,26 +7,36 @@ import { buttonClass } from "~/components/ui";
 import { TIMEZONES } from "~/lib/timezones";
 
 import {
-  createProfile,
   getAvatarUploadUrl,
-  type CreateProfileResult,
+  updateProfile,
+  type UpdateProfileResult,
 } from "../_actions";
 
-type FieldErrors = Partial<Record<"username" | "bio" | "timezone" | "avatar" | "form", string>>;
+type FieldErrors = Partial<
+  Record<"bio" | "timezone" | "avatar" | "form", string>
+>;
 
-export function ProfileForm({
-  defaultTimezone,
-}: {
+type Props = {
+  username: string;
+  defaultBio: string;
   defaultTimezone: string;
-}) {
+  defaultAvatarUrl: string | null;
+};
+
+export function EditProfileForm({
+  username,
+  defaultBio,
+  defaultTimezone,
+  defaultAvatarUrl,
+}: Props) {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, startTransition] = useTransition();
 
   function onSubmit(formData: FormData) {
     setErrors({});
     startTransition(async () => {
-      const result: CreateProfileResult = await createProfile(formData);
-      if (result.ok) return; // server redirected; this branch effectively unreachable
+      const result: UpdateProfileResult = await updateProfile(formData);
+      if (result.ok) return; // server redirected; unreachable in practice
       if (result.field) setErrors({ [result.field]: result.message });
       else setErrors({ form: result.message });
     });
@@ -37,25 +47,23 @@ export function ProfileForm({
       action={onSubmit}
       className="flex w-full flex-col items-center gap-8"
     >
-      <AvatarUploader getUploadUrlAction={getAvatarUploadUrl} />
+      <AvatarUploader
+        getUploadUrlAction={getAvatarUploadUrl}
+        initialUrl={defaultAvatarUrl}
+      />
 
       <div className="flex w-full flex-col gap-5">
         <Field
           label="username"
-          hint="3–32 chars · letters, numbers, underscore"
-          error={errors.username}
+          hint="locked — usernames stay tied to your share-links"
         >
           <input
-            name="username"
             type="text"
-            required
-            minLength={3}
-            maxLength={32}
-            pattern="[a-zA-Z0-9_]+"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="cold_plunger"
-            className="w-full rounded-hc-2 border-[1.5px] border-hc-line-strong bg-hc-surface px-4 py-3 font-sans text-sm text-hc-ink outline-none placeholder:text-hc-muted-soft focus:border-hc-ink"
+            value={`@${username}`}
+            disabled
+            readOnly
+            aria-readonly
+            className="w-full cursor-not-allowed rounded-hc-2 border-[1.5px] border-hc-line-strong bg-hc-surface-alt px-4 py-3 font-mono text-sm font-medium text-hc-muted outline-none"
           />
         </Field>
 
@@ -77,11 +85,16 @@ export function ProfileForm({
           </select>
         </Field>
 
-        <Field label="bio" hint="optional · 160 chars max" error={errors.bio}>
+        <Field
+          label="bio"
+          hint="optional · 160 chars max"
+          error={errors.bio}
+        >
           <textarea
             name="bio"
             maxLength={160}
             rows={3}
+            defaultValue={defaultBio}
             placeholder="i'm here to log my streaks and ignore my feelings."
             className="w-full resize-none rounded-hc-2 border-[1.5px] border-hc-line-strong bg-hc-surface px-4 py-3 font-sans text-sm text-hc-ink outline-none placeholder:text-hc-muted-soft focus:border-hc-ink"
           />
@@ -98,13 +111,21 @@ export function ProfileForm({
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className={`${buttonClass({ variant: "primary", size: "lg", fullWidth: true })} disabled:cursor-not-allowed disabled:opacity-60`}
-        >
-          {pending ? "creating…" : "create account"}
-        </button>
+        <div className="flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:justify-between">
+          <a
+            href={`/profile/${username}`}
+            className={buttonClass({ variant: "ghost", size: "md" })}
+          >
+            cancel
+          </a>
+          <button
+            type="submit"
+            disabled={pending}
+            className={`${buttonClass({ variant: "primary", size: "md" })} disabled:cursor-not-allowed disabled:opacity-60`}
+          >
+            {pending ? "saving…" : "save changes"}
+          </button>
+        </div>
       </div>
     </form>
   );
