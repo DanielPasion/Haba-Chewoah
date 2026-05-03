@@ -38,6 +38,7 @@ export default async function UserProfilePage({ params }: { params: Params }) {
       username: true,
       bio: true,
       image: true,
+      _count: { select: { followers: true, following: true } },
     },
   });
 
@@ -45,13 +46,31 @@ export default async function UserProfilePage({ params }: { params: Params }) {
 
   const isOwn = user.id === session.user.id;
 
+  const isFollowing = isOwn
+    ? false
+    : Boolean(
+        await db.follow.findUnique({
+          where: {
+            followerId_followingId: {
+              followerId: session.user.id,
+              followingId: user.id,
+            },
+          },
+          select: { followerId: true },
+        }),
+      );
+
   return (
     <ProfileView
       isOwn={isOwn}
+      isFollowing={isFollowing}
       user={{
+        id: user.id,
         username: user.username,
         bio: user.bio,
         imageUrl: user.image,
+        followers: user._count.followers,
+        following: user._count.following,
       }}
     />
   );

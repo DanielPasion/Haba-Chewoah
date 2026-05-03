@@ -3,13 +3,17 @@ import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 import { signOutAction } from "../../_actions";
 import { ProfileActions } from "./profile-actions";
 import { ProfileAvatar } from "./profile-avatar";
+import { ProfileSearchBar } from "./profile-search-bar";
 import { ProfileStats } from "./profile-stats";
 import { ProfileTabs } from "./profile-tabs";
 
 export type ProfileViewUser = {
+  id: string;
   username: string;
   bio: string | null;
   imageUrl: string | null;
+  followers: number;
+  following: number;
 };
 
 /**
@@ -19,23 +23,41 @@ export type ProfileViewUser = {
  * - **desktop** (`hidden md:flex`): full-bleed banner with avatar overlapping
  *   it; mirrors `.claude/ui/project/desktop.jsx` (`DProfile`).
  *
- * Stats are wired with zeros for now — followers/streaks/etc. aren't tracked
- * server-side yet, but the layout slots are correct so the numbers can drop in
- * once the queries land.
+ * Streak / total-log stats stay zero — habits aren't tracked yet — but
+ * follower/following counts come from live queries via the page loader.
  */
 export function ProfileView({
   user,
   isOwn,
+  isFollowing,
 }: {
   user: ProfileViewUser;
   isOwn: boolean;
+  isFollowing: boolean;
 }) {
+  const stats = [
+    { label: "followers", value: user.followers },
+    { label: "following", value: user.following },
+    { label: "top streak", value: 0 },
+    { label: "total logs", value: 0 },
+  ];
+
   // Padding-cancel wrapper: lets the desktop banner go edge-to-edge inside the
   // (app) layout's padded <main>. We add per-section padding back below.
   return (
     <div className="-mx-5 -my-6 md:-mx-8 md:-my-8">
-      <MobileProfile user={user} isOwn={isOwn} />
-      <DesktopProfile user={user} isOwn={isOwn} />
+      <MobileProfile
+        user={user}
+        isOwn={isOwn}
+        isFollowing={isFollowing}
+        stats={stats}
+      />
+      <DesktopProfile
+        user={user}
+        isOwn={isOwn}
+        isFollowing={isFollowing}
+        stats={stats}
+      />
     </div>
   );
 }
@@ -43,9 +65,13 @@ export function ProfileView({
 function MobileProfile({
   user,
   isOwn,
+  isFollowing,
+  stats,
 }: {
   user: ProfileViewUser;
   isOwn: boolean;
+  isFollowing: boolean;
+  stats: { label: string; value: number }[];
 }) {
   return (
     <div className="md:hidden">
@@ -79,6 +105,10 @@ function MobileProfile({
         )}
       </header>
 
+      <div className="px-5 pb-3">
+        <ProfileSearchBar />
+      </div>
+
       <section className="flex flex-col gap-4 px-5 pb-5">
         <div className="flex items-start gap-4">
           <ProfileAvatar
@@ -100,9 +130,14 @@ function MobileProfile({
           <p className="text-sm leading-relaxed text-hc-ink">{user.bio}</p>
         )}
 
-        <ProfileStats stats={ZERO_STATS} variant="mobile" />
+        <ProfileStats stats={stats} variant="mobile" />
 
-        <ProfileActions isOwn={isOwn} />
+        <ProfileActions
+          isOwn={isOwn}
+          isFollowing={isFollowing}
+          targetUserId={user.id}
+          username={user.username}
+        />
       </section>
 
       <ProfileTabs isOwn={isOwn} />
@@ -113,9 +148,13 @@ function MobileProfile({
 function DesktopProfile({
   user,
   isOwn,
+  isFollowing,
+  stats,
 }: {
   user: ProfileViewUser;
   isOwn: boolean;
+  isFollowing: boolean;
+  stats: { label: string; value: number }[];
 }) {
   return (
     <div className="hidden md:block">
@@ -165,7 +204,12 @@ function DesktopProfile({
             </h1>
           </div>
           <div className="pb-3.5">
-            <ProfileActions isOwn={isOwn} />
+            <ProfileActions
+              isOwn={isOwn}
+              isFollowing={isFollowing}
+              targetUserId={user.id}
+              username={user.username}
+            />
           </div>
         </div>
 
@@ -176,7 +220,11 @@ function DesktopProfile({
         )}
 
         <div className="mt-5">
-          <ProfileStats stats={ZERO_STATS} variant="desktop" />
+          <ProfileStats stats={stats} variant="desktop" />
+        </div>
+
+        <div className="mt-5 max-w-155">
+          <ProfileSearchBar />
         </div>
 
         <div className="mt-5">
@@ -188,14 +236,3 @@ function DesktopProfile({
     </div>
   );
 }
-
-/**
- * Stats are placeholder zeros until follow/streak/log tables get queried.
- * Defined once and shared across both layouts so the order stays consistent.
- */
-const ZERO_STATS = [
-  { label: "followers", value: 0 },
-  { label: "following", value: 0 },
-  { label: "top streak", value: 0 },
-  { label: "total logs", value: 0 },
-];
