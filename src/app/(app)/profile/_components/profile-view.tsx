@@ -223,10 +223,6 @@ function DesktopProfile({
           <ProfileStats stats={stats} variant="desktop" />
         </div>
 
-        <div className="mt-5 max-w-155">
-          <ProfileSearchBar />
-        </div>
-
         <div className="mt-5">
           <ProfileTabs isOwn={isOwn} />
         </div>

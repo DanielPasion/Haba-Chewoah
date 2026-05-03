@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 
 /**
  * Username search box. Submits the trimmed value to `/profile/[username]` —
@@ -10,18 +10,23 @@ import { useState } from "react";
  *
  * No autocomplete / suggestion list on purpose: per product, we don't want
  * fuzzy or substring hits competing with the typed handle.
+ *
+ * `useTransition` (instead of a manual `submitting` flag) means `isPending`
+ * resets automatically when the navigation transition completes, so the input
+ * doesn't stay disabled across browser back/forward or repeat searches.
  */
 export function ProfileSearchBar() {
   const router = useRouter();
   const [q, setQ] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = q.trim().replace(/^@/, "");
     if (!trimmed) return;
-    setSubmitting(true);
-    router.push(`/profile/${encodeURIComponent(trimmed)}`);
+    startTransition(() => {
+      router.push(`/profile/${encodeURIComponent(trimmed)}`);
+    });
   }
 
   return (
@@ -54,7 +59,7 @@ export function ProfileSearchBar() {
         autoCapitalize="none"
         autoCorrect="off"
         spellCheck={false}
-        disabled={submitting}
+        disabled={isPending}
         className="flex-1 bg-transparent font-sans text-sm text-hc-ink placeholder:text-hc-muted focus:outline-none disabled:opacity-60"
       />
     </form>

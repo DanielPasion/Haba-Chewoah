@@ -63,15 +63,17 @@ function FollowButton({
   const [isPending, startTransition] = useTransition();
 
   function onClick() {
-    const next = !optimistic;
+    // Snapshot the value *before* this click so a failed toggle rolls back to
+    // the user's last-known good state, not the mount-time prop. Otherwise a
+    // success-then-failure sequence flips the UI back to the original prop
+    // value (often wrong) until `router.refresh()` lands.
+    const previous = optimistic;
+    const next = !previous;
     setOptimistic(next);
     startTransition(async () => {
       const result = await toggleFollowAction({ targetUserId });
       if (!result.ok) {
-        // Roll back the optimistic toggle and surface a hint. We avoid a hard
-        // alert here for the common offline case; sticky errors will revert
-        // to the server-truthful state on the refresh below.
-        setOptimistic(initialIsFollowing);
+        setOptimistic(previous);
       } else {
         setOptimistic(result.isFollowing);
       }
