@@ -4,11 +4,10 @@ import { AppIcon } from "~/components/brand/app-icon";
 import { LogoText } from "~/components/brand/logo-text";
 import { StickerCard } from "~/components/brand/sticker-card";
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
-import { ArrowRightIcon, PhoneIcon } from "~/components/icons";
+import { ArrowRightIcon } from "~/components/icons";
 import { buttonClass } from "~/components/ui";
 
 import { Headline } from "./headline";
-import { QRBlock } from "./qr-block";
 
 export function DesktopLanding({ signedIn }: { signedIn: boolean }) {
   return (
@@ -30,7 +29,7 @@ export function DesktopLanding({ signedIn }: { signedIn: boolean }) {
       </nav>
 
       <section
-        className="mx-auto grid w-full min-h-0 max-w-[1280px] flex-1 items-center gap-8 px-8 py-4 lg:gap-12 lg:px-12"
+        className="mx-auto grid w-full min-h-0 max-w-7xl flex-1 items-center gap-8 px-8 py-4 lg:gap-12 lg:px-12"
         style={{ gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)" }}
       >
         <div className="flex min-h-0 flex-col gap-5 lg:gap-7">
@@ -43,13 +42,6 @@ export function DesktopLanding({ signedIn }: { signedIn: boolean }) {
               {signedIn ? "open the app" : "log in"}
               <ArrowRightIcon size={18} />
             </Link>
-            <div className="flex items-center gap-2 font-mono text-[11px] font-medium text-hc-muted">
-              <PhoneIcon size={18} />
-              on your phone?{" "}
-              <span className="font-bold text-hc-ink underline">
-                scan to install →
-              </span>
-            </div>
           </div>
         </div>
 
@@ -60,19 +52,13 @@ export function DesktopLanding({ signedIn }: { signedIn: boolean }) {
             shadowOffset={6}
             rotate={-2}
           >
-            <TwoFaceMascot size={200} className="h-[80%] w-[80%]" />
+            <TwoFaceMascot size={200} className="h-4/5 w-4/5" />
           </StickerCard>
-          <div className="flex items-center gap-3">
-            <QRBlock size={96} />
-            <div className="max-w-[150px] text-[12px] leading-snug text-hc-muted">
-              <strong className="text-hc-ink">scan to install</strong>
-            </div>
-          </div>
         </div>
       </section>
 
       <footer
-        className="flex items-center justify-between px-8 py-3 font-mono text-[11px] font-medium text-hc-muted lg:px-12"
+        className="flex items-center justify-between px-8 py-3 font-mono text-hc-meta font-medium text-hc-muted lg:px-12"
         style={{ borderTop: "1.5px solid var(--color-hc-line)" }}
       >
         <LogoText size={13} />

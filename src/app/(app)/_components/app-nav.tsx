@@ -82,7 +82,7 @@ export function AppSidebar({
             <li key={item.href}>
               <Link
                 href={item.href}
-                className={`flex items-center gap-3 rounded-hc-2 border-[1.5px] px-3 py-2.5 font-sans text-sm transition-colors ${
+                className={`flex items-center gap-3 rounded-hc-2 border-hc px-3 py-2.5 font-sans text-sm transition-colors ${
                   active
                     ? "border-hc-ink bg-hc-surface font-bold text-hc-ink"
                     : "border-transparent font-semibold text-hc-ink hover:bg-hc-surface-alt"
@@ -98,15 +98,15 @@ export function AppSidebar({
 
       <div className="flex-1" />
 
-      <div className="flex items-center gap-2.5 rounded-hc-2 border-[1.5px] border-hc-line-strong bg-hc-surface p-2.5">
+      <div className="flex items-center gap-2.5 rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface p-2.5">
         <div className="grid size-9 shrink-0 place-items-center rounded-full bg-hc-ink">
           <TwoFaceMascot size={32} bg="#1B1726" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate font-sans text-[13px] font-bold text-hc-ink">
+          <div className="truncate font-sans text-hc-button font-bold text-hc-ink">
             {displayName}
           </div>
-          <div className="truncate font-mono text-[10px] font-medium text-hc-muted">
+          <div className="truncate font-mono text-hc-eyebrow font-medium text-hc-muted">
             @{username}
           </div>
         </div>
@@ -158,7 +158,7 @@ export function AppMobileTabBar() {
         disabled
         title="log or create — coming soon"
         aria-label="log or create"
-        className="-mt-[22px] grid size-14 cursor-not-allowed place-items-center rounded-full border border-hc-line bg-hc-brand text-hc-brand-ink shadow-hc disabled:opacity-90"
+        className="-mt-6 grid size-14 cursor-not-allowed place-items-center rounded-full border border-hc-line bg-hc-brand text-hc-brand-ink shadow-hc disabled:opacity-90"
       >
         <NavIcon size={24} strokeWidth={3}>
           <path d="M12 5v14M5 12h14" />
@@ -186,7 +186,7 @@ function MobileTabLink({
       }`}
     >
       <NavIcon size={22}>{item.icon}</NavIcon>
-      <span className="font-mono text-[9px] font-semibold uppercase tracking-wider">
+      <span className="font-mono text-hc-tiny font-semibold uppercase tracking-wider">
         {item.label}
       </span>
     </Link>

@@ -43,7 +43,7 @@ export function StickerCard({
       {children ?? <TwoFaceMascot size={innerMascotSize} mood={mood} />}
       {label && (
         <span
-          className="absolute font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-hc-accent-ink"
+          className="absolute font-mono text-hc-meta font-bold uppercase tracking-hc-eyebrow-narrow text-hc-accent-ink"
           style={{
             top: -14,
             right: -16,

@@ -16,7 +16,7 @@ export function MobileLanding({ signedIn }: { signedIn: boolean }) {
           <AppIcon size={32} radius={8} />
           <LogoText size={17} />
         </div>
-        <span className="rounded-full border border-hc-line-strong px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-hc-muted">
+        <span className="rounded-full border border-hc-line-strong px-2 py-1 font-mono text-hc-tiny font-semibold uppercase tracking-widest text-hc-muted">
           ·beta
         </span>
       </header>
@@ -52,7 +52,7 @@ export function MobileLanding({ signedIn }: { signedIn: boolean }) {
 
       <footer className="mt-3 flex items-center justify-between border-t border-hc-line pt-2">
         <LogoText size={13} />
-        <span className="flex gap-3 font-mono text-[10px] font-medium text-hc-muted">
+        <span className="flex gap-3 font-mono text-hc-eyebrow font-medium text-hc-muted">
           <span>privacy</span>
           <span>terms</span>
         </span>

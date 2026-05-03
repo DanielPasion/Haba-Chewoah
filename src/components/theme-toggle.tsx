@@ -42,7 +42,7 @@ export function ThemeToggle() {
       type="button"
       onClick={toggle}
       aria-label="Toggle theme"
-      className="fixed right-[18px] bottom-[18px] z-[99999] grid h-12 w-12 place-items-center rounded-full border-[1.5px] border-current bg-hc-bg text-hc-ink transition-transform duration-150 hover:scale-110 hover:-rotate-6"
+      className="fixed right-4 bottom-4 z-50 grid h-12 w-12 place-items-center rounded-full border-hc border-current bg-hc-bg text-hc-ink transition-transform duration-150 hover:scale-110 hover:-rotate-6"
       style={{ boxShadow: "0 6px 18px rgb(0 0 0 / 0.18), 2px 2px 0 currentColor" }}
     >
       {theme === "dark" ? <SunIcon /> : <MoonIcon />}

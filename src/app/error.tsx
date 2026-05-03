@@ -19,12 +19,12 @@ export default function ErrorBoundary({
 
   return (
     <main className="grid min-h-dvh place-items-center bg-hc-bg px-6">
-      <div className="flex w-full max-w-[440px] flex-col items-center gap-7 text-center">
+      <div className="flex w-full max-w-hc-form-wide flex-col items-center gap-7 text-center">
         <TwoFaceMascot size={140} mood="sweat" />
 
         <div className="flex flex-col gap-2">
           <h1
-            className="font-display text-5xl font-extrabold leading-[0.95] text-hc-ink"
+            className="font-display text-5xl font-extrabold leading-hc-display-tight text-hc-ink"
             style={{ letterSpacing: "-0.04em" }}
           >
             you <span className="text-hc-accent">won</span>
@@ -35,7 +35,7 @@ export default function ErrorBoundary({
             Something blew up on our end. Our streak just broke.
           </p>
           {error.digest && (
-            <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-hc-muted">
+            <p className="font-mono text-hc-eyebrow font-medium uppercase tracking-hc-eyebrow-wide text-hc-muted">
               ref · {error.digest}
             </p>
           )}
