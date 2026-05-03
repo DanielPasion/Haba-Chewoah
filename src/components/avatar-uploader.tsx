@@ -4,8 +4,6 @@ import { useRef, useState } from "react";
 
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 
-import { getAvatarUploadUrl } from "../_actions";
-
 const ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -15,9 +13,48 @@ type Status =
   | { state: "ready"; previewUrl: string; objectKey: string }
   | { state: "error"; message: string };
 
-export function AvatarUploader() {
+export type AvatarUploadGrant = {
+  uploadUrl: string;
+  objectKey: string;
+  publicUrl: string;
+};
+
+export type GetAvatarUploadUrl = (input: {
+  contentType: string;
+}) => Promise<
+  { ok: true; grant: AvatarUploadGrant } | { ok: false; message: string }
+>;
+
+type AvatarUploaderProps = {
+  /** Server action returning a presigned PUT URL for this user's avatar. */
+  getUploadUrlAction: GetAvatarUploadUrl;
+  /** Existing avatar URL — shown as preview until the user picks a new file. */
+  initialUrl?: string | null;
+  /** Hidden form input name. Defaults to "avatarObjectKey". */
+  inputName?: string;
+};
+
+/**
+ * Reusable avatar uploader. Used by both /create-account and /profile/edit.
+ *
+ * - Renders the TwoFaceMascot or `initialUrl` as the preview.
+ * - On pick: grabs a presigned URL, PUTs to R2 with progress, and writes the
+ *   object key into a hidden form field so the surrounding form action can
+ *   persist it.
+ * - When `initialUrl` is set and the user hasn't picked a new file, the hidden
+ *   field stays empty — the server action treats that as "keep existing avatar".
+ */
+export function AvatarUploader({
+  getUploadUrlAction,
+  initialUrl,
+  inputName = "avatarObjectKey",
+}: AvatarUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [status, setStatus] = useState<Status>({ state: "idle" });
+  const [status, setStatus] = useState<Status>(
+    initialUrl
+      ? { state: "ready", previewUrl: initialUrl, objectKey: "" }
+      : { state: "idle" },
+  );
 
   async function onPick(file: File) {
     if (file.size > MAX_BYTES) {
@@ -26,7 +63,7 @@ export function AvatarUploader() {
     }
 
     setStatus({ state: "uploading", progress: 0 });
-    const grantResult = await getAvatarUploadUrl({ contentType: file.type });
+    const grantResult = await getUploadUrlAction({ contentType: file.type });
     if (!grantResult.ok) {
       setStatus({ state: "error", message: grantResult.message });
       return;
@@ -48,7 +85,7 @@ export function AvatarUploader() {
     setStatus({ state: "ready", previewUrl: publicUrl, objectKey });
   }
 
-  const showFallback = status.state !== "ready";
+  const previewUrl = status.state === "ready" ? status.previewUrl : null;
   const objectKey = status.state === "ready" ? status.objectKey : "";
 
   return (
@@ -59,15 +96,15 @@ export function AvatarUploader() {
         aria-label="upload avatar"
         className="grid size-28 place-items-center overflow-hidden rounded-full border-[1.5px] border-hc-ink bg-hc-ink shadow-hc transition-transform hover:scale-[1.02]"
       >
-        {showFallback ? (
-          <TwoFaceMascot size={104} bg="#1B1726" />
-        ) : (
+        {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={status.previewUrl}
+            src={previewUrl}
             alt="your avatar"
             className="size-full object-cover"
           />
+        ) : (
+          <TwoFaceMascot size={104} bg="#1B1726" />
         )}
       </button>
 
@@ -83,7 +120,7 @@ export function AvatarUploader() {
         }}
       />
 
-      <input type="hidden" name="avatarObjectKey" value={objectKey} />
+      <input type="hidden" name={inputName} value={objectKey} />
 
       <div className="flex flex-col items-center gap-1 text-center">
         <button
@@ -91,7 +128,7 @@ export function AvatarUploader() {
           onClick={() => inputRef.current?.click()}
           className="font-mono text-[11px] font-bold uppercase tracking-[0.15em] text-hc-ink underline-offset-4 hover:underline"
         >
-          {status.state === "ready" ? "change photo" : "upload photo"}
+          {previewUrl ? "change photo" : "upload photo"}
         </button>
         <StatusLine status={status} />
       </div>
@@ -117,7 +154,7 @@ function StatusLine({ status }: { status: Status }) {
   if (status.state === "ready") {
     return (
       <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-hc-brand-strong">
-        ✓ uploaded
+        {status.objectKey ? "✓ uploaded" : "current photo"}
       </span>
     );
   }

@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 
-import { auth, signOut } from "~/server/auth";
+import { auth } from "~/server/auth";
 
+import { signOutAction } from "./_actions";
 import {
   AppMobileTabBar,
   AppMobileTopBar,
@@ -29,11 +30,6 @@ export default async function AppLayout({
   if (!session?.user) redirect("/auth/signin");
   if (!session.user.username) redirect("/create-account");
 
-  async function handleSignOut() {
-    "use server";
-    await signOut({ redirectTo: "/" });
-  }
-
   const username = session.user.username;
   const displayName = session.user.name ?? username;
 
@@ -42,12 +38,12 @@ export default async function AppLayout({
       <AppSidebar
         username={username}
         displayName={displayName}
-        signOutAction={handleSignOut}
+        signOutAction={signOutAction}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <AppMobileTopBar />
         <main className="flex-1 px-5 py-6 md:px-8 md:py-8">{children}</main>
-        <AppMobileTabBar signOutAction={handleSignOut} />
+        <AppMobileTabBar />
       </div>
     </div>
   );

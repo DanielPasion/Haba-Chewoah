@@ -16,10 +16,8 @@ export const ROTATING_TITLES: TitleToken[][] = [
     { kind: "ink", text: "." },
   ],
   [
-    { kind: "ink", text: "cause " },
-    { kind: "pink", text: "“i betcha won’t”" },
-    { kind: "br" },
-    { kind: "muted", text: "ever have to use" },
+    { kind: "ink", text: "so you " },
+    { kind: "pink", text: "never have to use" },
     { kind: "br" },
     { kind: "ink", text: "another habit tracker" },
     { kind: "muted", text: " again" },

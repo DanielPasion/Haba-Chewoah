@@ -1,10 +1,11 @@
 {
   "name": "Haba-Chewoah",
   "short_name": "Haba-Chewoah",
-  "description": "Bet on yourself. Log your streak. Dare your friends.",
+  "description": "Track your habits. Share your streaks.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#F6F3EB",
   "theme_color": "#1F1B2E",
