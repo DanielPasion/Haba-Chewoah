@@ -39,7 +39,6 @@ export const viewport: Viewport = {
   ],
 };
 
-// Bricolage is only used at weight 800 for display headlines + LogoText.
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-bricolage",
@@ -47,7 +46,6 @@ const bricolage = Bricolage_Grotesque({
   display: "swap",
 });
 
-// Inter spans body text (400/500), buttons (700), and the occasional 600/800.
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -55,7 +53,6 @@ const inter = Inter({
   display: "swap",
 });
 
-// JetBrains Mono is used for small uppercase labels (500/600/700).
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains",

@@ -9,11 +9,6 @@ type ProfileAvatarProps = {
   ringWidth?: number;
 };
 
-/**
- * Round avatar tile. Renders the user's uploaded image when present, falls
- * back to the brand mascot on a dark inked surface. Reused at multiple sizes
- * across mobile, desktop, and the edit form.
- */
 export function ProfileAvatar({
   imageUrl,
   alt,

@@ -22,8 +22,7 @@ const UpdateProfileSchema = z.object({
     .max(160, "bio is too long")
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null)),
-  // Mirrors create-account: closed-set <select>, but a malicious client could
-  // POST anything, so we still validate shape.
+  // The <select> is a closed set, but a malicious client could POST anything.
   timezone: z
     .string()
     .min(1)
@@ -44,12 +43,6 @@ export type UpdateProfileResult =
       message: string;
     };
 
-/**
- * Issue a presigned R2 PUT URL for the *current* user's avatar. Same shape as
- * the create-account version; duplicated as a small wrapper so each route's
- * server-action surface stays self-contained and the heavy lifting lives in
- * `~/server/r2.ts`.
- */
 export async function getAvatarUploadUrl(input: {
   contentType: string;
 }): Promise<
@@ -72,24 +65,14 @@ export async function getAvatarUploadUrl(input: {
   }
 }
 
-/**
- * Update the current user's bio, timezone, and (optionally) the avatar URL.
- * Username is *not* editable here — it's a unique identity slot that lives on
- * share-links and @-mentions; changing it is a separate flow.
- *
- * The avatar handling mirrors create-account: the client has already PUT the
- * file directly to R2 by the time this action runs. We just validate the key
- * is namespaced under the caller's userId, then persist `image`. If the DB
- * write fails we best-effort delete the orphan; if it succeeds, we delete the
- * user's *prior* R2 avatar so swaps don't leak storage.
- */
+// Username isn't editable here — it's a unique identity slot used in share
+// links and @-mentions; changing it would be a separate flow.
 export async function updateProfile(
   formData: FormData,
 ): Promise<UpdateProfileResult> {
   const session = await auth();
   if (!session?.user) return { ok: false, message: "not signed in" };
   if (!session.user.username) {
-    // Onboarding incomplete — user hasn't even set a username, edit is moot.
     return { ok: false, message: "finish creating your account first" };
   }
 
@@ -123,10 +106,8 @@ export async function updateProfile(
     };
   }
 
-  // Capture the prior image *before* the write so we can clean it up from R2
-  // after a successful avatar replace. Without this every swap leaks the old
-  // object indefinitely. Skipped (set to null) when the user isn't replacing
-  // the avatar at all.
+  // Captured before the write so we can delete the old object after replace —
+  // without this, every avatar swap leaks an R2 object indefinitely.
   const priorImage = avatarObjectKey
     ? (
         await db.user.findUnique({
@@ -152,10 +133,9 @@ export async function updateProfile(
     throw err;
   }
 
-  // Best-effort delete of the prior R2 avatar after a successful replace.
-  // `ownedAvatarKeyFromPublicUrl` returns null for non-R2 URLs (e.g., the
-  // Discord CDN avatar set during OAuth), so we never touch storage we
-  // don't own. Must run before `redirect()` — that throws NEXT_REDIRECT.
+  // Must run before redirect() — that throws NEXT_REDIRECT.
+  // `ownedAvatarKeyFromPublicUrl` returns null for non-R2 URLs (e.g. Discord
+  // CDN avatars from OAuth) so we never touch storage we don't own.
   if (avatarObjectKey && priorImage) {
     const priorKey = ownedAvatarKeyFromPublicUrl(priorImage, session.user.id);
     if (priorKey && priorKey !== avatarObjectKey) {
@@ -163,8 +143,6 @@ export async function updateProfile(
     }
   }
 
-  // The profile page is a server component reading from the DB — bust its
-  // cache so the user sees their new bio/avatar immediately.
   revalidatePath(`/profile/${session.user.username}`);
   revalidatePath("/profile");
 

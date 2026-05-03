@@ -18,10 +18,7 @@ declare module "next-auth" {
   }
 }
 
-/**
- * Discord-provided fields we read off the OAuth profile. NextAuth's own type
- * for `profile` is `unknown` because providers shape it differently.
- */
+// NextAuth's own `profile` type is `unknown` because providers shape it differently.
 type DiscordProfile = {
   id: string;
   username?: string | null;
@@ -39,15 +36,10 @@ function discordAvatarUrl(p: DiscordProfile): string | null {
 export const authConfig = {
   providers: [
     DiscordProvider({
-      /**
-       * Map Discord's OAuth profile onto our User model. Setting `discordId`
-       * here means the very first INSERT done by PrismaAdapter.createUser
-       * already satisfies the NOT NULL constraint — no backfill step needed.
-       *
-       * `username` is intentionally NOT set: it stays NULL until the user
-       * picks one through /create-account, which is the canonical signal
-       * that onboarding is complete.
-       */
+      // Setting discordId here lets PrismaAdapter.createUser's first INSERT
+      // satisfy the NOT NULL constraint without a backfill step. `username`
+      // is intentionally left NULL — it's set later by /create-account, and
+      // `username IS NULL` is the canonical "needs onboarding" signal.
       profile(profile: DiscordProfile) {
         return {
           id: profile.id,

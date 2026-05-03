@@ -24,12 +24,6 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/profile", label: "profile", icon: PROFILE_ICON },
 ];
 
-/**
- * Mobile bottom tab bar — three slots: home · center plus · profile. Mirrors
- * `.claude/ui/project/profile-page.jsx` (`ProfileTabBar`). The center plus is
- * the BeReal-style "log or create" FAB; it's intentionally inert until the
- * log-create flow is implemented.
- */
 const MOBILE_TAB_ITEMS: NavItem[] = [
   { href: "/feed", label: "home", icon: HOME_ICON },
   { href: "/profile", label: "profile", icon: PROFILE_ICON },
@@ -159,8 +153,6 @@ export function AppMobileTabBar() {
     <nav className="sticky bottom-0 z-10 flex items-center justify-around border-t border-hc-line bg-hc-surface px-4 pt-2.5 pb-2 md:hidden">
       <MobileTabLink item={MOBILE_TAB_ITEMS[0]!} pathname={pathname} />
 
-      {/* Center plus FAB — mirrors mockup's "log or create" button. Disabled
-          until the log-create flow lands. */}
       <button
         type="button"
         disabled

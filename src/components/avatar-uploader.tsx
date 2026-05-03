@@ -34,16 +34,9 @@ type AvatarUploaderProps = {
   inputName?: string;
 };
 
-/**
- * Reusable avatar uploader. Used by both /create-account and /profile/edit.
- *
- * - Renders the TwoFaceMascot or `initialUrl` as the preview.
- * - On pick: grabs a presigned URL, PUTs to R2 with progress, and writes the
- *   object key into a hidden form field so the surrounding form action can
- *   persist it.
- * - When `initialUrl` is set and the user hasn't picked a new file, the hidden
- *   field stays empty — the server action treats that as "keep existing avatar".
- */
+// When `initialUrl` is set and the user doesn't pick a new file, the hidden
+// objectKey field stays empty — the server action treats that as "keep
+// existing avatar".
 export function AvatarUploader({
   getUploadUrlAction,
   initialUrl,
@@ -165,10 +158,7 @@ function StatusLine({ status }: { status: Status }) {
   );
 }
 
-/**
- * `fetch` doesn't expose upload progress. XHR does — and we want the
- * percentage so the user sees the bar move during a 3 MB JPEG.
- */
+// XHR instead of fetch: fetch doesn't expose upload progress.
 function putWithProgress(
   url: string,
   file: File,

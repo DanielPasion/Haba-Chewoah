@@ -16,7 +16,7 @@ export function MobileLanding({ signedIn }: { signedIn: boolean }) {
           <AppIcon size={32} radius={8} />
           <LogoText size={17} />
         </div>
-        <span className="rounded-full border border-hc-line-strong px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-hc-muted">
+        <span className="rounded-full border border-hc-line-strong px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-widest text-hc-muted">
           ·beta
         </span>
       </header>
@@ -35,7 +35,7 @@ export function MobileLanding({ signedIn }: { signedIn: boolean }) {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-end gap-3">
-        <div className="flex w-full max-w-[360px] flex-col gap-2">
+        <div className="flex w-full max-w-90 flex-col gap-2">
           <InstallButton />
           <Link
             href={signedIn ? "/feed" : "/auth/signin"}
