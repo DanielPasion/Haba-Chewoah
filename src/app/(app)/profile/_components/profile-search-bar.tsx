@@ -33,7 +33,7 @@ export function ProfileSearchBar() {
     <form
       onSubmit={onSubmit}
       role="search"
-      className="flex items-center gap-2.5 rounded-hc-3 border-[1.5px] border-hc-line-strong bg-hc-surface px-3.5 py-2.5"
+      className="flex items-center gap-2.5 rounded-hc-3 border-hc border-hc-line-strong bg-hc-surface px-3.5 py-2.5"
     >
       <svg
         width="18"

@@ -27,7 +27,7 @@ export default async function SignInPage({
 
   return (
     <main className="grid min-h-dvh w-full place-items-center bg-hc-bg px-6 py-10">
-      <div className="flex w-full max-w-[420px] flex-col items-center gap-8">
+      <div className="flex w-full max-w-hc-form flex-col items-center gap-8">
         <Link href="/">
           <LogoText size={20} />
         </Link>
@@ -49,7 +49,7 @@ export default async function SignInPage({
 
         <Link
           href="/"
-          className="font-mono text-[11px] font-medium uppercase tracking-[0.15em] text-hc-muted hover:text-hc-ink"
+          className="font-mono text-hc-meta font-medium uppercase tracking-hc-eyebrow text-hc-muted hover:text-hc-ink"
         >
           ← back to landing
         </Link>

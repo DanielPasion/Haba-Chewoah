@@ -87,7 +87,7 @@ export function AvatarUploader({
         type="button"
         onClick={() => inputRef.current?.click()}
         aria-label="upload avatar"
-        className="grid size-28 place-items-center overflow-hidden rounded-full border-[1.5px] border-hc-ink bg-hc-ink shadow-hc transition-transform hover:scale-[1.02]"
+        className="grid size-28 place-items-center overflow-hidden rounded-full border-hc border-hc-ink bg-hc-ink shadow-hc transition-transform hover:scale-hc-hover"
       >
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -119,7 +119,7 @@ export function AvatarUploader({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="font-mono text-[11px] font-bold uppercase tracking-[0.15em] text-hc-ink underline-offset-4 hover:underline"
+          className="font-mono text-hc-meta font-bold uppercase tracking-hc-eyebrow text-hc-ink underline-offset-4 hover:underline"
         >
           {previewUrl ? "change photo" : "upload photo"}
         </button>
@@ -132,27 +132,27 @@ export function AvatarUploader({
 function StatusLine({ status }: { status: Status }) {
   if (status.state === "idle") {
     return (
-      <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-hc-muted">
+      <span className="font-mono text-hc-eyebrow uppercase tracking-hc-eyebrow text-hc-muted">
         png · jpg · webp · gif · max 4 MB
       </span>
     );
   }
   if (status.state === "uploading") {
     return (
-      <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-hc-muted">
+      <span className="font-mono text-hc-eyebrow uppercase tracking-hc-eyebrow text-hc-muted">
         uploading… {status.progress}%
       </span>
     );
   }
   if (status.state === "ready") {
     return (
-      <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-hc-brand-strong">
+      <span className="font-mono text-hc-eyebrow uppercase tracking-hc-eyebrow text-hc-brand-strong">
         {status.objectKey ? "✓ uploaded" : "current photo"}
       </span>
     );
   }
   return (
-    <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-hc-accent">
+    <span className="font-mono text-hc-eyebrow uppercase tracking-hc-eyebrow text-hc-accent">
       {status.message}
     </span>
   );

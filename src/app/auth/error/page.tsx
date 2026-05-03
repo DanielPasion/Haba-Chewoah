@@ -38,7 +38,7 @@ export default async function AuthErrorPage({
 
   return (
     <main className="grid min-h-dvh place-items-center bg-hc-bg px-6">
-      <div className="flex w-full max-w-[420px] flex-col items-center gap-7 text-center">
+      <div className="flex w-full max-w-hc-form flex-col items-center gap-7 text-center">
         <TwoFaceMascot size={140} mood="dead" />
         <div className="flex flex-col gap-2">
           <h1
@@ -48,7 +48,7 @@ export default async function AuthErrorPage({
             {title}
           </h1>
           <p className="text-sm text-hc-muted">{sub}</p>
-          <p className="font-mono text-[10px] font-medium uppercase tracking-[0.15em] text-hc-muted">
+          <p className="font-mono text-hc-eyebrow font-medium uppercase tracking-hc-eyebrow text-hc-muted">
             code · {code}
           </p>
         </div>

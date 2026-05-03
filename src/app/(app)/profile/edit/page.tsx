@@ -37,7 +37,7 @@ export default async function EditProfilePage() {
           >
             edit profile
           </h1>
-          <p className="font-mono text-[11px] uppercase tracking-[0.15em] text-hc-muted">
+          <p className="font-mono text-hc-meta uppercase tracking-hc-eyebrow text-hc-muted">
             @{me.username}
           </p>
         </div>

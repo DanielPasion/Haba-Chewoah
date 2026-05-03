@@ -20,7 +20,7 @@ export function ProfileStats({
           >
             {s.value.toLocaleString()}
           </div>
-          <div className="mt-1 font-mono text-[9px] font-semibold uppercase tracking-[0.1em] text-hc-muted">
+          <div className="mt-1 font-mono text-hc-tiny font-semibold uppercase tracking-widest text-hc-muted">
             {s.label}
           </div>
         </div>

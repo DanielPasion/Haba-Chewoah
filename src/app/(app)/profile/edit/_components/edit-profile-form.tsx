@@ -63,7 +63,7 @@ export function EditProfileForm({
             disabled
             readOnly
             aria-readonly
-            className="w-full cursor-not-allowed rounded-hc-2 border-[1.5px] border-hc-line-strong bg-hc-surface-alt px-4 py-3 font-mono text-sm font-medium text-hc-muted outline-none"
+            className="w-full cursor-not-allowed rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface-alt px-4 py-3 font-mono text-sm font-medium text-hc-muted outline-none"
           />
         </Field>
 
@@ -75,7 +75,7 @@ export function EditProfileForm({
           <select
             name="timezone"
             defaultValue={defaultTimezone}
-            className="w-full rounded-hc-2 border-[1.5px] border-hc-line-strong bg-hc-surface px-4 py-3 font-sans text-sm text-hc-ink outline-none focus:border-hc-ink"
+            className="w-full rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface px-4 py-3 font-sans text-sm text-hc-ink outline-none focus:border-hc-ink"
           >
             {TIMEZONES.map((tz) => (
               <option key={tz} value={tz}>
@@ -96,17 +96,17 @@ export function EditProfileForm({
             rows={3}
             defaultValue={defaultBio}
             placeholder="i'm here to log my streaks and ignore my feelings."
-            className="w-full resize-none rounded-hc-2 border-[1.5px] border-hc-line-strong bg-hc-surface px-4 py-3 font-sans text-sm text-hc-ink outline-none placeholder:text-hc-muted-soft focus:border-hc-ink"
+            className="w-full resize-none rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface px-4 py-3 font-sans text-sm text-hc-ink outline-none placeholder:text-hc-muted-soft focus:border-hc-ink"
           />
         </Field>
 
         {errors.avatar && (
-          <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-hc-accent">
+          <p className="font-mono text-hc-eyebrow uppercase tracking-hc-eyebrow text-hc-accent">
             avatar · {errors.avatar}
           </p>
         )}
         {errors.form && (
-          <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-hc-accent">
+          <p className="font-mono text-hc-eyebrow uppercase tracking-hc-eyebrow text-hc-accent">
             {errors.form}
           </p>
         )}
@@ -144,14 +144,14 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.15em] text-hc-ink">
+      <span className="font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-ink">
         {label}
       </span>
       {children}
       {error ? (
-        <span className="font-mono text-[10px] text-hc-accent">{error}</span>
+        <span className="font-mono text-hc-eyebrow text-hc-accent">{error}</span>
       ) : hint ? (
-        <span className="font-mono text-[10px] text-hc-muted">{hint}</span>
+        <span className="font-mono text-hc-eyebrow text-hc-muted">{hint}</span>
       ) : null}
     </label>
   );

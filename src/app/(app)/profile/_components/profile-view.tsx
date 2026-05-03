@@ -76,7 +76,7 @@ function MobileProfile({
   return (
     <div className="md:hidden">
       <header className="flex items-center justify-between px-5 pt-5 pb-3">
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.15em] text-hc-muted">
+        <span className="font-mono text-hc-meta font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
           /profile/{isOwn ? "me" : user.username}
         </span>
         {isOwn && (

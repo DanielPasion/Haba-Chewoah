@@ -57,7 +57,7 @@ export function Headline({ big }: { big?: boolean }) {
     <div className="relative flex flex-col">
       <h1
         key={idx}
-        className="relative m-0 font-display font-extrabold leading-[1.02] text-hc-ink"
+        className="relative m-0 font-display font-extrabold leading-hc-display text-hc-ink"
         style={{
           fontSize,
           letterSpacing: "-0.04em",

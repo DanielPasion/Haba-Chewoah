@@ -6,13 +6,13 @@ type Size = "sm" | "md" | "lg";
 const VARIANT: Record<Variant, string> = {
   primary: "bg-hc-ink text-hc-brand hover:-translate-y-[1px]",
   secondary:
-    "border-[1.5px] border-hc-ink bg-transparent text-hc-ink hover:bg-hc-ink hover:text-hc-brand",
+    "border-hc border-hc-ink bg-transparent text-hc-ink hover:bg-hc-ink hover:text-hc-brand",
   accent: "bg-hc-accent text-hc-accent-ink hover:-translate-y-[1px]",
   ghost: "bg-transparent text-hc-ink hover:bg-hc-line-strong",
 };
 
 const SIZE: Record<Size, string> = {
-  sm: "px-4 py-2 text-[13px]",
+  sm: "px-4 py-2 text-hc-button",
   md: "px-5 py-2.5 text-sm",
   lg: "px-6 py-3.5 text-base",
 };

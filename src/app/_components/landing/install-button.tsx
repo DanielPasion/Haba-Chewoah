@@ -33,7 +33,7 @@ export function InstallButton() {
           <DownloadIcon size={20} strokeWidth={2.2} />
           install the app
         </span>
-        <span className="font-mono text-[11px] font-semibold opacity-55">
+        <span className="font-mono text-hc-meta font-semibold opacity-55">
           ~2mb
         </span>
       </Button>

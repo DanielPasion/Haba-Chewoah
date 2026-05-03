@@ -5,7 +5,6 @@ import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 
 import { ServiceWorkerRegister } from "~/components/sw-register";
 import { ThemeBootScript, ThemeToggle } from "~/components/theme-toggle";
-import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = {
   title: {
@@ -73,7 +72,7 @@ export default function RootLayout({
         <ThemeBootScript />
       </head>
       <body className="bg-hc-bg text-hc-ink">
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        {children}
         <ThemeToggle />
         <ServiceWorkerRegister />
       </body>

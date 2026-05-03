@@ -18,7 +18,7 @@ export default function Loading() {
               />
             ))}
           </div>
-          <div className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-hc-muted">
+          <div className="font-mono text-hc-meta font-semibold uppercase tracking-hc-eyebrow-wide text-hc-muted">
             Haba-Haba
           </div>
         </div>

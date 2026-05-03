@@ -9,7 +9,7 @@ import { buttonClass } from "~/components/ui";
 import { toggleFollowAction } from "../_actions";
 
 const ICON_BASE_CLASS =
-  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-hc-2 border-[1.5px] border-hc-ink bg-transparent px-3 py-2 font-sans text-[13px] font-bold leading-none text-hc-ink transition-transform hover:bg-hc-ink hover:text-hc-brand";
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-hc-2 border-hc border-hc-ink bg-transparent px-3 py-2 font-sans text-hc-button font-bold leading-none text-hc-ink transition-transform hover:bg-hc-ink hover:text-hc-brand";
 
 /**
  * Action row under the identity block. Renders edit/share for own profile,

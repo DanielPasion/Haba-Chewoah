@@ -175,14 +175,14 @@ export function InstallSheet({
         className="absolute inset-0 bg-hc-ink/40 backdrop-blur-sm"
       />
       <div
-        className="relative m-3 w-full max-w-[420px] rounded-hc-4 border-[1.5px] border-hc-ink bg-hc-surface p-5 shadow-hc-stamp"
+        className="relative m-3 w-full max-w-hc-form rounded-hc-4 border-hc border-hc-ink bg-hc-surface p-5 shadow-hc-stamp"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="font-mono text-[10px] font-semibold uppercase tracking-[0.15em] text-hc-muted">
+            <div className="font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
               add to home screen
             </div>
-            <h2 className="mt-1 font-display text-[22px] font-extrabold leading-tight tracking-[-0.03em] text-hc-ink">
+            <h2 className="mt-1 font-display text-hc-display-md font-extrabold leading-tight tracking-hc-display text-hc-ink">
               {heading}
             </h2>
           </div>
@@ -190,7 +190,7 @@ export function InstallSheet({
             type="button"
             onClick={onClose}
             aria-label="close"
-            className="grid h-8 w-8 cursor-pointer place-items-center rounded-full border-[1.5px] border-hc-ink bg-hc-bg text-hc-ink transition-transform hover:-translate-y-[1px]"
+            className="grid h-8 w-8 cursor-pointer place-items-center rounded-full border-hc border-hc-ink bg-hc-bg text-hc-ink transition-transform hover:-translate-y-[1px]"
           >
             <CloseIcon />
           </button>
@@ -202,11 +202,11 @@ export function InstallSheet({
               key={i}
               className="flex items-center gap-3 rounded-hc-3 border border-hc-line-strong bg-hc-bg p-3"
             >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-hc-2 border-[1.5px] border-hc-ink bg-hc-surface text-hc-ink">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-hc-2 border-hc border-hc-ink bg-hc-surface text-hc-ink">
                 {step.icon}
               </span>
-              <span className="flex flex-1 items-center gap-2 text-[14px] leading-snug text-hc-muted">
-                <span className="font-mono text-[11px] font-bold text-hc-ink">
+              <span className="flex flex-1 items-center gap-2 text-sm leading-snug text-hc-muted">
+                <span className="font-mono text-hc-meta font-bold text-hc-ink">
                   {i + 1}.
                 </span>
                 <span>{step.text}</span>
@@ -215,7 +215,7 @@ export function InstallSheet({
           ))}
         </ol>
 
-        <p className="mt-4 font-mono text-[10px] font-semibold uppercase tracking-[0.15em] text-hc-muted">
+        <p className="mt-4 font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
           opens like a native app · no app store
         </p>
       </div>

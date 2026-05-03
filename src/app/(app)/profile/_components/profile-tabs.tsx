@@ -45,7 +45,7 @@ export function ProfileTabs({ isOwn }: { isOwn: boolean }) {
             >
               {t.label}
               <span
-                className={`rounded-full px-1.5 py-px font-mono text-[10px] font-bold ${
+                className={`rounded-full px-1.5 py-px font-mono text-hc-eyebrow font-bold ${
                   sel
                     ? "bg-hc-brand text-hc-brand-ink"
                     : "bg-hc-line-strong text-hc-muted"
@@ -54,7 +54,7 @@ export function ProfileTabs({ isOwn }: { isOwn: boolean }) {
                 {t.count}
               </span>
               {sel && (
-                <span className="absolute inset-x-2 -bottom-px h-[3px] rounded-sm bg-hc-ink" />
+                <span className="absolute inset-x-2 -bottom-px h-hc-tabline rounded-sm bg-hc-ink" />
               )}
             </button>
           );

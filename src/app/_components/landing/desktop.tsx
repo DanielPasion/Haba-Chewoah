@@ -29,7 +29,7 @@ export function DesktopLanding({ signedIn }: { signedIn: boolean }) {
       </nav>
 
       <section
-        className="mx-auto grid w-full min-h-0 max-w-[1280px] flex-1 items-center gap-8 px-8 py-4 lg:gap-12 lg:px-12"
+        className="mx-auto grid w-full min-h-0 max-w-7xl flex-1 items-center gap-8 px-8 py-4 lg:gap-12 lg:px-12"
         style={{ gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)" }}
       >
         <div className="flex min-h-0 flex-col gap-5 lg:gap-7">
@@ -52,13 +52,13 @@ export function DesktopLanding({ signedIn }: { signedIn: boolean }) {
             shadowOffset={6}
             rotate={-2}
           >
-            <TwoFaceMascot size={200} className="h-[80%] w-[80%]" />
+            <TwoFaceMascot size={200} className="h-4/5 w-4/5" />
           </StickerCard>
         </div>
       </section>
 
       <footer
-        className="flex items-center justify-between px-8 py-3 font-mono text-[11px] font-medium text-hc-muted lg:px-12"
+        className="flex items-center justify-between px-8 py-3 font-mono text-hc-meta font-medium text-hc-muted lg:px-12"
         style={{ borderTop: "1.5px solid var(--color-hc-line)" }}
       >
         <LogoText size={13} />
