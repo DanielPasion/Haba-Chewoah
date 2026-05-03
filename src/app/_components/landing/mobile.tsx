@@ -47,9 +47,6 @@ export function MobileLanding({ signedIn }: { signedIn: boolean }) {
           >
             {signedIn ? "open the app" : "i already have it · log in"}
           </Link>
-          <div className="text-center font-mono text-[10px] font-semibold uppercase tracking-[0.15em] text-hc-muted">
-            works offline · no app store · no ads
-          </div>
         </div>
       </div>
 

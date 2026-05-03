@@ -4,11 +4,10 @@ import { AppIcon } from "~/components/brand/app-icon";
 import { LogoText } from "~/components/brand/logo-text";
 import { StickerCard } from "~/components/brand/sticker-card";
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
-import { ArrowRightIcon, PhoneIcon } from "~/components/icons";
+import { ArrowRightIcon } from "~/components/icons";
 import { buttonClass } from "~/components/ui";
 
 import { Headline } from "./headline";
-import { QRBlock } from "./qr-block";
 
 export function DesktopLanding({ signedIn }: { signedIn: boolean }) {
   return (
@@ -43,13 +42,6 @@ export function DesktopLanding({ signedIn }: { signedIn: boolean }) {
               {signedIn ? "open the app" : "log in"}
               <ArrowRightIcon size={18} />
             </Link>
-            <div className="flex items-center gap-2 font-mono text-[11px] font-medium text-hc-muted">
-              <PhoneIcon size={18} />
-              on your phone?{" "}
-              <span className="font-bold text-hc-ink underline">
-                scan to install →
-              </span>
-            </div>
           </div>
         </div>
 
@@ -62,14 +54,6 @@ export function DesktopLanding({ signedIn }: { signedIn: boolean }) {
           >
             <TwoFaceMascot size={200} className="h-[80%] w-[80%]" />
           </StickerCard>
-          <div className="flex items-center gap-3">
-            <QRBlock size={96} />
-            <div className="max-w-[150px] text-[12px] leading-snug text-hc-muted">
-              <strong className="text-hc-ink">scan to install</strong>
-              <br />
-              installs as a PWA. no app store, no permissions theater.
-            </div>
-          </div>
         </div>
       </section>
 
