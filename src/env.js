@@ -2,10 +2,6 @@ import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
 export const env = createEnv({
-  /**
-   * Specify your server-side environment variables schema here. This way you can ensure the app
-   * isn't built with invalid env vars.
-   */
   server: {
     AUTH_SECRET: z.string().min(1),
     AUTH_DISCORD_ID: z.string(),
@@ -15,10 +11,6 @@ export const env = createEnv({
       .enum(["development", "test", "production"])
       .default("development"),
 
-    // Cloudflare R2 — S3-compatible object storage for user-uploaded media
-    // (avatars first, habit-log photos/videos later). Endpoint is derived
-    // from R2_ACCOUNT_ID; bucket is private-by-default and we serve reads
-    // off R2_PUBLIC_URL.
     R2_ACCOUNT_ID: z.string().min(1),
     R2_ACCESS_KEY_ID: z.string().min(1),
     R2_SECRET_ACCESS_KEY: z.string().min(1),
@@ -26,19 +18,11 @@ export const env = createEnv({
     R2_PUBLIC_URL: z.string().url(),
   },
 
-  /**
-   * Specify your client-side environment variables schema here. This way you can ensure the app
-   * isn't built with invalid env vars. To expose them to the client, prefix them with
-   * `NEXT_PUBLIC_`.
-   */
   client: {
     // NEXT_PUBLIC_CLIENTVAR: z.string(),
   },
 
-  /**
-   * You can't destruct `process.env` as a regular object in the Next.js edge runtimes (e.g.
-   * middlewares) or client-side so we need to destruct manually.
-   */
+  // process.env can't be destructured in edge runtimes — must list keys manually.
   runtimeEnv: {
     AUTH_SECRET: process.env.AUTH_SECRET,
     AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
@@ -51,14 +35,6 @@ export const env = createEnv({
     R2_BUCKET: process.env.R2_BUCKET,
     R2_PUBLIC_URL: process.env.R2_PUBLIC_URL,
   },
-  /**
-   * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
-   * useful for Docker builds.
-   */
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
-  /**
-   * Makes it so that empty strings are treated as undefined. `SOME_VAR: z.string()` and
-   * `SOME_VAR=''` will throw an error.
-   */
   emptyStringAsUndefined: true,
 });

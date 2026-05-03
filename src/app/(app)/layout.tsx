@@ -9,17 +9,8 @@ import {
   AppSidebar,
 } from "./_components/app-nav";
 
-/**
- * Authenticated app shell. Every route nested under `(app)` is gated here:
- *  1. No session  → /auth/signin
- *  2. Session but no `username` (onboarding incomplete) → /create-account
- *
- * Each page should *also* call `auth()` itself for defense-in-depth — never
- * rely on a single layer when the cost of a leak is showing private content.
- *
- * Layout chrome mirrors `.claude/ui/project/desktop.jsx` (left sidebar) and
- * `home-feed.jsx` (mobile top bar + bottom tab bar).
- */
+// Pages nested under (app) should still call auth() themselves — layout gating
+// alone isn't enough when the cost of a leak is private content.
 export default async function AppLayout({
   children,
 }: {

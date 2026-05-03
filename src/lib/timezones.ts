@@ -1,8 +1,4 @@
-/**
- * Curated short-list of IANA timezones we surface in onboarding + edit-profile
- * pickers. Keep it small enough that the <select> is scannable; we can grow it
- * later if real users tell us they're missing one.
- */
+// Curated short-list — kept small enough that the <select> stays scannable.
 export const TIMEZONES = [
   "UTC",
   "America/New_York",

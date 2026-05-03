@@ -7,11 +7,6 @@ import { buttonClass } from "~/components/ui";
 const ICON_BASE_CLASS =
   "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-hc-2 border-[1.5px] border-hc-ink bg-transparent px-3 py-2 font-sans text-[13px] font-bold leading-none text-hc-ink transition-transform hover:bg-hc-ink hover:text-hc-brand";
 
-/**
- * Action row under the identity block. "edit profile" is the only fully
- * functional button right now; "share" is intentionally inert — the rest of
- * the social graph (follow, nudge, etc.) hasn't been wired up yet.
- */
 export function ProfileActions({ isOwn }: { isOwn: boolean }) {
   if (isOwn) {
     return (
@@ -42,10 +37,6 @@ export function ProfileActions({ isOwn }: { isOwn: boolean }) {
   );
 }
 
-/**
- * Visually present, non-functional share button. We render it because it's in
- * the mockup, but no share-sheet plumbing exists yet — clicks are no-ops.
- */
 function ShareButton() {
   return (
     <button

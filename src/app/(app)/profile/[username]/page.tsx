@@ -17,14 +17,9 @@ export async function generateMetadata({
   return { title: `@${username}` };
 }
 
-/**
- * Public profile page. Defense-in-depth auth check (the (app) layout already
- * gates this, but rely on it here too — a leak here shows private content).
- *
- * The username segment is matched case-insensitively against `users.username`
- * via `mode: "insensitive"`, which keeps share-links forgiving.
- */
 export default async function UserProfilePage({ params }: { params: Params }) {
+  // Re-check auth here even though the (app) layout already gated it — a leak
+  // here would expose private content.
   const session = await auth();
   if (!session?.user) redirect("/auth/signin");
   if (!session.user.username) redirect("/create-account");

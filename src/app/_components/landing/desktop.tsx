@@ -66,8 +66,6 @@ export function DesktopLanding({ signedIn }: { signedIn: boolean }) {
             <QRBlock size={96} />
             <div className="max-w-[150px] text-[12px] leading-snug text-hc-muted">
               <strong className="text-hc-ink">scan to install</strong>
-              <br />
-              installs as a PWA. no app store, no permissions theater.
             </div>
           </div>
         </div>

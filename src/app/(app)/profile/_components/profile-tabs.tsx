@@ -21,10 +21,6 @@ const TABS: { id: TabId; label: string; count: number; emptyHint: string }[] = [
   },
 ];
 
-/**
- * Tabs row + tab body. Habits and logs aren't implemented yet — the bodies
- * are intentional placeholders so the layout reads complete in mockups.
- */
 export function ProfileTabs({ isOwn }: { isOwn: boolean }) {
   const [tab, setTab] = useState<TabId>("habits");
   const active = TABS.find((t) => t.id === tab) ?? TABS[0]!;

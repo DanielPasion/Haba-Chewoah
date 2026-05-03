@@ -12,17 +12,6 @@ export type ProfileViewUser = {
   imageUrl: string | null;
 };
 
-/**
- * Composed profile page (header + identity + tabs). Renders two layouts:
- *
- * - **mobile** (`md:hidden`): vertical, avatar+name in a row, stats below.
- * - **desktop** (`hidden md:flex`): full-bleed banner with avatar overlapping
- *   it; mirrors `.claude/ui/project/desktop.jsx` (`DProfile`).
- *
- * Stats are wired with zeros for now — followers/streaks/etc. aren't tracked
- * server-side yet, but the layout slots are correct so the numbers can drop in
- * once the queries land.
- */
 export function ProfileView({
   user,
   isOwn,
@@ -30,8 +19,8 @@ export function ProfileView({
   user: ProfileViewUser;
   isOwn: boolean;
 }) {
-  // Padding-cancel wrapper: lets the desktop banner go edge-to-edge inside the
-  // (app) layout's padded <main>. We add per-section padding back below.
+  // Cancels the (app) layout's <main> padding so the desktop banner can go
+  // edge-to-edge; per-section padding is added back below.
   return (
     <div className="-mx-5 -my-6 md:-mx-8 md:-my-8">
       <MobileProfile user={user} isOwn={isOwn} />
@@ -119,8 +108,6 @@ function DesktopProfile({
 }) {
   return (
     <div className="hidden md:block">
-      {/* Banner — full-bleed inside main. `relative` + explicit `z-0` keep it
-          below the identity row so the avatar overlaps cleanly. */}
       <div
         className="relative z-0 h-40 overflow-hidden border-b border-hc-line"
         style={{
@@ -136,8 +123,6 @@ function DesktopProfile({
           }}
           aria-hidden
         />
-        {/* Floating mascot anchored bottom-right, mirrors the desktop mockup
-            so the gradient doesn't read as a flat slab of color. */}
         <div
           className="pointer-events-none absolute right-8 -bottom-2"
           aria-hidden
@@ -146,8 +131,6 @@ function DesktopProfile({
         </div>
       </div>
 
-      {/* Identity row, overlapping the banner. `relative z-10` puts the
-          avatar (and ring) cleanly on top of the gradient. */}
       <div className="relative z-10 -mt-14 px-8">
         <div className="flex items-end gap-5">
           <ProfileAvatar
@@ -189,10 +172,6 @@ function DesktopProfile({
   );
 }
 
-/**
- * Stats are placeholder zeros until follow/streak/log tables get queried.
- * Defined once and shared across both layouts so the order stays consistent.
- */
 const ZERO_STATS = [
   { label: "followers", value: 0 },
   { label: "following", value: 0 },
