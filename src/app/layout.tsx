@@ -32,6 +32,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  // viewport-fit=cover lets the page extend behind the iPhone notch and home
+  // indicator; pair with env(safe-area-inset-*) padding on the landing chrome
+  // so the header and footer aren't covered by system UI.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#F6F3EB" },
     { media: "(prefers-color-scheme: dark)", color: "#13111C" },
