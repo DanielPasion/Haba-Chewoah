@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { MoonIcon, SunIcon } from "~/components/icons";
-
-type Theme = "light" | "dark";
+export type Theme = "light" | "dark";
 
 const STORAGE_KEY = "hc-theme";
 
@@ -31,35 +29,30 @@ function applyTheme(theme: Theme) {
   document.documentElement.setAttribute("data-theme", theme);
 }
 
-export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("light");
+export function useTheme(): {
+  theme: Theme;
+  setTheme: (next: Theme) => void;
+  toggle: () => void;
+} {
+  const [theme, setThemeState] = useState<Theme>("light");
 
   useEffect(() => {
     const t = readTheme();
-    setTheme(t);
+    setThemeState(t);
     applyTheme(t);
   }, []);
 
-  const toggle = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
+  const setTheme = (next: Theme) => {
+    setThemeState(next);
     applyTheme(next);
     try {
       window.localStorage.setItem(STORAGE_KEY, next);
     } catch {}
   };
 
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label="Toggle theme"
-      className="fixed right-4 bottom-4 z-50 grid h-12 w-12 place-items-center rounded-full border-hc border-current bg-hc-bg text-hc-ink transition-transform duration-150 hover:scale-110 hover:-rotate-6"
-      style={{ boxShadow: "0 6px 18px rgb(0 0 0 / 0.18), 2px 2px 0 currentColor" }}
-    >
-      {theme === "dark" ? <SunIcon /> : <MoonIcon />}
-    </button>
-  );
+  const toggle = () => setTheme(theme === "dark" ? "light" : "dark");
+
+  return { theme, setTheme, toggle };
 }
 
 export function ThemeBootScript() {

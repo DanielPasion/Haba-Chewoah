@@ -4,7 +4,7 @@ import { type Metadata, type Viewport } from "next";
 import { Bricolage_Grotesque, Inter, JetBrains_Mono } from "next/font/google";
 
 import { ServiceWorkerRegister } from "~/components/sw-register";
-import { ThemeBootScript, ThemeToggle } from "~/components/theme-toggle";
+import { ThemeBootScript } from "~/components/theme-toggle";
 
 export const metadata: Metadata = {
   title: {
@@ -77,7 +77,6 @@ export default function RootLayout({
       </head>
       <body className="bg-hc-bg text-hc-ink">
         {children}
-        <ThemeToggle />
         <ServiceWorkerRegister />
       </body>
     </html>

@@ -5,6 +5,9 @@ import { usePathname } from "next/navigation";
 
 import { LogoText } from "~/components/brand/logo-text";
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { SettingsButton } from "~/components/settings-button";
+
+import { MobileAddButton } from "./add-sheet";
 
 type NavItem = {
   href: string;
@@ -15,15 +18,26 @@ type NavItem = {
 const HOME_ICON = (
   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z" />
 );
+const HABITS_ICON = (
+  <>
+    <path d="M9 11l3 3L22 4" />
+    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+  </>
+);
 const PROFILE_ICON = (
   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" />
 );
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/feed", label: "home", icon: HOME_ICON },
+  { href: "/habits", label: "habits", icon: HABITS_ICON },
   { href: "/profile", label: "profile", icon: PROFILE_ICON },
 ];
 
+// Mobile bottom tab bar — three slots: home · center plus · profile.
+// Mirrors `.claude/ui/project/profile-page.jsx` (`ProfileTabBar`). The center
+// plus is the BeReal-style FAB that opens the AddSheet. Habits live in the
+// top bar's right side instead of as a 4th tab so the FAB stays centered.
 const MOBILE_TAB_ITEMS: NavItem[] = [
   { href: "/feed", label: "home", icon: HOME_ICON },
   { href: "/profile", label: "profile", icon: PROFILE_ICON },
@@ -110,38 +124,30 @@ export function AppSidebar({
             @{username}
           </div>
         </div>
-        <form action={signOutAction}>
-          <button
-            type="submit"
-            aria-label="sign out"
-            title="sign out"
-            className="grid size-7 place-items-center rounded-hc-1 text-hc-muted hover:bg-hc-bg hover:text-hc-ink"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-            </svg>
-          </button>
-        </form>
+        <SettingsButton signOutAction={signOutAction} variant="sidebar" />
       </div>
     </aside>
   );
 }
 
 export function AppMobileTopBar() {
+  const pathname = usePathname();
+  const habitsActive = isActive(pathname, "/habits");
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:hidden">
       <Link href="/feed">
         <LogoText size={16} />
+      </Link>
+      <Link
+        href="/habits"
+        aria-label="habits"
+        className={`grid size-9 place-items-center rounded-full border ${
+          habitsActive
+            ? "border-hc-ink bg-hc-ink text-hc-brand dark:bg-hc-brand dark:text-hc-brand-ink"
+            : "border-hc-line bg-hc-surface text-hc-ink hover:bg-hc-surface-alt"
+        }`}
+      >
+        <NavIcon size={18}>{HABITS_ICON}</NavIcon>
       </Link>
     </header>
   );
@@ -152,19 +158,7 @@ export function AppMobileTabBar() {
   return (
     <nav className="sticky bottom-0 z-10 flex items-center justify-around border-t border-hc-line bg-hc-surface px-4 pt-2.5 pb-2 md:hidden">
       <MobileTabLink item={MOBILE_TAB_ITEMS[0]!} pathname={pathname} />
-
-      <button
-        type="button"
-        disabled
-        title="log or create — coming soon"
-        aria-label="log or create"
-        className="-mt-6 grid size-14 cursor-not-allowed place-items-center rounded-full border border-hc-line bg-hc-brand text-hc-brand-ink shadow-hc disabled:opacity-90"
-      >
-        <NavIcon size={24} strokeWidth={3}>
-          <path d="M12 5v14M5 12h14" />
-        </NavIcon>
-      </button>
-
+      <MobileAddButton />
       <MobileTabLink item={MOBILE_TAB_ITEMS[1]!} pathname={pathname} />
     </nav>
   );
