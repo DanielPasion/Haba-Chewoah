@@ -1,4 +1,5 @@
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { SettingsButton } from "~/components/settings-button";
 
 import { signOutAction } from "../../_actions";
 import { ProfileActions } from "./profile-actions";
@@ -80,28 +81,7 @@ function MobileProfile({
           /profile/{isOwn ? "me" : user.username}
         </span>
         {isOwn && (
-          <form action={signOutAction}>
-            <button
-              type="submit"
-              aria-label="sign out"
-              title="sign out"
-              className="grid size-8 place-items-center rounded-full text-hc-muted hover:bg-hc-surface hover:text-hc-ink"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-              </svg>
-            </button>
-          </form>
+          <SettingsButton signOutAction={signOutAction} variant="topbar" />
         )}
       </header>
 

@@ -3,10 +3,15 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 type Variant = "primary" | "secondary" | "accent" | "ghost";
 type Size = "sm" | "md" | "lg";
 
+// In light mode, `bg-hc-ink` is dark navy + `text-hc-brand` is lime — high
+// contrast. In dark mode, `--color-hc-ink` flips to cream, so the same combo
+// becomes cream + lime (unreadable). Invert the primary/secondary fills in
+// dark so the brand color sits on a dark plate (`hc-brand-ink`) instead.
 const VARIANT: Record<Variant, string> = {
-  primary: "bg-hc-ink text-hc-brand hover:-translate-y-[1px]",
+  primary:
+    "bg-hc-ink text-hc-brand hover:-translate-y-[1px] dark:bg-hc-brand dark:text-hc-brand-ink",
   secondary:
-    "border-hc border-hc-ink bg-transparent text-hc-ink hover:bg-hc-ink hover:text-hc-brand",
+    "border-hc border-hc-ink bg-transparent text-hc-ink hover:bg-hc-ink hover:text-hc-brand dark:hover:bg-hc-brand dark:hover:text-hc-brand-ink",
   accent: "bg-hc-accent text-hc-accent-ink hover:-translate-y-[1px]",
   ghost: "bg-transparent text-hc-ink hover:bg-hc-line-strong",
 };
