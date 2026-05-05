@@ -14,10 +14,12 @@ export function CommentSection({
   habitLogId,
   comments,
   viewer,
+  ownerId,
 }: {
   habitLogId: string;
   comments: CommentVM[];
   viewer: LogViewer;
+  ownerId: string;
 }) {
   return (
     <div className="flex flex-col gap-4">
@@ -34,7 +36,11 @@ export function CommentSection({
 
       <div className="flex flex-col gap-3">
         {comments.map((c) => (
-          <CommentRow key={c.id} comment={c} />
+          <CommentRow
+            key={c.id}
+            comment={c}
+            isOwnerOfPost={c.author.id === ownerId}
+          />
         ))}
       </div>
 
@@ -43,7 +49,13 @@ export function CommentSection({
   );
 }
 
-function CommentRow({ comment }: { comment: CommentVM }) {
+function CommentRow({
+  comment,
+  isOwnerOfPost,
+}: {
+  comment: CommentVM;
+  isOwnerOfPost: boolean;
+}) {
   const [pending, startTransition] = useTransition();
 
   function onDelete() {
@@ -87,6 +99,11 @@ function CommentRow({ comment }: { comment: CommentVM }) {
             >
               @{comment.author.username}
             </Link>
+            {isOwnerOfPost && (
+              <span className="rounded-sm bg-hc-ink px-1.5 py-px font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow-narrow text-hc-brand">
+                OP
+              </span>
+            )}
             <span className="font-mono text-hc-tiny font-medium opacity-70">
               {formatRelative(comment.createdAt)}
             </span>
