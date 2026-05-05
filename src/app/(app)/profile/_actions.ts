@@ -218,3 +218,103 @@ export async function toggleFollowAction(input: {
   }
   return { ok: true, isFollowing };
 }
+
+// ============================================================
+// BLOCKS — NOTES.md §9
+// ============================================================
+// Blocking is a hard separation: existing follow rows in either direction
+// are removed at block-time (per §9), and the read-side filtering already
+// in `ensureLogVisible`, `getFollowListAction`, and the notification
+// fanout helper kicks in immediately. Unblocking does NOT restore prior
+// follows — the user has to re-follow if they want to.
+
+const BlockSchema = z.object({
+  targetUserId: z.string().uuid(),
+});
+
+export type ToggleBlockResult =
+  | { ok: true; isBlocking: boolean }
+  | { ok: false; message: string };
+
+export async function blockUserAction(input: {
+  targetUserId: string;
+}): Promise<ToggleBlockResult> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, message: "not signed in" };
+
+  const parsed = BlockSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "invalid target" };
+
+  const blockerId = session.user.id;
+  const blockedId = parsed.data.targetUserId;
+  if (blockerId === blockedId) {
+    return { ok: false, message: "cannot block yourself" };
+  }
+
+  const target = await db.user.findUnique({
+    where: { id: blockedId },
+    select: { username: true },
+  });
+  if (!target?.username) return { ok: false, message: "user not found" };
+
+  // §9: "Existing follow relationships in either direction should be
+  // removed at block time." Run all three writes in one transaction so a
+  // partial failure doesn't leave a half-blocked state.
+  try {
+    await db.$transaction([
+      db.block.upsert({
+        where: { blockerId_blockedId: { blockerId, blockedId } },
+        update: {},
+        create: { blockerId, blockedId },
+      }),
+      db.follow.deleteMany({
+        where: {
+          OR: [
+            { followerId: blockerId, followingId: blockedId },
+            { followerId: blockedId, followingId: blockerId },
+          ],
+        },
+      }),
+    ]);
+  } catch (err) {
+    console.warn("[block] create failed", err);
+    return { ok: false, message: "could not block" };
+  }
+
+  revalidatePath(`/profile/${target.username}`);
+  if (session.user.username) {
+    revalidatePath(`/profile/${session.user.username}`);
+  }
+  // Block changes affect feed visibility, comment lists, and the bell
+  // count — broad layout revalidation is the cheapest correct option.
+  revalidatePath("/", "layout");
+  return { ok: true, isBlocking: true };
+}
+
+export async function unblockUserAction(input: {
+  targetUserId: string;
+}): Promise<ToggleBlockResult> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, message: "not signed in" };
+
+  const parsed = BlockSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "invalid target" };
+
+  const blockerId = session.user.id;
+  const blockedId = parsed.data.targetUserId;
+
+  // Concurrent unblocks → use deleteMany so count=0 is a no-op rather
+  // than P2025.
+  await db.block.deleteMany({ where: { blockerId, blockedId } });
+
+  const target = await db.user.findUnique({
+    where: { id: blockedId },
+    select: { username: true },
+  });
+  if (target?.username) revalidatePath(`/profile/${target.username}`);
+  if (session.user.username) {
+    revalidatePath(`/profile/${session.user.username}`);
+  }
+  revalidatePath("/", "layout");
+  return { ok: true, isBlocking: false };
+}

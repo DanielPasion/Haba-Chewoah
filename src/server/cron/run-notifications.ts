@@ -65,131 +65,122 @@ export async function runNotificationsCron(): Promise<CronRunResult> {
   });
 
   for (const habit of activeHabits) {
-    const tz = habit.user.timezone;
-    const localNow = getLocalParts(now, tz);
-    const todayYmd = localNow.ymd;
+    // Per-iteration try/catch: a single throw (bad timezone string,
+    // transient DB hiccup, push provider error) must not halt the entire
+    // cron run. Failures are logged and the loop moves to the next habit.
+    try {
+      const tz = habit.user.timezone;
+      const localNow = getLocalParts(now, tz);
+      const todayYmd = localNow.ymd;
 
-    // Pull a 48h window of logs for this habit so we can answer "logged
-    // today?" and feed the streak calculator. Cheaper than a full history
-    // pull and matches the right-rail's approach.
-    const recentLogsCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-    const recentLogs = await db.habitLog.findMany({
-      where: { habitId: habit.id, completedAt: { gte: recentLogsCutoff } },
-      select: { completedAt: true },
-    });
-    const loggedToday = recentLogs.some(
-      (l) => localYmd(l.completedAt, tz) === todayYmd,
-    );
-
-    // ────────────────────────────────────────────────
-    // Reminder
-    // ────────────────────────────────────────────────
-    if (!loggedToday && habit.schedules.length > 0) {
-      const reminderHit = habit.schedules.some((s) => {
-        if (s.dayOfWeek != null && s.dayOfWeek !== localNow.dayOfWeek) {
-          return false;
-        }
-        if (!s.reminderTime) return false;
-        const target = extractTimeMinutes(s.reminderTime);
-        const cur = localNow.hour * 60 + localNow.minute;
-        // ±10 min — pairs with a 15-min cron cadence so every reminder
-        // fires once even with mild scheduler jitter.
-        return Math.abs(cur - target) <= 10;
+      // Pull a 48h window of logs for this habit so we can answer "logged
+      // today?" and feed the streak calculator. Cheaper than a full
+      // history pull and matches the right-rail's approach.
+      const recentLogsCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+      const recentLogs = await db.habitLog.findMany({
+        where: { habitId: habit.id, completedAt: { gte: recentLogsCutoff } },
+        select: { completedAt: true },
       });
-      if (reminderHit) {
-        const already = await alreadyFiredOnLocalDay({
-          userId: habit.userId,
-          habitId: habit.id,
-          type: NotificationType.reminder,
-          tz,
-          localYmdToday: todayYmd,
+      const loggedToday = recentLogs.some(
+        (l) => localYmd(l.completedAt, tz) === todayYmd,
+      );
+
+      // ────────────────────────────────────────────────
+      // Reminder — `createNotification` writes localDay; the unique
+      // (userId, habitId, type, localDay) catches concurrent cron-run
+      // races and short-circuits as idempotent success.
+      // ────────────────────────────────────────────────
+      if (!loggedToday && habit.schedules.length > 0) {
+        const reminderHit = habit.schedules.some((s) => {
+          if (s.dayOfWeek != null && s.dayOfWeek !== localNow.dayOfWeek) {
+            return false;
+          }
+          if (!s.reminderTime) return false;
+          const target = extractTimeMinutes(s.reminderTime);
+          const cur = localNow.hour * 60 + localNow.minute;
+          // ±10 min — pairs with a 15-min cron cadence so every reminder
+          // fires once even with mild scheduler jitter.
+          return Math.abs(cur - target) <= 10;
         });
-        if (!already) {
-          await createNotification({
+        if (reminderHit) {
+          const res = await createNotification({
             recipientId: habit.userId,
             type: NotificationType.reminder,
             habitId: habit.id,
+            localDayYmd: todayYmd,
             pushTitle: `time to log "${habit.name}"`,
             pushBody: "tap to mark today done",
             pushUrl: `/habit/${habit.id}`,
           });
-          result.reminders += 1;
+          if (res.created) result.reminders += 1;
         }
       }
-    }
 
-    // ────────────────────────────────────────────────
-    // Streak-at-risk
-    // ────────────────────────────────────────────────
-    if (!loggedToday && localNow.hour >= AT_RISK_HOUR) {
-      const stats = computeHabitStats({
-        logs: recentLogs,
-        timezone: tz,
-        startDate: habit.startDate ?? habit.createdAt,
-        frequencyType: habit.frequencyType,
-        targetCount: habit.targetCount,
-        periodDays: habit.periodDays,
-      });
-      // streak ≥ 1 means yesterday counted — i.e. there's something to
-      // lose if today goes unlogged.
-      if (stats.currentStreak >= 1) {
-        const already = await alreadyFiredOnLocalDay({
-          userId: habit.userId,
-          habitId: habit.id,
-          type: NotificationType.streak_at_risk,
-          tz,
-          localYmdToday: todayYmd,
+      // ────────────────────────────────────────────────
+      // Streak-at-risk
+      // ────────────────────────────────────────────────
+      if (!loggedToday && localNow.hour >= AT_RISK_HOUR) {
+        const stats = computeHabitStats({
+          logs: recentLogs,
+          timezone: tz,
+          startDate: habit.startDate ?? habit.createdAt,
+          frequencyType: habit.frequencyType,
+          targetCount: habit.targetCount,
+          periodDays: habit.periodDays,
         });
-        if (!already) {
-          await createNotification({
+        if (stats.currentStreak >= 1) {
+          const res = await createNotification({
             recipientId: habit.userId,
             type: NotificationType.streak_at_risk,
             habitId: habit.id,
+            localDayYmd: todayYmd,
             pushTitle: `${stats.currentStreak}-day streak at risk`,
             pushBody: `log "${habit.name}" before midnight to keep it alive`,
             pushUrl: `/habit/${habit.id}`,
           });
-          result.streakAtRisk += 1;
+          if (res.created) result.streakAtRisk += 1;
         }
       }
-    }
 
-    // ────────────────────────────────────────────────
-    // Milestone (current streak crossed a threshold today)
-    // ────────────────────────────────────────────────
-    if (loggedToday) {
-      const stats = computeHabitStats({
-        logs: recentLogs,
-        timezone: tz,
-        startDate: habit.startDate ?? habit.createdAt,
-        frequencyType: habit.frequencyType,
-        targetCount: habit.targetCount,
-        periodDays: habit.periodDays,
-      });
-      if (MILESTONES.includes(stats.currentStreak)) {
-        // Dedup is per-local-day: a milestone day spans one local
-        // calendar date, so "already fired today" prevents the cron from
-        // re-firing on its 15-min cadence. A user who breaks the streak
-        // and re-hits day-30 next year is *intentionally* re-notified.
-        const already = await alreadyFiredOnLocalDay({
-          userId: habit.userId,
-          habitId: habit.id,
-          type: NotificationType.streak_milestone,
-          tz,
-          localYmdToday: todayYmd,
+      // ────────────────────────────────────────────────
+      // Milestone (current streak crossed a threshold today)
+      // ────────────────────────────────────────────────
+      if (loggedToday) {
+        const stats = computeHabitStats({
+          logs: recentLogs,
+          timezone: tz,
+          startDate: habit.startDate ?? habit.createdAt,
+          frequencyType: habit.frequencyType,
+          targetCount: habit.targetCount,
+          periodDays: habit.periodDays,
         });
-        if (!already) {
-          await createNotification({
+        if (MILESTONES.includes(stats.currentStreak)) {
+          // Dedup is per-local-day: a milestone day spans one calendar
+          // date. If the user breaks streak and re-hits day-30 next year,
+          // a *different* localDay value lets the unique pass through and
+          // we re-notify — intentional.
+          const res = await createNotification({
             recipientId: habit.userId,
             type: NotificationType.streak_milestone,
             habitId: habit.id,
+            localDayYmd: todayYmd,
             pushTitle: `${stats.currentStreak} days on "${habit.name}" ✦`,
             pushBody: "milestone hit · keep going",
             pushUrl: `/habit/${habit.id}`,
           });
-          result.milestones += 1;
+          if (res.created) result.milestones += 1;
         }
       }
+    } catch (err) {
+      // Common causes: invalid `users.timezone` (RangeError from
+      // `Intl.DateTimeFormat`), transient Neon disconnect, push provider
+      // refusing the payload. Log enough to debug, then carry on so the
+      // next habit gets its notification.
+      console.warn("[cron] habit failed", {
+        habitId: habit.id,
+        userId: habit.userId,
+        err,
+      });
     }
   }
 
@@ -212,24 +203,29 @@ export async function runNotificationsCron(): Promise<CronRunResult> {
     },
   });
   for (const habit of succeededHabits) {
-    const already = await db.notification.findFirst({
-      where: {
-        userId: habit.userId,
-        habitId: habit.id,
+    try {
+      // habit_succeeded fires exactly once per habit. We use a fixed
+      // `localDay` of the habit's `updatedAt` so re-runs land on the same
+      // unique key and dedup naturally. (The user's timezone doesn't
+      // matter here — there's no streak day to anchor to; we just need a
+      // stable per-habit value.)
+      const ymd = habit.updatedAt.toISOString().slice(0, 10);
+      const res = await createNotification({
+        recipientId: habit.userId,
         type: NotificationType.habit_succeeded,
-      },
-      select: { id: true },
-    });
-    if (already) continue;
-    await createNotification({
-      recipientId: habit.userId,
-      type: NotificationType.habit_succeeded,
-      habitId: habit.id,
-      pushTitle: `you finished "${habit.name}" 🏁`,
-      pushBody: "challenge complete — bet won",
-      pushUrl: `/habit/${habit.id}`,
-    });
-    result.succeeded += 1;
+        habitId: habit.id,
+        localDayYmd: ymd,
+        pushTitle: `you finished "${habit.name}" 🏁`,
+        pushBody: "challenge complete — bet won",
+        pushUrl: `/habit/${habit.id}`,
+      });
+      if (res.created) result.succeeded += 1;
+    } catch (err) {
+      console.warn("[cron] succeeded fanout failed", {
+        habitId: habit.id,
+        err,
+      });
+    }
   }
 
   return result;
@@ -238,42 +234,6 @@ export async function runNotificationsCron(): Promise<CronRunResult> {
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
-
-/**
- * "Did we already fire this notification type for this habit on the user's
- * current local day?" Pulls the last 48h of matching notifications and
- * checks each against `localYmdToday` in the user's timezone.
- *
- * We can't filter by local date in SQL without a TZ-aware date_trunc, so
- * we widen to a 48h UTC window and finish the comparison in JS. 48h covers
- * any IANA offset (max ~14h east plus DST) with margin. Volume is bounded:
- * one row per (user, habit, type, day), so the in-memory filter is cheap.
- *
- * Why not a UTC midnight bound? `localYmd → UTC midnight` is wrong for
- * non-UTC users — their local "today" doesn't start at UTC midnight, so
- * the bound miss-matches `createdAt` (real UTC) by their TZ offset.
- */
-async function alreadyFiredOnLocalDay(args: {
-  userId: string;
-  habitId: string;
-  type: NotificationType;
-  tz: string;
-  localYmdToday: string;
-}): Promise<boolean> {
-  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
-  const recent = await db.notification.findMany({
-    where: {
-      userId: args.userId,
-      habitId: args.habitId,
-      type: args.type,
-      createdAt: { gte: cutoff },
-    },
-    select: { createdAt: true },
-  });
-  return recent.some(
-    (n) => localYmd(n.createdAt, args.tz) === args.localYmdToday,
-  );
-}
 
 /** Returns the local YMD plus hour/minute/dow in the given IANA timezone. */
 function getLocalParts(date: Date, timezone: string): {

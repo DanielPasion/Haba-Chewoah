@@ -30,6 +30,7 @@ export function ProfileView({
   user,
   isOwn,
   isFollowing,
+  isBlockingThem = false,
   habits,
   logs,
   topStreak,
@@ -38,6 +39,7 @@ export function ProfileView({
   user: ProfileViewUser;
   isOwn: boolean;
   isFollowing: boolean;
+  isBlockingThem?: boolean;
   habits: HabitCardData[];
   logs: ProfileLogRow[];
   topStreak: number;
@@ -58,6 +60,7 @@ export function ProfileView({
         user={user}
         isOwn={isOwn}
         isFollowing={isFollowing}
+        isBlockingThem={isBlockingThem}
         stats={stats}
         habits={habits}
         logs={logs}
@@ -66,6 +69,7 @@ export function ProfileView({
         user={user}
         isOwn={isOwn}
         isFollowing={isFollowing}
+        isBlockingThem={isBlockingThem}
         stats={stats}
         habits={habits}
         logs={logs}
@@ -78,6 +82,7 @@ function MobileProfile({
   user,
   isOwn,
   isFollowing,
+  isBlockingThem,
   stats,
   habits,
   logs,
@@ -85,6 +90,7 @@ function MobileProfile({
   user: ProfileViewUser;
   isOwn: boolean;
   isFollowing: boolean;
+  isBlockingThem: boolean;
   stats: { label: string; value: number }[];
   habits: HabitCardData[];
   logs: ProfileLogRow[];
@@ -122,6 +128,7 @@ function MobileProfile({
         <ProfileActions
           isOwn={isOwn}
           isFollowing={isFollowing}
+          isBlockingThem={isBlockingThem}
           targetUserId={user.id}
           username={user.username}
         />
@@ -136,6 +143,7 @@ function DesktopProfile({
   user,
   isOwn,
   isFollowing,
+  isBlockingThem,
   stats,
   habits,
   logs,
@@ -143,6 +151,7 @@ function DesktopProfile({
   user: ProfileViewUser;
   isOwn: boolean;
   isFollowing: boolean;
+  isBlockingThem: boolean;
   stats: { label: string; value: number }[];
   habits: HabitCardData[];
   logs: ProfileLogRow[];
@@ -192,6 +201,7 @@ function DesktopProfile({
             <ProfileActions
               isOwn={isOwn}
               isFollowing={isFollowing}
+              isBlockingThem={isBlockingThem}
               targetUserId={user.id}
               username={user.username}
             />

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { isValidTimezone } from "~/lib/timezones";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import {
@@ -26,13 +27,14 @@ const ProfileSchema = z.object({
     .max(160, "bio is too long")
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null)),
+  // IANA tz validator backed by the runtime — the <select> is a curated
+  // subset, but a hostile client could POST anything. `isValidTimezone`
+  // confirms the string is one `Intl.DateTimeFormat` actually accepts;
+  // without it the cron crashes (RangeError) the next time it tries to
+  // format this user's tz.
   timezone: z
     .string()
-    .min(1)
-    .max(64)
-    // IANA tz strings look like Region/City — keep this loose; the <select>
-    // is a closed set, but a malicious client could send anything.
-    .regex(/^[A-Za-z_+\-/]+$/, "invalid timezone"),
+    .refine(isValidTimezone, "invalid timezone"),
   avatarObjectKey: z
     .string()
     .max(200)

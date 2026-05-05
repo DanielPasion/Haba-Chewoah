@@ -4,7 +4,7 @@ import webpush from "web-push";
 
 import { env } from "~/env";
 
-import { NotificationType } from "../../generated/prisma";
+import { NotificationType, Prisma } from "../../generated/prisma";
 import { db } from "./db";
 
 // Configure VAPID once per process. If env vars are missing (local dev,
@@ -33,6 +33,13 @@ export type CreateNotificationInput = {
   habitId?: string | null;
   habitLogId?: string | null;
   commentId?: string | null;
+  /**
+   * Recipient's local YMD ("YYYY-MM-DD") for cron-fired notifs only. Set on
+   * reminder / streak_at_risk / streak_milestone / habit_succeeded so the
+   * `(userId, habitId, type, localDay)` unique constraint backstops dedup
+   * under concurrent cron runs. Leave undefined for user-action notifs.
+   */
+  localDayYmd?: string | null;
   /** Push title — also used as the in-app aria label. */
   pushTitle?: string;
   /** Push body — short, plain text. */
@@ -63,6 +70,7 @@ export async function createNotification(
     habitId,
     habitLogId,
     commentId,
+    localDayYmd,
     pushTitle,
     pushBody,
     pushUrl,
@@ -92,12 +100,21 @@ export async function createNotification(
         habitId: habitId ?? null,
         habitLogId: habitLogId ?? null,
         commentId: commentId ?? null,
+        // Postgres `date` accepts an ISO `YYYY-MM-DD` string directly.
+        localDay: localDayYmd ?? null,
       },
     });
   } catch (err) {
-    // We don't have a unique-key on (user, type, ...) and never call this
-    // helper from a path that could legitimately race — log loudly and
-    // bail so push doesn't fire without a notification row.
+    // P2002 = unique on (userId, habitId, type, localDay). Concurrent
+    // cron run beat us to this insert — that's the dedup working
+    // correctly. Treat as idempotent success but DON'T fan out push
+    // (the winning insert already did that).
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      return { created: false };
+    }
     console.warn("[notif] create row failed", { type, recipientId, err });
     return { created: false };
   }

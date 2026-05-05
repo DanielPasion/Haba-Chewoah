@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { isValidTimezone } from "~/lib/timezones";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import {
@@ -22,12 +23,13 @@ const UpdateProfileSchema = z.object({
     .max(160, "bio is too long")
     .optional()
     .transform((v) => (v && v.length > 0 ? v : null)),
-  // The <select> is a closed set, but a malicious client could POST anything.
+  // The <select> is a closed set, but a malicious client could POST
+  // anything. `isValidTimezone` calls `Intl.DateTimeFormat` to confirm the
+  // string is a real IANA name — without this, a user could store "AAAA"
+  // and crash the notifications cron when it tries to format their tz.
   timezone: z
     .string()
-    .min(1)
-    .max(64)
-    .regex(/^[A-Za-z_+\-/]+$/, "invalid timezone"),
+    .refine(isValidTimezone, "invalid timezone"),
   avatarObjectKey: z
     .string()
     .max(200)

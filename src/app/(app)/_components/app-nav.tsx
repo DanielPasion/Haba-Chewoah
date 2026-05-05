@@ -128,6 +128,11 @@ export function AppSidebar({
 // Replicates the right-side affordances of `.claude/ui/project/desktop.jsx`
 // `DTopbar`. Not sticky itself: pages already have sticky sub-headers at
 // `md:top-0` and ⌘K focuses the search from anywhere.
+//
+// `DesktopNewHabitButton` is the desktop's only entry point for creating
+// a habit — the mobile FAB lives in the bottom tab bar, which is hidden
+// on `md+` (`md:hidden` on `AppMobileTabBar`). Without this, desktop
+// users have no UI affordance to start a new habit.
 export function AppDesktopTopBar({
   hasUnreadNotifications = false,
 }: {
@@ -136,8 +141,34 @@ export function AppDesktopTopBar({
   return (
     <header className="hidden items-center justify-end gap-3 border-b border-hc-line bg-hc-bg px-8 py-3 md:flex">
       <DesktopSearchBar />
+      <DesktopNewHabitButton />
       <NotificationBell hasUnread={hasUnreadNotifications} />
     </header>
+  );
+}
+
+function DesktopNewHabitButton() {
+  return (
+    <Link
+      href="/habit/new"
+      aria-label="start a new habit"
+      title="start a new habit"
+      className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-full border border-hc-line bg-hc-brand text-hc-brand-ink transition-transform hover:-translate-y-px"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    </Link>
   );
 }
 

@@ -353,12 +353,26 @@ model Notification {
   isRead     Boolean          @default(false) @map("is_read")
   createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz
 
+  // `localDay` is the recipient's local YMD on which this notification was
+  // fired — set ONLY for cron-fired system notifications (reminder,
+  // streak_at_risk, streak_milestone, habit_succeeded). The unique below
+  // backstops the cron's check-then-insert dedup so concurrent runs can't
+  // produce duplicates. NULL on user-action notifs (like/comment/mention/
+  // follow/chewout); Postgres treats NULLs as distinct, so those aren't
+  // affected by the unique.
+  localDay   DateTime?        @map("local_day") @db.Date
+
   @@index([userId, isRead])
   @@index([userId, createdAt(sort: Desc)])
   // Cron jobs check "did we already fire this type for this habit today?"
   // before inserting a new system notification — this index keeps that
   // dedup query cheap.
   @@index([userId, type, habitId, createdAt])
+  // Race-safe dedup for cron-fired notifs. Concurrent cron runs racing
+  // through `findFirst → create` both observe "no fire today" and both
+  // try to insert; the second hits this constraint and is treated as
+  // idempotent success at the call site.
+  @@unique([userId, habitId, type, localDay])
   @@map("notifications")
 }
 

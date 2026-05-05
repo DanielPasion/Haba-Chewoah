@@ -33,6 +33,26 @@ export async function DesktopRightRail({
   // grew unbounded as users logged more entries).
   const recentLogsCutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
+  // §9: filter blocked actors from the activity feed — same rule the
+  // /notifications page applies. Pulled in parallel with the rail data so
+  // we don't add a sequential round-trip.
+  const [blocksByMe, blocksOfMe, ...rest] = await Promise.all([
+    db.block.findMany({
+      where: { blockerId: userId },
+      select: { blockedId: true },
+    }),
+    db.block.findMany({
+      where: { blockedId: userId },
+      select: { blockerId: true },
+    }),
+    Promise.resolve(null),
+  ]);
+  void rest;
+  const hiddenActorIds = [
+    ...blocksByMe.map((b) => b.blockedId),
+    ...blocksOfMe.map((b) => b.blockerId),
+  ];
+
   const [habits, notifications] = await Promise.all([
     db.habit.findMany({
       where: { userId, status: "active" },
@@ -50,7 +70,12 @@ export async function DesktopRightRail({
       },
     }),
     db.notification.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...(hiddenActorIds.length > 0
+          ? { OR: [{ actorId: null }, { actorId: { notIn: hiddenActorIds } }] }
+          : {}),
+      },
       orderBy: { createdAt: "desc" },
       take: ACTIVITY_LIMIT,
       select: {
