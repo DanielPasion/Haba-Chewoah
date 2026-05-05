@@ -11,5 +11,17 @@
   #                                  brand mockups, the bucket URL itself)
   #   - AUTH_URL  = "https://haba-chewoah.com"  (the public canonical URL)
   # Real secrets (AUTH_SECRET, AUTH_DISCORD_*, DATABASE_URL,
-  # R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY) stay scanned.
-  SECRETS_SCAN_OMIT_KEYS = "R2_BUCKET,AUTH_URL"
+  # R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
+  # VAPID_PRIVATE_KEY, CRON_SECRET) stay scanned.
+  #
+  # NEXT_PUBLIC_VAPID_PUBLIC_KEY is intentionally public (handed to the
+  # browser to subscribe to push); listing it here keeps the secret-scanner
+  # quiet while still flagging the matching VAPID_PRIVATE_KEY if it leaks.
+  SECRETS_SCAN_OMIT_KEYS = "R2_BUCKET,AUTH_URL,NEXT_PUBLIC_VAPID_PUBLIC_KEY,VAPID_PUBLIC_KEY,VAPID_SUBJECT"
+
+# Notification cron — runs every 15 minutes to fire reminders, streak-at-risk,
+# milestone, and habit-succeeded notifications. The function below is just a
+# trampoline that hits the API route (which holds the actual logic, so
+# server-only imports + Prisma stay inside the Next runtime).
+[functions."notifications-cron"]
+  schedule = "*/15 * * * *"

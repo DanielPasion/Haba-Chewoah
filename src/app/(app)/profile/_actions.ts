@@ -5,7 +5,8 @@ import { z } from "zod";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
-import { Prisma } from "../../../../generated/prisma";
+import { createNotification } from "~/server/notifications";
+import { NotificationType, Prisma } from "../../../../generated/prisma";
 
 export type FollowListUser = {
   id: string;
@@ -170,6 +171,7 @@ export async function toggleFollowAction(input: {
   });
 
   let isFollowing: boolean;
+  let didCreate = false;
   if (existing) {
     // `deleteMany` instead of `delete` so a concurrent delete (count=0) is a
     // no-op rather than P2025.
@@ -179,6 +181,7 @@ export async function toggleFollowAction(input: {
     try {
       await db.follow.create({ data: { followerId, followingId } });
       isFollowing = true;
+      didCreate = true;
     } catch (err) {
       // Concurrent request inserted the same row first — the toggle's
       // observable end state is still "following", so report success.
@@ -191,6 +194,22 @@ export async function toggleFollowAction(input: {
         throw err;
       }
     }
+  }
+
+  // Only notify on the *new* follow. A concurrent insert (P2002) shouldn't
+  // double-notify, and an unfollow obviously shouldn't notify.
+  if (didCreate) {
+    const actorHandle = session.user.username ?? "someone";
+    await createNotification({
+      recipientId: followingId,
+      actorId: followerId,
+      type: NotificationType.follow,
+      pushTitle: `@${actorHandle} followed you`,
+      pushBody: "tap to see their profile",
+      pushUrl: session.user.username
+        ? `/profile/${session.user.username}`
+        : "/notifications",
+    });
   }
 
   revalidatePath(`/profile/${target.username}`);

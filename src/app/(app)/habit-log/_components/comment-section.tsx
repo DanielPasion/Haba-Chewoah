@@ -220,8 +220,11 @@ function formatRelative(date: Date) {
 }
 
 // `@username` runs in the comment text become profile links. Username
-// rules per .claude/db/NOTES.md §4: 3-32 chars of [A-Za-z0-9_].
-const MENTION_RE = /(@[A-Za-z0-9_]{3,32})/g;
+// rules per .claude/db/NOTES.md §4: 3-32 chars of [A-Za-z0-9_]. The
+// `(?<=^|\s)` lookbehind + `\b` boundary keep email addresses like
+// `bob@example.com` from rendering `@example` as a profile link, matching
+// the same regex the server uses for mention-notification fanout.
+const MENTION_RE = /(?<=^|\s)(@[A-Za-z0-9_]{3,32})\b/g;
 function renderMentions(text: string) {
   return text.split(MENTION_RE).map((part, i) => {
     if (i % 2 === 1) {

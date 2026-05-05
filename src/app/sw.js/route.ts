@@ -73,6 +73,66 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 });
+
+// Web Push: payload is a JSON-encoded { title, body, url } we send from
+// src/server/notifications.ts. If decoding fails (browser triggered the
+// event without our payload), we still surface a generic notification so
+// the user knows *something* happened.
+self.addEventListener("push", (event) => {
+  let payload = { title: "Haba-Chewoah", body: "you've got activity", url: "/notifications" };
+  if (event.data) {
+    try {
+      payload = { ...payload, ...event.data.json() };
+    } catch (e) {
+      payload.body = event.data.text() || payload.body;
+    }
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: "/icon.png",
+      badge: "/icon.png",
+      // No \`tag\` — using the URL would coalesce every event that points
+      // at the same destination (e.g. five comments on one log) into a
+      // single notification, hiding all but the latest. We want each
+      // event surfaced on its own.
+      data: { url: payload.url },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/notifications";
+  const targetUrl = new URL(target, self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      // Prefer a tab that is *already on* the deep link — focus it, no
+      // navigation needed.
+      for (const w of wins) {
+        if (w.url === targetUrl && "focus" in w) {
+          w.focus();
+          return;
+        }
+      }
+      // Otherwise focus any open tab and route it. \`navigate\` is
+      // Chromium-only on WindowClient; fall back to opening a fresh tab
+      // when the method isn't available so Firefox/Safari still land the
+      // user on the right URL.
+      for (const w of wins) {
+        if ("focus" in w) {
+          w.focus();
+          if ("navigate" in w) {
+            try { w.navigate(target); return; } catch (e) { /* fall through */ }
+          }
+          if (self.clients.openWindow) self.clients.openWindow(target);
+          return;
+        }
+      }
+      if (self.clients.openWindow) self.clients.openWindow(target);
+    }),
+  );
+});
 `;
 
 export function GET() {

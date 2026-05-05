@@ -170,8 +170,8 @@ export function AppMobileTopBar({
 
 function NotificationBell({ hasUnread }: { hasUnread: boolean }) {
   return (
-    <button
-      type="button"
+    <Link
+      href="/notifications"
       aria-label={
         hasUnread ? "notifications · unread" : "notifications"
       }
@@ -196,7 +196,7 @@ function NotificationBell({ hasUnread }: { hasUnread: boolean }) {
           className="absolute right-1.5 top-1.5 size-2.5 rounded-full border border-hc-bg bg-hc-accent"
         />
       )}
-    </button>
+    </Link>
   );
 }
 

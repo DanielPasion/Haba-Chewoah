@@ -1,10 +1,9 @@
 import Link from "next/link";
 
-import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 import { localYmd } from "~/lib/habit-stats";
 import { db } from "~/server/db";
 
-import { type NotificationType } from "../../../../generated/prisma";
+import { ActivityRow, type ActivityRowVM } from "./activity-row";
 
 const ACTIVITY_LIMIT = 8;
 
@@ -58,13 +57,31 @@ export async function DesktopRightRail({
         id: true,
         type: true,
         createdAt: true,
+        isRead: true,
         habitLogId: true,
         actor: {
           select: { id: true, username: true, name: true, image: true },
         },
+        habit: { select: { id: true, name: true, icon: true } },
       },
     }),
   ]);
+
+  const activityVMs: ActivityRowVM[] = notifications.map((n) => ({
+    id: n.id,
+    type: n.type,
+    createdAt: n.createdAt,
+    isRead: n.isRead,
+    habitLogId: n.habitLogId,
+    actor: n.actor
+      ? {
+          username: n.actor.username,
+          displayName: n.actor.name ?? n.actor.username ?? "someone",
+          imageUrl: n.actor.image,
+        }
+      : null,
+    habit: n.habit,
+  }));
 
   // Logs in the 48h window only — enough to derive "logged today" without
   // pulling full history. `_count.logs` separately answers "any logs ever?"
@@ -169,30 +186,29 @@ export async function DesktopRightRail({
       </section>
 
       <section>
-        <h2
-          className="mb-3 font-display text-sm font-extrabold leading-none text-hc-ink"
-          style={{ letterSpacing: "-0.02em" }}
-        >
-          activity
-        </h2>
-        {notifications.length === 0 ? (
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2
+            className="font-display text-sm font-extrabold leading-none text-hc-ink"
+            style={{ letterSpacing: "-0.02em" }}
+          >
+            activity
+          </h2>
+          <Link
+            href="/notifications"
+            className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted hover:text-hc-ink"
+          >
+            see all
+          </Link>
+        </div>
+        {activityVMs.length === 0 ? (
           <p className="rounded-hc-2 border-hc border-dashed border-hc-line-strong bg-hc-surface-alt px-3 py-3 font-mono text-hc-eyebrow text-hc-muted">
             no recent activity yet.
           </p>
         ) : (
           <ul className="flex flex-col gap-2.5">
-            {notifications.map((n) => (
+            {activityVMs.map((n) => (
               <li key={n.id}>
-                <ActivityRow
-                  type={n.type}
-                  actorUsername={n.actor?.username ?? null}
-                  actorDisplayName={
-                    n.actor?.name ?? n.actor?.username ?? "someone"
-                  }
-                  actorImageUrl={n.actor?.image ?? null}
-                  habitLogId={n.habitLogId}
-                  createdAt={n.createdAt}
-                />
+                <ActivityRow notification={n} variant="compact" />
               </li>
             ))}
           </ul>
@@ -202,82 +218,9 @@ export async function DesktopRightRail({
   );
 }
 
-function ActivityRow({
-  type,
-  actorUsername,
-  actorDisplayName,
-  actorImageUrl,
-  habitLogId,
-  createdAt,
-}: {
-  type: NotificationType;
-  actorUsername: string | null;
-  actorDisplayName: string;
-  actorImageUrl: string | null;
-  habitLogId: string | null;
-  createdAt: Date;
-}) {
-  const verb =
-    type === "follow"
-      ? "started following you"
-      : type === "like"
-        ? "liked your log"
-        : "commented on your log";
-
-  // Prefer the log link when there's one (likes + comments); fall back to
-  // the actor's profile (follows). Either is a meaningful destination.
-  const href =
-    habitLogId !== null
-      ? `/habit-log/${habitLogId}`
-      : actorUsername
-        ? `/profile/${actorUsername}`
-        : "#";
-
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-2.5 transition-colors hover:opacity-90"
-    >
-      <span className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border border-hc-line bg-hc-ink">
-        {actorImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={actorImageUrl}
-            alt=""
-            className="size-full object-cover"
-          />
-        ) : (
-          <TwoFaceMascot size={28} bg="#1B1726" />
-        )}
-      </span>
-      <div className="min-w-0 flex-1 font-sans text-xs leading-snug text-hc-ink">
-        <span className="font-bold">
-          {actorUsername ? `@${actorUsername}` : actorDisplayName}
-        </span>{" "}
-        {verb}{" "}
-        <span className="font-mono text-hc-tiny font-semibold text-hc-muted">
-          · {formatRelative(createdAt)}
-        </span>
-      </div>
-    </Link>
-  );
-}
-
 function formatTodayLabel() {
   const d = new Date();
   return d
     .toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })
     .toLowerCase();
-}
-
-const RTF = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-function formatRelative(date: Date) {
-  const now = Date.now();
-  const diffSec = Math.round((date.getTime() - now) / 1000);
-  const abs = Math.abs(diffSec);
-  if (abs < 60) return RTF.format(diffSec, "second");
-  if (abs < 3600) return RTF.format(Math.round(diffSec / 60), "minute");
-  if (abs < 86400) return RTF.format(Math.round(diffSec / 3600), "hour");
-  if (abs < 86400 * 7) return RTF.format(Math.round(diffSec / 86400), "day");
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }

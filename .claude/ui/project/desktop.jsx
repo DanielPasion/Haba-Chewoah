@@ -24,7 +24,7 @@ function DSidebar({ active = 'home' }) {
   const items = [
     { id: 'home', label: 'home', d: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z' },
     { id: 'discover', label: 'discover', d: 'M21 21l-4.35-4.35M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z' },
-    { id: 'nudges', label: 'nudges', d: 'M13 2L3 14h9l-1 8 10-12h-9z', badge: 3 },
+    { id: 'chewouts', label: 'chew-outs', d: 'M13 2L3 14h9l-1 8 10-12h-9z', badge: 3 },
     { id: 'me', label: 'profile', d: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z' },
   ];
   return (
@@ -238,7 +238,7 @@ function DRightRail({ variant = 'home' }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[
             { who: 'jules', mood: 'celebrate', what: 'cheered your day-47 plunge', when: '6m', tone: 'cheer' },
-            { who: 'theo', mood: 'wink', what: 'nudged you about journal', when: '24m', tone: 'nudge' },
+            { who: 'theo', mood: 'wink', what: 'chewed you out about journal', when: '24m', tone: 'chewout' },
             { who: 'kira', mood: 'smug', what: 'started following you', when: '1h', tone: 'follow' },
             { who: 'sam', mood: 'celebrate', what: 'commented on your log', when: '2h', tone: 'comment' },
           ].map((a, i) => (
@@ -249,7 +249,7 @@ function DRightRail({ variant = 'home' }) {
               <div style={{ flex: 1, minWidth: 0, fontFamily: HC.body, fontSize: 12, color: HC.ink, lineHeight: 1.35 }}>
                 <span style={{ fontWeight: 700 }}>@{a.who}</span> {a.what} <span style={{ fontFamily: HC.mono, fontSize: 10, color: HC.muted, fontWeight: 600 }}>· {a.when}</span>
               </div>
-              {a.tone === 'nudge' && (
+              {a.tone === 'chewout' && (
                 <span style={{ fontFamily: HC.mono, fontSize: 9, fontWeight: 700, padding: '2px 6px', background: HC.accent, color: HC.accentInk, borderRadius: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   ⚡
                 </span>
@@ -482,7 +482,7 @@ function DProfile({ isOwn = true }) {
                   <button style={btnDsk('primary')}>+ follow</button>
                   <button style={btnDsk()}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
-                    nudge
+                    chew out
                   </button>
                   <button style={btnDsk('icon')}>⋯</button>
                 </>

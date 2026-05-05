@@ -14,6 +14,7 @@ import type {
   MediaType,
 } from "../../../../../generated/prisma";
 
+import { ChewOutButton } from "./chewout-button";
 import { LogDayButton } from "./log-day-button";
 
 export type HabitDetailData = {
@@ -522,10 +523,36 @@ function ActionRow({
             </svg>
           </Link>
         </>
+      ) : habit.status === "active" ? (
+        <>
+          <ChewOutButton
+            habitId={habit.id}
+            recipientHandle={habit.owner.username}
+          />
+          <Link
+            href={`/profile/${habit.owner.username}`}
+            aria-label={`view @${habit.owner.username}`}
+            className="grid place-items-center rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 text-hc-ink hover:bg-hc-surface-alt"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" />
+            </svg>
+          </Link>
+        </>
       ) : (
         <Link
           href={`/profile/${habit.owner.username}`}
-          className="flex-1 rounded-hc-3 border border-hc-line bg-hc-accent px-4 py-4 text-center font-display text-base font-extrabold text-hc-accent-ink shadow-hc-stamp transition-transform hover:-translate-y-px"
+          className="flex-1 rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 text-center font-display text-base font-extrabold text-hc-ink shadow-hc-stamp transition-transform hover:-translate-y-px"
           style={{ letterSpacing: "-0.02em" }}
         >
           view @{habit.owner.username}

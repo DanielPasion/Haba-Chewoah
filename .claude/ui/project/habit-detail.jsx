@@ -363,7 +363,7 @@ function StickyAction({ isOwn }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9z"/></svg>
-            nudge before EOD
+            chew out before EOD
           </button>
           <button style={{
             background: HC.surface, color: HC.ink, border: `1px solid ${HC.line}`,
