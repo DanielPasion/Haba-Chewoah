@@ -201,7 +201,6 @@ export async function createHabitLogAction(
   }
 
   revalidatePath(`/habit/${habit.id}`);
-  revalidatePath("/habits");
   revalidatePath("/feed");
   revalidatePath(`/profile/${session.user.username}`);
 
@@ -244,7 +243,6 @@ export async function deleteHabitLogAction(
   }
 
   revalidatePath(`/habit/${log.habitId}`);
-  revalidatePath("/habits");
   revalidatePath("/feed");
   if (session.user.username) {
     revalidatePath(`/profile/${session.user.username}`);

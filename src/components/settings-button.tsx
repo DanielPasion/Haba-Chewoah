@@ -6,13 +6,17 @@ import { MoonIcon, SunIcon } from "~/components/icons";
 
 import { useTheme } from "./theme-toggle";
 
-type Variant = "sidebar" | "topbar";
+type Variant = "sidebar" | "topbar" | "action";
 
 const TRIGGER_CLASS: Record<Variant, string> = {
   sidebar:
     "grid size-7 place-items-center rounded-hc-1 text-hc-muted hover:bg-hc-bg hover:text-hc-ink",
   topbar:
     "grid size-8 place-items-center rounded-full text-hc-muted hover:bg-hc-surface hover:text-hc-ink",
+  // Sits inside `ProfileActions` next to share — matches that row's outlined
+  // icon-button styling (see `ICON_BASE_CLASS` in profile-actions.tsx).
+  action:
+    "inline-flex shrink-0 items-center justify-center rounded-hc-2 border-hc border-hc-ink bg-transparent px-3 py-2 text-hc-ink transition-transform hover:bg-hc-ink hover:text-hc-brand dark:hover:bg-hc-brand dark:hover:text-hc-brand-ink",
 };
 
 export function SettingsButton({
@@ -36,6 +40,7 @@ export function SettingsButton({
         className={TRIGGER_CLASS[variant]}
       >
         <GearIcon size={variant === "topbar" ? 18 : 16} />
+        {variant === "action" && <span className="sr-only">settings</span>}
       </button>
 
       {open && (

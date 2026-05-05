@@ -12,16 +12,22 @@
   "categories": ["lifestyle", "social", "productivity"],
   "icons": [
     {
-      "src": "/icon.svg",
-      "type": "image/svg+xml",
-      "sizes": "any",
+      "src": "/apple-icon",
+      "type": "image/png",
+      "sizes": "180x180",
       "purpose": "any"
+    },
+    {
+      "src": "/apple-icon",
+      "type": "image/png",
+      "sizes": "180x180",
+      "purpose": "maskable"
     },
     {
       "src": "/icon.svg",
       "type": "image/svg+xml",
       "sizes": "any",
-      "purpose": "maskable"
+      "purpose": "any"
     }
   ]
 }

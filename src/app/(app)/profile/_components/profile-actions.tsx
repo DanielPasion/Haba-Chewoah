@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { SettingsButton } from "~/components/settings-button";
 import { buttonClass } from "~/components/ui";
 
+import { signOutAction } from "../../_actions";
 import { toggleFollowAction } from "../_actions";
 
 const ICON_BASE_CLASS =
@@ -36,6 +38,7 @@ export function ProfileActions({
           edit profile
         </Link>
         <ShareButton username={username} />
+        <SettingsButton signOutAction={signOutAction} variant="action" />
       </div>
     );
   }

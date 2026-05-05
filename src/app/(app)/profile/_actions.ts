@@ -7,9 +7,110 @@ import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 import { Prisma } from "../../../../generated/prisma";
 
+export type FollowListUser = {
+  id: string;
+  username: string;
+  displayName: string;
+  imageUrl: string | null;
+};
+
+const FOLLOW_LIST_LIMIT = 200;
+
 const ToggleFollowSchema = z.object({
   targetUserId: z.string().uuid(),
 });
+
+const GetFollowListSchema = z.object({
+  userId: z.string().uuid(),
+  kind: z.enum(["followers", "following"]),
+});
+
+/**
+ * Fetch the followers/following list for a user, modal-friendly.
+ * Returns at most FOLLOW_LIST_LIMIT rows, newest follow first. Block-aware:
+ * users blocked in either direction are filtered out (matches feed/comments
+ * — `.claude/db/NOTES.md` §9 — so the viewer never sees someone they shouldn't).
+ *
+ * Returns a flat list, no follow-back state. Modal just links to profiles.
+ */
+export async function getFollowListAction(input: {
+  userId: string;
+  kind: "followers" | "following";
+}): Promise<
+  | { ok: true; users: FollowListUser[] }
+  | { ok: false; message: string }
+> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, message: "not signed in" };
+
+  const parsed = GetFollowListSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "invalid input" };
+
+  const [blocksByMe, blocksOfMe] = await Promise.all([
+    db.block.findMany({
+      where: { blockerId: session.user.id },
+      select: { blockedId: true },
+    }),
+    db.block.findMany({
+      where: { blockedId: session.user.id },
+      select: { blockerId: true },
+    }),
+  ]);
+  const hidden = [
+    ...blocksByMe.map((b) => b.blockedId),
+    ...blocksOfMe.map((b) => b.blockerId),
+  ];
+
+  const rows = await db.follow.findMany({
+    where:
+      parsed.data.kind === "followers"
+        ? {
+            followingId: parsed.data.userId,
+            ...(hidden.length > 0
+              ? { followerId: { notIn: hidden } }
+              : {}),
+          }
+        : {
+            followerId: parsed.data.userId,
+            ...(hidden.length > 0
+              ? { followingId: { notIn: hidden } }
+              : {}),
+          },
+    orderBy: { createdAt: "desc" },
+    take: FOLLOW_LIST_LIMIT,
+    select:
+      parsed.data.kind === "followers"
+        ? {
+            follower: {
+              select: { id: true, username: true, name: true, image: true },
+            },
+          }
+        : {
+            following: {
+              select: { id: true, username: true, name: true, image: true },
+            },
+          },
+  });
+
+  type FollowRow = {
+    follower?: { id: string; username: string | null; name: string | null; image: string | null };
+    following?: { id: string; username: string | null; name: string | null; image: string | null };
+  };
+  const users: FollowListUser[] = (rows as FollowRow[])
+    .map((r) => (parsed.data.kind === "followers" ? r.follower : r.following))
+    .filter(
+      (u): u is { id: string; username: string; name: string | null; image: string | null } =>
+        Boolean(u?.username),
+    )
+    .map((u) => ({
+      id: u.id,
+      username: u.username,
+      displayName: u.name ?? u.username,
+      imageUrl: u.image,
+    }));
+
+  return { ok: true, users };
+}
 
 export type ToggleFollowResult =
   | { ok: true; isFollowing: boolean }

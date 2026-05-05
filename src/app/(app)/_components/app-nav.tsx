@@ -8,6 +8,8 @@ import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 import { SettingsButton } from "~/components/settings-button";
 
 import { MobileAddButton } from "./add-sheet";
+import { DesktopSearchBar } from "./desktop-search-bar";
+import { MobileHeaderSearch } from "./mobile-header-search";
 
 type NavItem = {
   href: string;
@@ -18,26 +20,18 @@ type NavItem = {
 const HOME_ICON = (
   <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z" />
 );
-const HABITS_ICON = (
-  <>
-    <path d="M9 11l3 3L22 4" />
-    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-  </>
-);
 const PROFILE_ICON = (
   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" />
 );
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/feed", label: "home", icon: HOME_ICON },
-  { href: "/habits", label: "habits", icon: HABITS_ICON },
   { href: "/profile", label: "profile", icon: PROFILE_ICON },
 ];
 
 // Mobile bottom tab bar — three slots: home · center plus · profile.
 // Mirrors `.claude/ui/project/profile-page.jsx` (`ProfileTabBar`). The center
-// plus is the BeReal-style FAB that opens the AddSheet. Habits live in the
-// top bar's right side instead of as a 4th tab so the FAB stays centered.
+// plus is the BeReal-style FAB that opens the AddSheet.
 const MOBILE_TAB_ITEMS: NavItem[] = [
   { href: "/feed", label: "home", icon: HOME_ICON },
   { href: "/profile", label: "profile", icon: PROFILE_ICON },
@@ -84,7 +78,7 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   return (
-    <aside className="hidden w-60 shrink-0 flex-col gap-1 border-r border-hc-line bg-hc-bg px-4 pb-4 pt-5 md:flex">
+    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-1 overflow-y-auto border-r border-hc-line bg-hc-bg px-4 pb-4 pt-5 md:flex">
       <Link href="/feed" className="px-2 pb-5 pt-1">
         <LogoText size={18} />
       </Link>
@@ -130,36 +124,103 @@ export function AppSidebar({
   );
 }
 
-export function AppMobileTopBar() {
-  const pathname = usePathname();
-  const habitsActive = isActive(pathname, "/habits");
+// Desktop-only top bar carrying the global search box + notification bell.
+// Replicates the right-side affordances of `.claude/ui/project/desktop.jsx`
+// `DTopbar`. Not sticky itself: pages already have sticky sub-headers at
+// `md:top-0` and ⌘K focuses the search from anywhere.
+export function AppDesktopTopBar({
+  hasUnreadNotifications = false,
+}: {
+  hasUnreadNotifications?: boolean;
+}) {
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:hidden">
-      <Link href="/feed">
-        <LogoText size={16} />
-      </Link>
-      <Link
-        href="/habits"
-        aria-label="habits"
-        className={`grid size-9 place-items-center rounded-full border ${
-          habitsActive
-            ? "border-hc-ink bg-hc-ink text-hc-brand dark:bg-hc-brand dark:text-hc-brand-ink"
-            : "border-hc-line bg-hc-surface text-hc-ink hover:bg-hc-surface-alt"
-        }`}
-      >
-        <NavIcon size={18}>{HABITS_ICON}</NavIcon>
-      </Link>
+    <header className="hidden items-center justify-end gap-3 border-b border-hc-line bg-hc-bg px-8 py-3 md:flex">
+      <DesktopSearchBar />
+      <NotificationBell hasUnread={hasUnreadNotifications} />
     </header>
+  );
+}
+
+export function AppMobileTopBar({
+  hasUnreadNotifications = false,
+}: {
+  hasUnreadNotifications?: boolean;
+}) {
+  // `viewport-fit=cover` lets the page render behind the iOS status bar /
+  // dynamic island. Pad by `env(safe-area-inset-top)` so the row's contents
+  // sit below the notch instead of being clipped by it. The header itself
+  // keeps `top-0` because the safe-area padding is part of its own height.
+  return (
+    <header
+      className="sticky top-0 z-20 border-b border-hc-line bg-hc-bg/90 backdrop-blur md:hidden"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
+      <div className="relative flex items-center justify-between px-5 py-3">
+        <Link href="/feed">
+          <LogoText size={16} />
+        </Link>
+        <div className="flex items-center gap-2">
+          <MobileHeaderSearch />
+          <NotificationBell hasUnread={hasUnreadNotifications} />
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function NotificationBell({ hasUnread }: { hasUnread: boolean }) {
+  return (
+    <button
+      type="button"
+      aria-label={
+        hasUnread ? "notifications · unread" : "notifications"
+      }
+      className="relative grid size-9 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink hover:bg-hc-surface-alt"
+    >
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+      {hasUnread && (
+        <span
+          aria-hidden
+          className="absolute right-1.5 top-1.5 size-2.5 rounded-full border border-hc-bg bg-hc-accent"
+        />
+      )}
+    </button>
   );
 }
 
 export function AppMobileTabBar() {
   const pathname = usePathname();
+  // Three equal-width grid slots so the center FAB sits at the geometric
+  // center of the bar regardless of the outer tab labels' widths.
+  // `justify-around` would skew the FAB right when "home" is shorter than
+  // "profile" (or vice versa). Bottom padding respects iOS home-indicator
+  // safe area so the bar doesn't sit underneath it.
   return (
-    <nav className="sticky bottom-0 z-10 flex items-center justify-around border-t border-hc-line bg-hc-surface px-4 pt-2.5 pb-2 md:hidden">
-      <MobileTabLink item={MOBILE_TAB_ITEMS[0]!} pathname={pathname} />
-      <MobileAddButton />
-      <MobileTabLink item={MOBILE_TAB_ITEMS[1]!} pathname={pathname} />
+    <nav
+      className="sticky bottom-0 z-10 grid grid-cols-3 items-center border-t border-hc-line bg-hc-surface px-4 pt-2.5 md:hidden"
+      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+    >
+      <div className="flex justify-center">
+        <MobileTabLink item={MOBILE_TAB_ITEMS[0]!} pathname={pathname} />
+      </div>
+      <div className="flex justify-center">
+        <MobileAddButton variant="fab" />
+      </div>
+      <div className="flex justify-center">
+        <MobileTabLink item={MOBILE_TAB_ITEMS[1]!} pathname={pathname} />
+      </div>
     </nav>
   );
 }

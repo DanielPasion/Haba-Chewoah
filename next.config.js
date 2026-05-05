@@ -54,7 +54,15 @@ if (process.env.R2_PUBLIC_URL) {
 /** @type {import("next").NextConfig} */
 const config = {
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        source: "/manifest.webmanifest",
+        headers: [
+          { key: "Content-Type", value: "application/manifest+json" },
+        ],
+      },
+    ];
   },
   images: { remotePatterns },
 };

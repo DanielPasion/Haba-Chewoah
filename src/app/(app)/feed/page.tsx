@@ -4,11 +4,19 @@ import { redirect } from "next/navigation";
 
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 import { buttonClass } from "~/components/ui";
-import { dayNumberForLog, localYmd } from "~/lib/habit-stats";
+import {
+  computeHabitStats,
+  dayNumberForLog,
+  localYmd,
+} from "~/lib/habit-stats";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 
 import { FeedCard, type FeedItem } from "./_components/feed-card";
+import {
+  TodayStreaksStrip,
+  type TodayStreak,
+} from "./_components/today-streaks-strip";
 
 export const metadata: Metadata = { title: "feed" };
 
@@ -22,21 +30,76 @@ export default async function FeedPage() {
   // Followed-user IDs in one round-trip; "+self" so users see their own
   // logs without having to follow themselves. Block filtering done in the
   // same query — pulling blocks first costs another roundtrip but keeps
-  // the main query plan simple.
-  const [follows, blocksByMe, blocksOfMe] = await Promise.all([
-    db.follow.findMany({
-      where: { followerId: session.user.id },
-      select: { followingId: true },
-    }),
-    db.block.findMany({
-      where: { blockerId: session.user.id },
-      select: { blockedId: true },
-    }),
-    db.block.findMany({
-      where: { blockedId: session.user.id },
-      select: { blockerId: true },
-    }),
-  ]);
+  // the main query plan simple. Pull the viewer's own active habits in
+  // the same batch — `MyStreaks` strip needs them and the data is small.
+  const [me, follows, blocksByMe, blocksOfMe, myActiveHabits] =
+    await Promise.all([
+      db.user.findUnique({
+        where: { id: session.user.id },
+        select: { timezone: true },
+      }),
+      db.follow.findMany({
+        where: { followerId: session.user.id },
+        select: { followingId: true },
+      }),
+      db.block.findMany({
+        where: { blockerId: session.user.id },
+        select: { blockedId: true },
+      }),
+      db.block.findMany({
+        where: { blockedId: session.user.id },
+        select: { blockerId: true },
+      }),
+      db.habit.findMany({
+        where: { userId: session.user.id, status: "active" },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          name: true,
+          icon: true,
+          frequencyType: true,
+          targetCount: true,
+          periodDays: true,
+          startDate: true,
+          // Bound the per-habit history to a year so the query stops
+          // growing as users log more. `computeHabitStats` walks backward
+          // from today through consecutive days, so anything older than
+          // the longest plausible streak (365d) doesn't affect the answer.
+          logs: {
+            where: {
+              completedAt: {
+                gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
+              },
+            },
+            select: { completedAt: true },
+          },
+        },
+      }),
+    ]);
+  const myTimezone = me?.timezone ?? "UTC";
+  const todayYmd = localYmd(new Date(), myTimezone);
+
+  const todayItems: TodayStreak[] = myActiveHabits.map((h) => {
+    const stats = computeHabitStats({
+      logs: h.logs,
+      timezone: myTimezone,
+      startDate: h.startDate,
+      frequencyType: h.frequencyType,
+      targetCount: h.targetCount,
+      periodDays: h.periodDays,
+    });
+    const loggedToday = (stats.dayCounts.get(todayYmd) ?? 0) > 0;
+    return {
+      id: h.id,
+      name: h.name,
+      icon: h.icon,
+      // "day N" = current-streak day number (matches feed cards / log
+      // detail / habit detail). Total log count would be misleading: a
+      // habit with 100 logs but a 3-day streak should show "day 3".
+      day: stats.currentStreak,
+      done: loggedToday,
+    };
+  });
 
   const followingIds = follows.map((f) => f.followingId);
   const authorIds = [...new Set([session.user.id, ...followingIds])];
@@ -164,25 +227,16 @@ export default async function FeedPage() {
 
   return (
     <div className="-mx-5 -my-6 flex flex-col gap-4 pb-2 md:-mx-8 md:-my-8 md:gap-6">
-      <header className="sticky top-14 z-10 flex items-center justify-between border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
-        <div className="flex flex-col gap-0.5">
-          <span className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-            /feed
-          </span>
-          <h1
-            className="font-display text-2xl font-extrabold leading-none text-hc-ink"
-            style={{ letterSpacing: "-0.04em" }}
-          >
-            home
-          </h1>
-        </div>
-        <Link
-          href="/habits"
-          className={buttonClass({ variant: "secondary", size: "sm" })}
+      <header className="sticky top-0 z-10 hidden items-center border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:flex md:px-8 md:py-4">
+        <h1
+          className="font-display text-2xl font-extrabold leading-none text-hc-ink"
+          style={{ letterSpacing: "-0.04em" }}
         >
-          your habits
-        </Link>
+          home
+        </h1>
       </header>
+
+      <TodayStreaksStrip items={todayItems} />
 
       <div className="mx-auto flex w-full max-w-180 flex-col gap-3 px-3 md:px-8">
         {items.length === 0 ? (
@@ -209,7 +263,7 @@ function EmptyState() {
         </p>
       </div>
       <Link
-        href="/habits"
+        href="/profile"
         className={buttonClass({ variant: "primary", size: "md" })}
       >
         log something →

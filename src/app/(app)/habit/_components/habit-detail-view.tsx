@@ -45,6 +45,7 @@ export type RecentLog = {
   mediaType: MediaType | null;
   likeCount: number;
   commentCount: number;
+  dayNumber: number;
 };
 
 export function HabitDetailView({
@@ -75,10 +76,11 @@ export function HabitDetailView({
 
   return (
     <div className="-mx-5 -my-6 flex flex-col gap-5 pb-2 md:-mx-8 md:-my-8 md:gap-6">
-      <Header habitId={habit.id} />
+      <Header habitName={habit.name} />
 
       <div className="mx-auto flex w-full max-w-180 flex-col gap-5 px-5 md:px-8 md:gap-6">
         <HeroCard habit={habit} stats={stats} isOwn={isOwn} />
+        <ActionRow habit={habit} isOwn={isOwn} nextDayNumber={nextDay} />
         <StatsRow
           completionPct={completionPct}
           longest={stats.longestStreak}
@@ -90,23 +92,17 @@ export function HabitDetailView({
         {!isOwn && <OwnerCard owner={habit.owner} />}
         <RecentLogs logs={recentLogs} habitIcon={habit.icon} />
       </div>
-
-      <StickyAction
-        habit={habit}
-        isOwn={isOwn}
-        nextDayNumber={nextDay}
-      />
     </div>
   );
 }
 
-function Header({ habitId }: { habitId: string }) {
+function Header({ habitName }: { habitName: string }) {
   return (
-    <header className="sticky top-14 z-10 flex items-center justify-between border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
+    <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
       <Link
-        href="/habits"
-        aria-label="back to habits"
-        className="grid size-9 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink shadow-hc-soft hover:bg-hc-surface-alt"
+        href="/profile"
+        aria-label="back to profile"
+        className="grid size-9 shrink-0 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink shadow-hc-soft hover:bg-hc-surface-alt"
       >
         <svg
           width="16"
@@ -122,10 +118,12 @@ function Header({ habitId }: { habitId: string }) {
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
       </Link>
-      <span className="font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-        /habit/{habitId.slice(0, 8)}
-      </span>
-      <span className="size-9" aria-hidden />
+      <h1
+        className="min-w-0 flex-1 truncate font-display text-base font-extrabold leading-none text-hc-ink"
+        style={{ letterSpacing: "-0.02em" }}
+      >
+        {habitName}
+      </h1>
     </header>
   );
 }
@@ -141,6 +139,7 @@ function HeroCard({
 }) {
   const dayCount = stats.currentStreak;
   const hasStreak = dayCount > 0;
+  const sinceDate = habit.startDate ?? habit.createdAt;
   return (
     <section className="relative overflow-hidden rounded-hc-4 border-hc border-hc-line bg-hc-surface p-6 shadow-hc">
       <span
@@ -168,11 +167,11 @@ function HeroCard({
       </h1>
 
       <div className="flex items-end justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <span
-              className="font-display text-7xl font-extrabold leading-none text-hc-ink tabular-nums"
-              style={{ letterSpacing: "-0.05em" }}
+              className="font-display text-8xl font-extrabold leading-[0.85] text-hc-ink tabular-nums"
+              style={{ letterSpacing: "-0.06em" }}
             >
               {dayCount}
             </span>
@@ -183,13 +182,14 @@ function HeroCard({
               {dayCount === 1 ? "day" : "days"}
             </span>
           </div>
-          <p className="mt-1 font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-ink/70">
-            {hasStreak
-              ? `streak alive · ${stats.totalLogs} total logs`
-              : isOwn
-                ? "log your first day to start the streak"
-                : "no streak yet"}
+          <p className="mt-1.5 font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-ink/70">
+            since {formatSince(sinceDate)} · current streak: {stats.currentStreak}
           </p>
+          {!hasStreak && (
+            <p className="mt-1 font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+              {isOwn ? "log your first day to start" : "no streak yet"}
+            </p>
+          )}
         </div>
         <div className="-mb-2 shrink-0">
           <TwoFaceMascot
@@ -201,6 +201,13 @@ function HeroCard({
       </div>
     </section>
   );
+}
+
+function formatSince(date: Date) {
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function frequencyLabel(habit: HabitDetailData) {
@@ -229,11 +236,13 @@ function StatsRow({
     { value: total.toString(), label: "total logs" },
   ];
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-hc-3 border-hc border-hc-line bg-hc-line sm:grid-cols-4">
-      {stats.map((s) => (
+    <div className="grid grid-cols-4 overflow-hidden rounded-hc-3 border-hc border-hc-line bg-hc-surface">
+      {stats.map((s, i) => (
         <div
           key={s.label}
-          className="flex flex-col items-center gap-1 bg-hc-surface px-2 py-3 text-center"
+          className={`flex flex-col items-center gap-1 px-2 py-3 text-center ${
+            i < stats.length - 1 ? "border-r border-hc-line-strong" : ""
+          }`}
         >
           <span
             className="font-display text-xl font-extrabold leading-none text-hc-ink tabular-nums"
@@ -380,12 +389,19 @@ function RecentLogs({
 }) {
   return (
     <section>
-      <h2
-        className="mb-2 font-display text-base font-bold text-hc-ink"
-        style={{ letterSpacing: "-0.02em" }}
-      >
-        recent logs
-      </h2>
+      <div className="mb-2.5 flex items-baseline justify-between">
+        <h2
+          className="font-display text-base font-bold text-hc-ink"
+          style={{ letterSpacing: "-0.02em" }}
+        >
+          recent logs
+        </h2>
+        <span className="font-mono text-hc-eyebrow font-semibold text-hc-muted">
+          {logs.length === 0
+            ? "no logs yet"
+            : `${logs.length} log${logs.length === 1 ? "" : "s"}`}
+        </span>
+      </div>
       {logs.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-hc-3 border-hc border-dashed border-hc-line-strong bg-hc-surface-alt px-6 py-8 text-center">
           <TwoFaceMascot size={56} mood="wink" bg="#1B1726" />
@@ -397,14 +413,14 @@ function RecentLogs({
           </p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-2.5">
           {logs.map((l) => (
             <li key={l.id}>
               <Link
                 href={`/habit-log/${l.id}`}
-                className="flex items-center gap-3 rounded-hc-2 border-hc border-hc-line bg-hc-surface p-3 transition-transform hover:-translate-y-px hover:bg-hc-surface-alt"
+                className="flex items-center gap-3 rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface p-3 transition-transform hover:-translate-y-px hover:bg-hc-surface-alt"
               >
-                <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-hc-2 border border-hc-line-strong bg-hc-bg text-xl">
+                <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-hc-2 border border-hc-line-strong bg-hc-bg text-2xl">
                   {l.mediaUrl && l.mediaType === "photo" ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -419,18 +435,20 @@ function RecentLogs({
                   )}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-sans text-sm font-semibold text-hc-ink">
+                  <div className="flex items-center gap-1.5">
+                    <span className="rounded bg-hc-brand px-1.5 py-px font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-brand-ink">
+                      day {l.dayNumber}
+                    </span>
+                    <span className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+                      {formatRelative(l.completedAt)}
+                    </span>
+                  </div>
+                  <p className="mt-1 truncate text-sm text-hc-ink">
                     {l.notes ?? "logged · no note"}
                   </p>
-                  <p className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-                    {formatStamp(l.completedAt)} · ♥ {l.likeCount} · 💬 {l.commentCount}
-                  </p>
                 </div>
-                <span
-                  className="font-mono text-hc-tiny font-bold text-hc-ink"
-                  aria-hidden
-                >
-                  →
+                <span className="shrink-0 font-mono text-hc-tiny font-semibold text-hc-muted">
+                  ♥ {l.likeCount}
                 </span>
               </Link>
             </li>
@@ -441,14 +459,25 @@ function RecentLogs({
   );
 }
 
-function formatStamp(date: Date) {
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
+const RTF = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+function formatRelative(date: Date) {
+  const now = Date.now();
+  const diffSec = Math.round((date.getTime() - now) / 1000);
+  const abs = Math.abs(diffSec);
+  if (abs < 60) return RTF.format(diffSec, "second");
+  if (abs < 3600) return RTF.format(Math.round(diffSec / 60), "minute");
+  if (abs < 86400) return RTF.format(Math.round(diffSec / 3600), "hour");
+  if (abs < 86400 * 7) return RTF.format(Math.round(diffSec / 86400), "day");
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function StickyAction({
+/**
+ * Inline action row that sits directly under `HeroCard` so the primary
+ * affordance (log today's day) is one tap away — no scroll, no thumb-stretch
+ * to a sticky bottom bar. Mirrors the pattern from the mockup hero, just
+ * pulled out so it can flex naturally inside the page column.
+ */
+function ActionRow({
   habit,
   isOwn,
   nextDayNumber,
@@ -458,52 +487,50 @@ function StickyAction({
   nextDayNumber: number;
 }) {
   return (
-    <div className="sticky bottom-0 z-10 mx-auto w-full max-w-180 px-5 pb-4 pt-2 md:px-8">
-      <div className="flex gap-2">
-        {isOwn ? (
-          <>
-            {habit.status === "active" ? (
-              <LogDayButton
-                habitId={habit.id}
-                habitName={habit.name}
-                habitIcon={habit.icon}
-                nextDayNumber={nextDayNumber}
-              />
-            ) : (
-              <span className="grid flex-1 cursor-not-allowed place-items-center rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
-                {habit.status} · no new logs
-              </span>
-            )}
-            <Link
-              href={`/habit/${habit.id}/edit`}
-              aria-label="edit habit"
-              className="grid place-items-center rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 text-hc-ink hover:bg-hc-surface-alt"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden
-              >
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-            </Link>
-          </>
-        ) : (
+    <div className="flex gap-2">
+      {isOwn ? (
+        <>
+          {habit.status === "active" ? (
+            <LogDayButton
+              habitId={habit.id}
+              habitName={habit.name}
+              habitIcon={habit.icon}
+              nextDayNumber={nextDayNumber}
+            />
+          ) : (
+            <span className="grid flex-1 cursor-not-allowed place-items-center rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
+              {habit.status} · no new logs
+            </span>
+          )}
           <Link
-            href={`/profile/${habit.owner.username}`}
-            className="flex-1 rounded-hc-3 border border-hc-line bg-hc-accent px-4 py-4 text-center font-display text-base font-extrabold text-hc-accent-ink shadow-hc-stamp transition-transform hover:-translate-y-px"
-            style={{ letterSpacing: "-0.02em" }}
+            href={`/habit/${habit.id}/edit`}
+            aria-label="edit habit"
+            className="grid place-items-center rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 text-hc-ink hover:bg-hc-surface-alt"
           >
-            view @{habit.owner.username}
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
           </Link>
-        )}
-      </div>
+        </>
+      ) : (
+        <Link
+          href={`/profile/${habit.owner.username}`}
+          className="flex-1 rounded-hc-3 border border-hc-line bg-hc-accent px-4 py-4 text-center font-display text-base font-extrabold text-hc-accent-ink shadow-hc-stamp transition-transform hover:-translate-y-px"
+          style={{ letterSpacing: "-0.02em" }}
+        >
+          view @{habit.owner.username}
+        </Link>
+      )}
     </div>
   );
 }

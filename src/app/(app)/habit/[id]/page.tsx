@@ -1,6 +1,7 @@
 import { type Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
+import { dayNumberForLog, localYmd } from "~/lib/habit-stats";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 
@@ -106,6 +107,12 @@ export default async function HabitDetailPage({ params }: { params: Params }) {
     }),
   ]);
 
+  const dayCounts = new Map<string, number>();
+  for (const l of allLogs) {
+    const ymd = localYmd(l.completedAt, habit.user.timezone);
+    dayCounts.set(ymd, (dayCounts.get(ymd) ?? 0) + 1);
+  }
+
   return (
     <HabitDetailView
       isOwn={isOwn}
@@ -138,6 +145,11 @@ export default async function HabitDetailPage({ params }: { params: Params }) {
         mediaType: l.mediaType,
         likeCount: l._count.likes,
         commentCount: l._count.comments,
+        dayNumber: dayNumberForLog({
+          logCompletedAt: l.completedAt,
+          dayCounts,
+          timezone: habit.user.timezone,
+        }),
       }))}
     />
   );

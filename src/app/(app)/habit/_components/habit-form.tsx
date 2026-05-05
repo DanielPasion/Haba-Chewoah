@@ -9,6 +9,7 @@ import {
   type HabitMutationResult,
   deleteHabitAction,
 } from "../_actions";
+import { EmojiPicker } from "./emoji-picker";
 
 type FrequencyType = "daily" | "weekly" | "n_per_period";
 
@@ -115,7 +116,7 @@ export function HabitForm({
 
       <Field label="habit name" error={errors.name}>
         <div className="flex items-stretch gap-2">
-          <EmojiInput value={icon} onChange={setIcon} />
+          <EmojiPicker value={icon} onChange={setIcon} />
           <input
             type="text"
             name="name"
@@ -231,7 +232,7 @@ export function HabitForm({
 
       <div className="flex flex-col-reverse items-stretch gap-2 sm:flex-row sm:justify-between">
         <Link
-          href={mode === "edit" && habitId ? `/habit/${habitId}` : "/habits"}
+          href={mode === "edit" && habitId ? `/habit/${habitId}` : "/profile"}
           className={buttonClass({ variant: "ghost", size: "md" })}
         >
           cancel
@@ -273,35 +274,6 @@ export function HabitForm({
         </div>
       )}
     </form>
-  );
-}
-
-function EmojiInput({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (next: string) => void;
-}) {
-  return (
-    <label
-      className="grid size-12 shrink-0 cursor-text place-items-center rounded-hc-2 border-hc border-hc-line-strong bg-hc-brand text-2xl"
-      title="emoji"
-    >
-      <span aria-hidden className={value ? "" : "text-hc-muted"}>
-        {value || "❄️"}
-      </span>
-      <input
-        type="text"
-        name="icon"
-        value={value}
-        onChange={(e) => onChange(e.target.value.slice(0, 4))}
-        maxLength={4}
-        placeholder=""
-        aria-label="emoji"
-        className="sr-only"
-      />
-    </label>
   );
 }
 
