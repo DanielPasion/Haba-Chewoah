@@ -34,12 +34,26 @@ export function FeedList({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  // Tracks whether the user has loaded at least one extra page. While
+  // false, parent revalidates can safely overwrite our local state;
+  // once true, we merge instead of replacing so a like-induced
+  // revalidate doesn't snap a deeply-scrolled user back to page 1.
+  const hasPaginatedRef = useRef(false);
 
-  // Keep local state in sync if the server snapshot changes (e.g. a
-  // revalidate after a like). Without this, the first page would freeze
-  // at the moment of mount and miss new logs from authors the viewer
-  // just followed.
   useEffect(() => {
+    if (hasPaginatedRef.current) {
+      // Merge the latest first page into the existing list by id —
+      // newcomers prepend, existing rows pick up updated like/comment
+      // counts. The cursor stays at whatever the user paginated to.
+      setItems((prev) => {
+        const byId = new Map(prev.map((p) => [p.id, p] as const));
+        for (const item of initialItems) byId.set(item.id, item);
+        return [...byId.values()].sort((a, b) =>
+          a.completedAt > b.completedAt ? -1 : a.completedAt < b.completedAt ? 1 : 0,
+        );
+      });
+      return;
+    }
     setItems(initialItems);
     setCursor(initialCursor);
   }, [initialItems, initialCursor]);
@@ -53,6 +67,7 @@ export function FeedList({
         setError(result.message);
         return;
       }
+      hasPaginatedRef.current = true;
       setItems((prev) => {
         const seen = new Set(prev.map((p) => p.id));
         const fresh = result.items.filter((i) => !seen.has(i.id));

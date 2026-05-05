@@ -42,7 +42,21 @@ export default async function UserProfilePage({ params }: { params: Params }) {
     },
   });
 
-  if (!user?.username) notFound();
+  // Username history fallback: if no current user owns this handle, see
+  // whether someone *used to* — if so, redirect to their current handle
+  // so old share-links and push-notification URLs stay live after a
+  // rename. The primary lookup runs first so a new account claiming an
+  // abandoned handle still wins; only orphaned handles fall through here.
+  if (!user?.username) {
+    const renamed = await db.user.findFirst({
+      where: { previousUsernames: { has: username.toLowerCase() } },
+      select: { username: true },
+    });
+    if (renamed?.username) {
+      redirect(`/profile/${renamed.username}`);
+    }
+    notFound();
+  }
 
   const isOwn = user.id === session.user.id;
 

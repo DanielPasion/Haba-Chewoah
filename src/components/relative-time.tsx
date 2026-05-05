@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const RTF = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 
@@ -40,7 +40,17 @@ export function RelativeTime({
   date: Date | string;
   className?: string;
 }) {
-  const dateObj = typeof date === "string" ? new Date(date) : date;
+  // Memo on the underlying primitive (`date.getTime()` for Date, the raw
+  // string otherwise) so the `useEffect` dep below stays stable across
+  // re-renders. Without this, a string `date` would cause `new Date(...)`
+  // to allocate a fresh object every render → the effect would re-fire
+  // every tick → infinite render loop.
+  const dateKey = typeof date === "string" ? date : date.getTime();
+  const dateObj = useMemo(
+    () => (typeof date === "string" ? new Date(date) : date),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dateKey],
+  );
   const [label, setLabel] = useState(() => format(dateObj));
 
   useEffect(() => {

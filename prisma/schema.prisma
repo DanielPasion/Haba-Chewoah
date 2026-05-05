@@ -113,6 +113,13 @@ model User {
 
   discordId String   @unique @map("discord_id")
   username  String?  @unique
+  // Every prior `username` this user has held, lowercased. When somebody
+  // visits /profile/<old-handle>, the page falls back to this list to
+  // redirect to the current handle so old share-links and push-notification
+  // URLs don't 404 after a rename. A *new* user later claiming the old
+  // handle still wins the primary lookup; the fallback only runs when no
+  // user currently owns the requested name.
+  previousUsernames String[] @default([]) @map("previous_usernames")
   bio       String?
   timezone  String   @default("UTC")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz

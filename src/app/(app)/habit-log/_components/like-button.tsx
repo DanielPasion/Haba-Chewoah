@@ -49,13 +49,27 @@ export function LikeButton({
       // call usually suffices; the loop handles "tapped twice while the
       // first was in flight" cases by sending a follow-up toggle.
       while (true) {
-        const before = desired.current;
-        const result = await toggleLikeAction(habitLogId);
+        let result;
+        try {
+          result = await toggleLikeAction(habitLogId);
+        } catch (err) {
+          // Network failure (offline, 500, timeout). Without this catch
+          // the optimistic UI sticks at "liked" forever — the user thinks
+          // the tap registered, the server has no record. Revert to the
+          // last-known-good state (initial props) and stop the loop.
+          console.warn("[like] toggle threw", err);
+          desired.current = initialLiked;
+          setLiked(initialLiked);
+          setCount(initialCount);
+          break;
+        }
         if (!result.ok) {
-          // Snap back to what the server actually thinks (which we don't
-          // know here) on next revalidate. Stop the loop to avoid spamming
-          // a failing endpoint.
+          // Server replied but rejected (e.g. log was deleted). Same
+          // revert + bail as the network case so the UI stops lying.
           console.warn("[like] toggle failed", result.message);
+          desired.current = initialLiked;
+          setLiked(initialLiked);
+          setCount(initialCount);
           break;
         }
         // Trust the server's reported state for the count — it's the only
@@ -65,10 +79,8 @@ export function LikeButton({
           setLiked(result.liked);
           break;
         }
-        // User flipped intent while this call was in flight; loop again.
-        // `before` is recorded for the (currently unused) ability to
-        // detect oscillation; left in to make intent obvious.
-        void before;
+        // User flipped intent while this call was in flight; loop again
+        // to send the follow-up toggle.
       }
     } finally {
       inFlight.current = false;

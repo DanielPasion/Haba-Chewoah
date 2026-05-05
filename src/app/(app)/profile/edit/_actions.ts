@@ -84,7 +84,6 @@ export async function updateProfile(
   if (!session.user.username) {
     return { ok: false, message: "finish creating your account first" };
   }
-  const previousUsername = session.user.username;
 
   const parsed = UpdateProfileSchema.safeParse({
     username: formData.get("username"),
@@ -117,16 +116,27 @@ export async function updateProfile(
     };
   }
 
-  // Captured before the write so we can delete the old object after replace —
-  // without this, every avatar swap leaks an R2 object indefinitely.
-  const priorImage = avatarObjectKey
-    ? (
-        await db.user.findUnique({
-          where: { id: session.user.id },
-          select: { image: true },
-        })
-      )?.image ?? null
-    : null;
+  // One read for prior state — we need the prior image (for R2 cleanup)
+  // and the prior username (to push onto previousUsernames if it changed).
+  // Session-cached username can be slightly stale across renames, so the
+  // DB row is the source of truth here.
+  const priorRow = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { image: true, username: true, previousUsernames: true },
+  });
+  const priorImage = priorRow?.image ?? null;
+  const priorUsername = priorRow?.username ?? session.user.username;
+  const usernameChanged = priorUsername.toLowerCase() !== username.toLowerCase();
+  // Append the prior handle to history (lowercased, deduped) so a future
+  // visit to /profile/<old-handle> can fall back to the renamed account.
+  const nextHistory = usernameChanged
+    ? Array.from(
+        new Set([
+          ...(priorRow?.previousUsernames ?? []),
+          priorUsername.toLowerCase(),
+        ]),
+      ).filter((h) => h !== username.toLowerCase())
+    : (priorRow?.previousUsernames ?? []);
 
   try {
     await db.user.update({
@@ -135,6 +145,7 @@ export async function updateProfile(
         username,
         bio,
         timezone,
+        ...(usernameChanged ? { previousUsernames: nextHistory } : {}),
         ...(avatarObjectKey
           ? { image: publicUrlForKey(avatarObjectKey) }
           : {}),
@@ -170,8 +181,10 @@ export async function updateProfile(
   }
 
   // Revalidate both old and new username paths — the old one would otherwise
-  // serve stale cached HTML pointing at a profile that no longer exists.
-  revalidatePath(`/profile/${previousUsername}`);
+  // serve stale cached HTML, and we want the new one to render fresh.
+  // The old path will now redirect (via the previousUsernames lookup in
+  // /profile/[username]/page.tsx) instead of 404'ing.
+  revalidatePath(`/profile/${priorUsername}`);
   revalidatePath(`/profile/${username}`);
   revalidatePath("/profile");
 

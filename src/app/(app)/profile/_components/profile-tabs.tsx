@@ -150,11 +150,22 @@ function PaginatedLogsList({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  // See FeedList: once the user has paginated past page 1, parent
+  // revalidates merge into local state instead of replacing it, so a
+  // like / comment / log-create doesn't truncate the loaded list.
+  const hasPaginatedRef = useRef(false);
 
-  // Reconcile with parent's view of the first page when it changes (e.g.
-  // a fresh log lands via revalidate). Skip while paginating to avoid
-  // truncating loaded pages.
   useEffect(() => {
+    if (hasPaginatedRef.current) {
+      setItems((prev) => {
+        const byId = new Map(prev.map((p) => [p.id, p] as const));
+        for (const item of initialItems) byId.set(item.id, item);
+        return [...byId.values()].sort((a, b) =>
+          a.completedAt > b.completedAt ? -1 : a.completedAt < b.completedAt ? 1 : 0,
+        );
+      });
+      return;
+    }
     setItems(initialItems);
     setCursor(initialCursor);
   }, [initialItems, initialCursor]);
@@ -171,6 +182,7 @@ function PaginatedLogsList({
         setError(result.message);
         return;
       }
+      hasPaginatedRef.current = true;
       setItems((prev) => {
         const seen = new Set(prev.map((p) => p.id));
         const fresh = result.items.filter((i) => !seen.has(i.id));
