@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { RelativeTime } from "~/components/relative-time";
 
 import { createCommentAction, deleteCommentAction } from "../_actions";
 import type { HabitLogDetailData, LogViewer } from "./habit-log-detail-view";
@@ -104,9 +105,10 @@ function CommentRow({
                 OP
               </span>
             )}
-            <span className="font-mono text-hc-tiny font-medium opacity-70">
-              {formatRelative(comment.createdAt)}
-            </span>
+            <RelativeTime
+              date={comment.createdAt}
+              className="font-mono text-hc-tiny font-medium opacity-70"
+            />
           </div>
           <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
             {renderMentions(comment.content)}
@@ -207,17 +209,6 @@ function Composer({
   );
 }
 
-const RTF = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-function formatRelative(date: Date) {
-  const now = Date.now();
-  const diffSec = Math.round((date.getTime() - now) / 1000);
-  const abs = Math.abs(diffSec);
-  if (abs < 60) return RTF.format(diffSec, "second");
-  if (abs < 3600) return RTF.format(Math.round(diffSec / 60), "minute");
-  if (abs < 86400) return RTF.format(Math.round(diffSec / 3600), "hour");
-  if (abs < 86400 * 7) return RTF.format(Math.round(diffSec / 86400), "day");
-  return date.toLocaleDateString();
-}
 
 // `@username` runs in the comment text become profile links. Username
 // rules per .claude/db/NOTES.md §4: 3-32 chars of [A-Za-z0-9_]. The

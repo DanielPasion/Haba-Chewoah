@@ -35,9 +35,6 @@ export function TodayStreaksStrip({
         >
           today · {done} of {total}
         </h2>
-        <span className="font-mono text-hc-tiny font-semibold text-hc-muted">
-          tap to log →
-        </span>
       </div>
 
       <div className="flex gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { RelativeTime } from "~/components/relative-time";
 
 import type { MediaType } from "../../../../../generated/prisma";
 
@@ -76,7 +77,7 @@ export function HabitLogDetailView({
         habitName={log.habit.name}
       />
 
-      <div className="mx-auto flex w-full max-w-180 flex-col gap-4 px-5 md:px-8 md:gap-5">
+      <div className="mx-auto flex w-full max-w-130 flex-col gap-4 px-5 md:px-8 md:gap-5">
         <AuthorStrip log={log} dayNumber={dayNumber} isOwn={isOwn} />
         {log.media && <MediaHero log={log} dayNumber={dayNumber} />}
         {log.notes && <Caption notes={log.notes} />}
@@ -186,14 +187,19 @@ function AuthorStrip({
           )}
         </div>
         <p className="truncate font-mono text-hc-meta font-semibold text-hc-muted">
-          @{log.owner.username} · {formatRelative(log.completedAt)}
+          @{log.owner.username} · <RelativeTime date={log.completedAt} />
         </p>
       </div>
       <Link
         href={`/habit/${log.habit.id}`}
-        className="shrink-0 rounded-full border border-hc-line bg-hc-brand px-3 py-1.5 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-brand-ink"
+        className="flex min-w-0 max-w-40 shrink items-center gap-1 truncate rounded-full border border-hc-line bg-hc-brand px-3 py-1.5 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-brand-ink"
+        title={`${log.habit.name} · day ${dayNumber}`}
       >
-        {log.habit.icon ?? "✨"} {log.habit.name} · day {dayNumber}
+        <span className="shrink-0" aria-hidden>
+          {log.habit.icon ?? "✨"}
+        </span>
+        <span className="truncate">{log.habit.name}</span>
+        <span className="shrink-0">· d{dayNumber}</span>
       </Link>
     </div>
   );
@@ -208,7 +214,7 @@ function MediaHero({
 }) {
   if (!log.media) return null;
   return (
-    <div className="relative overflow-hidden rounded-hc-4 border-hc border-hc-line bg-hc-ink shadow-hc">
+    <div className="relative mx-auto w-full max-w-100 overflow-hidden rounded-hc-4 border-hc border-hc-line bg-hc-ink shadow-hc">
       {log.media.type === "video" ? (
         <video
           src={log.media.url}
@@ -238,7 +244,7 @@ function MediaHero({
 
 function Caption({ notes }: { notes: string }) {
   return (
-    <p className="whitespace-pre-wrap text-base leading-relaxed text-hc-ink">
+    <p className="whitespace-pre-wrap break-words text-base leading-relaxed text-hc-ink">
       {notes}
     </p>
   );
@@ -323,16 +329,3 @@ function formatDuration(ms: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const RTF = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-
-function formatRelative(date: Date) {
-  const now = Date.now();
-  const diffSec = Math.round((date.getTime() - now) / 1000);
-  const abs = Math.abs(diffSec);
-  if (abs < 60) return RTF.format(diffSec, "second");
-  if (abs < 3600) return RTF.format(Math.round(diffSec / 60), "minute");
-  if (abs < 86400) return RTF.format(Math.round(diffSec / 3600), "hour");
-  if (abs < 86400 * 7) return RTF.format(Math.round(diffSec / 86400), "day");
-  if (abs < 86400 * 30) return RTF.format(Math.round(diffSec / (86400 * 7)), "week");
-  return date.toLocaleDateString();
-}

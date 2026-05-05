@@ -5,10 +5,28 @@
 export default function FeedLoading() {
   return (
     <div className="-mx-5 -my-6 flex flex-col gap-4 pb-2 md:-mx-8 md:-my-8 md:gap-6">
-      <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center justify-between border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
+      <header className="sticky top-0 z-10 hidden items-center border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:flex md:px-8 md:py-4">
         <Bar className="h-7 w-20" />
-        <Bar className="h-8 w-28 rounded-hc-2" />
       </header>
+
+      <section className="md:hidden">
+        <div className="mb-2.5 flex items-baseline justify-between gap-2 px-5">
+          <Bar className="h-3.5 w-28" />
+        </div>
+        <div className="flex gap-2.5 px-5 pb-1">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="grid w-25 shrink-0 grid-rows-[auto_1fr_auto] place-items-center gap-1.5 rounded-hc-3 border-hc border-hc-line-strong bg-hc-surface px-2 py-3"
+            >
+              <span className="size-9 animate-pulse rounded-hc-2 bg-hc-line-strong" />
+              <Bar className="h-3 w-16" />
+              <Bar className="h-2.5 w-10" />
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div className="mx-auto flex w-full max-w-180 flex-col gap-3 px-3 md:px-8">
         {Array.from({ length: 4 }).map((_, i) => (
           <CardSkeleton key={i} hasMedia={i % 2 === 0} />
@@ -34,7 +52,10 @@ function CardSkeleton({ hasMedia }: { hasMedia: boolean }) {
         <span className="size-10 shrink-0 animate-pulse rounded-full bg-hc-line-strong" />
         <div className="flex-1 space-y-2">
           <Bar className="h-3 w-40" />
-          <Bar className="h-2.5 w-24" />
+          <div className="flex items-center gap-2">
+            <Bar className="h-4 w-24 rounded-full" />
+            <Bar className="h-3 w-12" />
+          </div>
         </div>
       </div>
       {hasMedia && (

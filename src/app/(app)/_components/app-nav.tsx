@@ -1,15 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useTransition } from "react";
 
 import { LogoText } from "~/components/brand/logo-text";
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 import { SettingsButton } from "~/components/settings-button";
 
 import { MobileAddButton } from "./add-sheet";
-import { DesktopSearchBar } from "./desktop-search-bar";
-import { MobileHeaderSearch } from "./mobile-header-search";
 
 type NavItem = {
   href: string;
@@ -23,15 +22,24 @@ const HOME_ICON = (
 const PROFILE_ICON = (
   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" />
 );
+const EXPLORE_ICON = (
+  <>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M21 21l-4.35-4.35" />
+  </>
+);
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/feed", label: "home", icon: HOME_ICON },
+  { href: "/explore", label: "explore", icon: EXPLORE_ICON },
   { href: "/profile", label: "profile", icon: PROFILE_ICON },
 ];
 
 // Mobile bottom tab bar — three slots: home · center plus · profile.
-// Mirrors `.claude/ui/project/profile-page.jsx` (`ProfileTabBar`). The center
-// plus is the BeReal-style FAB that opens the AddSheet.
+// Mirrors `.claude/ui/project/profile-page.jsx` (`ProfileTabBar`). The
+// center plus is the BeReal-style FAB that opens the AddSheet. Explore +
+// refresh live in the mobile top header (`AppMobileTopBar`) instead so
+// the bottom bar stays a thumb-friendly three-target shelf.
 const MOBILE_TAB_ITEMS: NavItem[] = [
   { href: "/feed", label: "home", icon: HOME_ICON },
   { href: "/profile", label: "profile", icon: PROFILE_ICON },
@@ -88,17 +96,7 @@ export function AppSidebar({
           const active = isActive(pathname, item.href);
           return (
             <li key={item.href}>
-              <Link
-                href={item.href}
-                className={`flex items-center gap-3 rounded-hc-2 border-hc px-3 py-2.5 font-sans text-sm transition-colors ${
-                  active
-                    ? "border-hc-ink bg-hc-surface font-bold text-hc-ink"
-                    : "border-transparent font-semibold text-hc-ink hover:bg-hc-surface-alt"
-                }`}
-              >
-                <NavIcon>{item.icon}</NavIcon>
-                <span>{item.label}</span>
-              </Link>
+              <NavSidebarLink item={item} active={active} />
             </li>
           );
         })}
@@ -124,15 +122,47 @@ export function AppSidebar({
   );
 }
 
-// Desktop-only top bar carrying the global search box + notification bell.
-// Replicates the right-side affordances of `.claude/ui/project/desktop.jsx`
-// `DTopbar`. Not sticky itself: pages already have sticky sub-headers at
-// `md:top-0` and ⌘K focuses the search from anywhere.
+// Click on the active nav route triggers `router.refresh()` instead of a
+// no-op navigation. Other clicks behave like a normal `<Link>`. Keeps the
+// "I'm already here" tap useful (pull-to-refresh equivalent) without
+// re-fetching the same RSC payload twice.
+function NavSidebarLink({ item, active }: { item: NavItem; active: boolean }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  return (
+    <Link
+      href={item.href}
+      onClick={(e) => {
+        if (!active) return;
+        e.preventDefault();
+        startTransition(() => router.refresh());
+      }}
+      aria-current={active ? "page" : undefined}
+      className={`flex items-center gap-3 rounded-hc-2 border-hc px-3 py-2.5 font-sans text-sm transition-colors ${
+        active
+          ? "border-hc-ink bg-hc-surface font-bold text-hc-ink"
+          : "border-transparent font-semibold text-hc-ink hover:bg-hc-surface-alt"
+      }`}
+    >
+      <NavIcon>{item.icon}</NavIcon>
+      <span className="flex-1">{item.label}</span>
+      {active && (
+        <span
+          aria-hidden
+          className={`size-2 rounded-full bg-hc-accent ${pending ? "animate-pulse" : ""}`}
+        />
+      )}
+    </Link>
+  );
+}
+
+// Desktop-only top bar carrying the right-side actions: refresh, add,
+// notifications. The username search lives on /explore as a list filter,
+// so the bar stays uncluttered.
 //
-// `DesktopNewHabitButton` is the desktop's only entry point for creating
-// a habit — the mobile FAB lives in the bottom tab bar, which is hidden
-// on `md+` (`md:hidden` on `AppMobileTabBar`). Without this, desktop
-// users have no UI affordance to start a new habit.
+// The shared `MobileAddButton` (despite its name) is the desktop's add
+// entry point too — same trigger logic, same sheet, just rendered as a
+// centered modal instead of a bottom sheet via responsive classes.
 export function AppDesktopTopBar({
   hasUnreadNotifications = false,
 }: {
@@ -140,20 +170,27 @@ export function AppDesktopTopBar({
 }) {
   return (
     <header className="hidden items-center justify-end gap-3 border-b border-hc-line bg-hc-bg px-8 py-3 md:flex">
-      <DesktopSearchBar />
-      <DesktopNewHabitButton />
+      <RefreshButton />
+      <MobileAddButton variant="topbar" />
       <NotificationBell hasUnread={hasUnreadNotifications} />
     </header>
   );
 }
 
-function DesktopNewHabitButton() {
+// Forces a fresh RSC fetch for the current route. Distinct from clicking
+// an active nav link (which also refreshes) — the dedicated button gives
+// users an unambiguous "reload" affordance without leaving the page.
+function RefreshButton() {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
   return (
-    <Link
-      href="/habit/new"
-      aria-label="start a new habit"
-      title="start a new habit"
-      className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-full border border-hc-line bg-hc-brand text-hc-brand-ink transition-transform hover:-translate-y-px"
+    <button
+      type="button"
+      aria-label={pending ? "refreshing" : "refresh"}
+      title="refresh"
+      onClick={() => startTransition(() => router.refresh())}
+      disabled={pending}
+      className="grid size-9 shrink-0 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink hover:bg-hc-surface-alt disabled:opacity-60"
     >
       <svg
         width="18"
@@ -161,14 +198,16 @@ function DesktopNewHabitButton() {
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="3"
+        strokeWidth="2.2"
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden
+        className={pending ? "animate-spin" : ""}
       >
-        <path d="M12 5v14M5 12h14" />
+        <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
+        <path d="M21 3v5h-5" />
       </svg>
-    </Link>
+    </button>
   );
 }
 
@@ -186,16 +225,44 @@ export function AppMobileTopBar({
       className="sticky top-0 z-20 border-b border-hc-line bg-hc-bg/90 backdrop-blur md:hidden"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      <div className="relative flex items-center justify-between px-5 py-3">
-        <Link href="/feed">
+      <div className="relative flex items-center justify-between gap-2 px-5 py-3">
+        <Link href="/feed" className="shrink-0">
           <LogoText size={16} />
         </Link>
         <div className="flex items-center gap-2">
-          <MobileHeaderSearch />
+          <ExploreIconLink />
+          <RefreshButton />
           <NotificationBell hasUnread={hasUnreadNotifications} />
         </div>
       </div>
     </header>
+  );
+}
+
+function ExploreIconLink() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const active = isActive(pathname, "/explore");
+  return (
+    <Link
+      href="/explore"
+      aria-label="explore"
+      title="explore"
+      onClick={(e) => {
+        if (!active) return;
+        e.preventDefault();
+        startTransition(() => router.refresh());
+      }}
+      aria-current={active ? "page" : undefined}
+      className={`grid size-9 shrink-0 place-items-center rounded-full border border-hc-line ${
+        active
+          ? "bg-hc-ink text-hc-brand"
+          : "bg-hc-surface text-hc-ink hover:bg-hc-surface-alt"
+      }`}
+    >
+      <NavIcon size={18}>{EXPLORE_ICON}</NavIcon>
+    </Link>
   );
 }
 
@@ -238,18 +305,22 @@ export function AppMobileTabBar() {
   // `justify-around` would skew the FAB right when "home" is shorter than
   // "profile" (or vice versa). Bottom padding respects iOS home-indicator
   // safe area so the bar doesn't sit underneath it.
+  //
+  // `before:` extends the surface upward by ~28px so the elevated FAB
+  // (`-mt-6`, size-14) sits over an opaque backdrop instead of letting
+  // feed photos peek through the corners of its circular silhouette.
   return (
     <nav
-      className="sticky bottom-0 z-10 grid grid-cols-3 items-center border-t border-hc-line bg-hc-surface px-4 pt-2.5 md:hidden"
+      className="sticky bottom-0 z-20 grid grid-cols-3 items-center border-t border-hc-line bg-hc-surface px-4 pt-2.5 before:pointer-events-none before:absolute before:-top-7 before:left-0 before:right-0 before:h-7 before:bg-hc-surface before:content-[''] md:hidden"
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
     >
-      <div className="flex justify-center">
+      <div className="relative z-10 flex justify-center">
         <MobileTabLink item={MOBILE_TAB_ITEMS[0]!} pathname={pathname} />
       </div>
-      <div className="flex justify-center">
+      <div className="relative z-10 flex justify-center">
         <MobileAddButton variant="fab" />
       </div>
-      <div className="flex justify-center">
+      <div className="relative z-10 flex justify-center">
         <MobileTabLink item={MOBILE_TAB_ITEMS[1]!} pathname={pathname} />
       </div>
     </nav>
@@ -263,10 +334,18 @@ function MobileTabLink({
   item: NavItem;
   pathname: string;
 }) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
   const active = isActive(pathname, item.href);
   return (
     <Link
       href={item.href}
+      onClick={(e) => {
+        if (!active) return;
+        e.preventDefault();
+        startTransition(() => router.refresh());
+      }}
+      aria-current={active ? "page" : undefined}
       className={`flex flex-col items-center gap-0.5 px-3 py-1 ${
         active ? "text-hc-ink" : "text-hc-muted opacity-60"
       }`}

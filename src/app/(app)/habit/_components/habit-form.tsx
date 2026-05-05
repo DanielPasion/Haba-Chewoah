@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { buttonClass } from "~/components/ui";
@@ -60,6 +61,7 @@ export function HabitForm({
   defaults = HABIT_FORM_BLANK_DEFAULTS,
   action,
 }: Props) {
+  const router = useRouter();
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, startTransition] = useTransition();
 
@@ -77,7 +79,10 @@ export function HabitForm({
     setErrors({});
     startTransition(async () => {
       const result = await action(formData);
-      if (result.ok) return; // server redirected
+      if (result.ok) {
+        router.push(`/habit/${result.habitId}`);
+        return;
+      }
       if (result.field && result.field !== "form") {
         setErrors({ [result.field]: result.message });
       } else {
@@ -91,7 +96,11 @@ export function HabitForm({
     if (!confirm("delete this habit? this cannot be undone.")) return;
     startDelete(async () => {
       const result = await deleteHabitAction(habitId);
-      if (!result.ok) setErrors({ form: result.message });
+      if (result.ok) {
+        router.push(result.redirectTo);
+        return;
+      }
+      setErrors({ form: result.message });
     });
   }
 

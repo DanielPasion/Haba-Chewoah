@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { MoonIcon, SunIcon } from "~/components/icons";
 
@@ -61,9 +62,11 @@ function SettingsModal({
   signOutAction: () => Promise<void>;
 }) {
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
   // Lock body scroll while open and listen for Esc — same pattern as AddSheet.
   useEffect(() => {
+    setMounted(true);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     function onKey(e: KeyboardEvent) {
@@ -76,7 +79,12 @@ function SettingsModal({
     };
   }, [onClose]);
 
-  return (
+  // Render through a portal to <body> so the modal escapes the sidebar's
+  // stacking context (sticky aside) — without this, page-level images on
+  // the right paint *over* z-50 because each section gets its own context.
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -144,7 +152,8 @@ function SettingsModal({
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

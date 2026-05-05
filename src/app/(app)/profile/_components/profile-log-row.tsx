@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { RelativeTime } from "~/components/relative-time";
+
 import { deleteHabitLogAction } from "../../habit-log/_actions";
 
 import type { MediaType } from "../../../../../generated/prisma";
@@ -62,38 +64,16 @@ export function ProfileLogRow({
     <article className="overflow-hidden rounded-hc-3 border border-hc-line bg-hc-surface shadow-hc-soft">
       <Link
         href={`/habit-log/${log.id}`}
-        className="block transition-colors hover:bg-hc-surface-alt"
+        className="flex flex-col transition-colors hover:bg-hc-surface-alt md:flex-row md:items-stretch"
       >
-        <header className="flex items-center justify-between gap-3 px-3.5 pt-3 pb-2">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="grid size-9 shrink-0 place-items-center rounded-hc-2 border border-hc-line-strong bg-hc-bg text-base">
-              {log.habit.icon ?? "✨"}
-            </span>
-            <div className="min-w-0">
-              <div className="truncate font-sans text-sm font-bold text-hc-ink">
-                {log.habit.name}{" "}
-                <span className="font-medium text-hc-muted">
-                  · day {log.dayNumber}
-                </span>
-              </div>
-              <div className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-                {formatRelative(log.completedAt)}
-              </div>
-            </div>
-          </div>
-          {log.isLocked && (
-            <span className="shrink-0 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-muted">
-              🔒 folder
-            </span>
-          )}
-        </header>
-
+        {/* Media — full-bleed on mobile, fixed-width thumbnail on desktop so
+            the row stays scannable while scrolling. */}
         {hasMedia && (
-          <div className="mx-3.5 overflow-hidden rounded-hc-2 border border-hc-line bg-hc-ink">
+          <div className="overflow-hidden border-b border-hc-line bg-hc-ink md:order-1 md:w-32 md:shrink-0 md:border-b-0 md:border-l md:border-hc-line">
             {log.mediaType === "video" ? (
               <video
                 src={log.mediaUrl!}
-                className="aspect-[4/3] w-full object-cover"
+                className="aspect-[4/3] w-full object-cover md:aspect-square md:h-full"
                 muted
                 playsInline
                 preload="metadata"
@@ -103,25 +83,52 @@ export function ProfileLogRow({
               <img
                 src={log.mediaUrl!}
                 alt=""
-                className="aspect-[4/3] w-full object-cover"
+                className="aspect-[4/3] w-full object-cover md:aspect-square md:h-full"
               />
             )}
           </div>
         )}
 
-        {log.notes && (
-          <p className="px-4 pb-2 pt-2.5 text-sm leading-relaxed text-hc-ink">
-            {log.notes}
-          </p>
-        )}
-        {!log.notes && !hasMedia && (
-          <p className="px-4 pb-2 pt-2.5 font-mono text-hc-meta text-hc-muted">
-            checked in.
-          </p>
-        )}
+        <div className="min-w-0 flex-1">
+          <header className="flex items-center justify-between gap-3 px-3.5 pt-3 pb-1.5">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="grid size-8 shrink-0 place-items-center rounded-hc-2 border border-hc-line-strong bg-hc-bg text-sm">
+                {log.habit.icon ?? "✨"}
+              </span>
+              <div className="min-w-0">
+                <div className="truncate font-sans text-sm font-bold text-hc-ink">
+                  {log.habit.name}{" "}
+                  <span className="font-medium text-hc-muted">
+                    · day {log.dayNumber}
+                  </span>
+                </div>
+                <RelativeTime
+                  date={log.completedAt}
+                  className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted"
+                />
+              </div>
+            </div>
+            {log.isLocked && (
+              <span className="shrink-0 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-muted">
+                🔒 folder
+              </span>
+            )}
+          </header>
+
+          {log.notes && (
+            <p className="line-clamp-3 px-4 pt-1 pb-2 text-sm leading-snug text-hc-ink">
+              {log.notes}
+            </p>
+          )}
+          {!log.notes && !hasMedia && (
+            <p className="px-4 pt-1 pb-2 font-mono text-hc-meta text-hc-muted">
+              checked in.
+            </p>
+          )}
+        </div>
       </Link>
 
-      <div className="flex items-center gap-4 px-4 pt-1 pb-3 font-mono text-hc-meta font-semibold text-hc-muted">
+      <div className="flex items-center gap-4 border-t border-hc-line/50 px-4 py-2 font-mono text-hc-meta font-semibold text-hc-muted">
         <span className="flex items-center gap-1.5">
           <svg
             width="14"
@@ -168,14 +175,3 @@ export function ProfileLogRow({
   );
 }
 
-const RTF = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-function formatRelative(date: Date) {
-  const now = Date.now();
-  const diffSec = Math.round((date.getTime() - now) / 1000);
-  const abs = Math.abs(diffSec);
-  if (abs < 60) return RTF.format(diffSec, "second");
-  if (abs < 3600) return RTF.format(Math.round(diffSec / 60), "minute");
-  if (abs < 86400) return RTF.format(Math.round(diffSec / 3600), "hour");
-  if (abs < 86400 * 7) return RTF.format(Math.round(diffSec / 86400), "day");
-  return date.toLocaleDateString();
-}
