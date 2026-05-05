@@ -1,6 +1,7 @@
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 
 import { type HabitCardData } from "../../habit/_components/habit-card";
+import { type ProfileLogsCursor } from "../_data";
 import { ProfileActions } from "./profile-actions";
 import { ProfileAvatar } from "./profile-avatar";
 import { type ProfileLogRow } from "./profile-log-row";
@@ -33,6 +34,7 @@ export function ProfileView({
   isBlockingThem = false,
   habits,
   logs,
+  initialLogsCursor,
   topStreak,
   totalLogs,
 }: {
@@ -42,6 +44,7 @@ export function ProfileView({
   isBlockingThem?: boolean;
   habits: HabitCardData[];
   logs: ProfileLogRow[];
+  initialLogsCursor: ProfileLogsCursor | null;
   topStreak: number;
   totalLogs: number;
 }) {
@@ -64,6 +67,7 @@ export function ProfileView({
         stats={stats}
         habits={habits}
         logs={logs}
+        initialLogsCursor={initialLogsCursor}
       />
       <DesktopProfile
         user={user}
@@ -73,6 +77,7 @@ export function ProfileView({
         stats={stats}
         habits={habits}
         logs={logs}
+        initialLogsCursor={initialLogsCursor}
       />
     </div>
   );
@@ -86,6 +91,7 @@ function MobileProfile({
   stats,
   habits,
   logs,
+  initialLogsCursor,
 }: {
   user: ProfileViewUser;
   isOwn: boolean;
@@ -94,6 +100,7 @@ function MobileProfile({
   stats: { label: string; value: number }[];
   habits: HabitCardData[];
   logs: ProfileLogRow[];
+  initialLogsCursor: ProfileLogsCursor | null;
 }) {
   return (
     <div className="md:hidden">
@@ -134,7 +141,13 @@ function MobileProfile({
         />
       </section>
 
-      <ProfileTabs isOwn={isOwn} habits={habits} logs={logs} />
+      <ProfileTabs
+        isOwn={isOwn}
+        ownerUserId={user.id}
+        habits={habits}
+        logs={logs}
+        initialLogsCursor={initialLogsCursor}
+      />
     </div>
   );
 }
@@ -147,6 +160,7 @@ function DesktopProfile({
   stats,
   habits,
   logs,
+  initialLogsCursor,
 }: {
   user: ProfileViewUser;
   isOwn: boolean;
@@ -155,6 +169,7 @@ function DesktopProfile({
   stats: { label: string; value: number }[];
   habits: HabitCardData[];
   logs: ProfileLogRow[];
+  initialLogsCursor: ProfileLogsCursor | null;
 }) {
   return (
     <div className="hidden md:block">
@@ -224,7 +239,13 @@ function DesktopProfile({
         </div>
 
         <div className="mt-5">
-          <ProfileTabs isOwn={isOwn} habits={habits} logs={logs} />
+          <ProfileTabs
+            isOwn={isOwn}
+            ownerUserId={user.id}
+            habits={habits}
+            logs={logs}
+            initialLogsCursor={initialLogsCursor}
+          />
         </div>
 
         <div className="h-10" />

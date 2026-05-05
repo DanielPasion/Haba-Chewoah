@@ -8,6 +8,28 @@ import { db } from "~/server/db";
 import { createNotification } from "~/server/notifications";
 import { NotificationType, Prisma } from "../../../../generated/prisma";
 
+import {
+  type LoadMoreProfileLogsResult,
+  type ProfileLogsCursor,
+  loadProfileLogsSlice,
+} from "./_data";
+
+export async function getMoreProfileLogsAction(input: {
+  userId: string;
+  cursor: ProfileLogsCursor;
+}): Promise<LoadMoreProfileLogsResult> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, message: "not signed in" };
+  if (typeof input?.userId !== "string") {
+    return { ok: false, message: "invalid input" };
+  }
+  return loadProfileLogsSlice({
+    viewerId: session.user.id,
+    targetUserId: input.userId,
+    before: input.cursor,
+  });
+}
+
 export type FollowListUser = {
   id: string;
   username: string;

@@ -1,11 +1,13 @@
 import Link from "next/link";
 
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { RelativeTime } from "~/components/relative-time";
 import { buttonClass } from "~/components/ui";
 import {
   buildHeatmap,
   computeHabitStats,
   type HeatmapCell,
+  localYmd,
 } from "~/lib/habit-stats";
 
 import type {
@@ -53,11 +55,13 @@ export function HabitDetailView({
   habit,
   isOwn,
   logs,
+  logIdByDay = {},
   recentLogs,
 }: {
   habit: HabitDetailData;
   isOwn: boolean;
   logs: Array<{ completedAt: Date }>;
+  logIdByDay?: Record<string, string>;
   recentLogs: RecentLog[];
 }) {
   const stats = computeHabitStats({
@@ -77,7 +81,7 @@ export function HabitDetailView({
 
   return (
     <div className="-mx-5 -my-6 flex flex-col gap-5 pb-2 md:-mx-8 md:-my-8 md:gap-6">
-      <Header habitName={habit.name} />
+      <Header habitName={habit.name} habitId={habit.id} isOwn={isOwn} />
 
       <div className="mx-auto flex w-full max-w-180 flex-col gap-5 px-5 md:px-8 md:gap-6">
         <HeroCard habit={habit} stats={stats} isOwn={isOwn} />
@@ -88,7 +92,12 @@ export function HabitDetailView({
           current={stats.currentStreak}
           total={stats.totalLogs}
         />
-        <Heatmap cells={heatmap} totalLogs={stats.totalLogs} />
+        <Heatmap
+          cells={heatmap}
+          totalLogs={stats.totalLogs}
+          logIdByDay={logIdByDay}
+          todayYmd={localYmd(new Date(), habit.owner.timezone)}
+        />
         {habit.description && <DescriptionCard description={habit.description} />}
         {!isOwn && <OwnerCard owner={habit.owner} />}
         <RecentLogs logs={recentLogs} habitIcon={habit.icon} />
@@ -97,7 +106,15 @@ export function HabitDetailView({
   );
 }
 
-function Header({ habitName }: { habitName: string }) {
+function Header({
+  habitName,
+  habitId,
+  isOwn,
+}: {
+  habitName: string;
+  habitId: string;
+  isOwn: boolean;
+}) {
   return (
     <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
       <Link
@@ -125,6 +142,27 @@ function Header({ habitName }: { habitName: string }) {
       >
         {habitName}
       </h1>
+      {isOwn && (
+        <Link
+          href={`/habit/${habitId}/edit`}
+          aria-label="edit habit"
+          className="grid size-9 shrink-0 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink shadow-hc-soft hover:bg-hc-surface-alt"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </Link>
+      )}
     </header>
   );
 }
@@ -231,10 +269,10 @@ function StatsRow({
   total: number;
 }) {
   const stats = [
-    { value: `${completionPct}%`, label: "completion" },
-    { value: longest.toString(), label: "longest" },
-    { value: current.toString(), label: "current" },
-    { value: total.toString(), label: "total logs" },
+    { value: `${completionPct}%`, label: "completion", accent: false },
+    { value: longest.toString(), label: "longest", accent: false },
+    { value: current.toString(), label: "current", accent: true },
+    { value: total.toString(), label: "total logs", accent: false },
   ];
   return (
     <div className="grid grid-cols-4 overflow-hidden rounded-hc-3 border-hc border-hc-line bg-hc-surface">
@@ -246,7 +284,9 @@ function StatsRow({
           }`}
         >
           <span
-            className="font-display text-xl font-extrabold leading-none text-hc-ink tabular-nums"
+            className={`font-display text-xl font-extrabold leading-none tabular-nums ${
+              s.accent ? "text-hc-accent" : "text-hc-ink"
+            }`}
             style={{ letterSpacing: "-0.03em" }}
           >
             {s.value}
@@ -263,9 +303,13 @@ function StatsRow({
 function Heatmap({
   cells,
   totalLogs,
+  logIdByDay,
+  todayYmd,
 }: {
   cells: HeatmapCell[][];
   totalLogs: number;
+  logIdByDay: Record<string, string>;
+  todayYmd: string;
 }) {
   return (
     <section>
@@ -293,30 +337,55 @@ function Heatmap({
           {cells.map((col, w) => (
             <div key={w} className="grid grid-rows-7 gap-1.5">
               {col.map((cell) => (
-                <span
+                <HeatmapSquare
                   key={cell.ymd}
-                  title={`${cell.ymd} · ${cell.count} log${cell.count === 1 ? "" : "s"}`}
-                  className={`aspect-square rounded-sm ${
-                    cell.isFuture
-                      ? "bg-hc-line/40"
-                      : cell.count > 0
-                        ? "bg-hc-brand"
-                        : "bg-hc-line"
-                  }`}
-                  aria-hidden
+                  cell={cell}
+                  logId={logIdByDay[cell.ymd] ?? null}
+                  isToday={cell.ymd === todayYmd}
                 />
               ))}
             </div>
           ))}
         </div>
       </div>
-      <div className="mt-2 flex flex-wrap gap-3 font-mono text-hc-tiny font-semibold text-hc-muted">
+      <div className="mt-2 flex flex-wrap items-center gap-3 font-mono text-hc-tiny font-semibold text-hc-muted">
         <Legend color="bg-hc-brand">done</Legend>
         <Legend color="bg-hc-line">no log</Legend>
-        <Legend color="bg-hc-line/40">future</Legend>
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="size-2.5 rounded-sm bg-hc-line ring-2 ring-hc-accent ring-offset-1 ring-offset-hc-surface"
+          />
+          today
+        </span>
       </div>
     </section>
   );
+}
+
+function HeatmapSquare({
+  cell,
+  logId,
+  isToday,
+}: {
+  cell: HeatmapCell;
+  logId: string | null;
+  isToday: boolean;
+}) {
+  const done = cell.count > 0;
+  const title = `${cell.ymd} · ${cell.count} log${cell.count === 1 ? "" : "s"}${isToday ? " · today" : ""}`;
+  const baseClass = `aspect-square rounded-sm ${done ? "bg-hc-brand" : "bg-hc-line"} ${isToday ? "ring-2 ring-hc-accent ring-offset-1 ring-offset-hc-surface" : ""}`;
+  if (logId) {
+    return (
+      <Link
+        href={`/habit-log/${logId}`}
+        title={title}
+        aria-label={title}
+        className={`${baseClass} block transition-transform hover:-translate-y-px hover:ring-2 hover:ring-hc-ink`}
+      />
+    );
+  }
+  return <span title={title} className={baseClass} aria-hidden />;
 }
 
 function Legend({
@@ -440,15 +509,16 @@ function RecentLogs({
                     <span className="rounded bg-hc-brand px-1.5 py-px font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-brand-ink">
                       day {l.dayNumber}
                     </span>
-                    <span className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-                      {formatRelative(l.completedAt)}
-                    </span>
+                    <RelativeTime
+                      date={l.completedAt}
+                      className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted"
+                    />
                   </div>
                   <p className="mt-1 truncate text-sm text-hc-ink">
                     {l.notes ?? "logged · no note"}
                   </p>
                 </div>
-                <span className="shrink-0 font-mono text-hc-tiny font-semibold text-hc-muted">
+                <span className="shrink-0 font-mono text-hc-tiny font-semibold text-hc-accent">
                   ♥ {l.likeCount}
                 </span>
               </Link>
@@ -460,17 +530,6 @@ function RecentLogs({
   );
 }
 
-const RTF = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-function formatRelative(date: Date) {
-  const now = Date.now();
-  const diffSec = Math.round((date.getTime() - now) / 1000);
-  const abs = Math.abs(diffSec);
-  if (abs < 60) return RTF.format(diffSec, "second");
-  if (abs < 3600) return RTF.format(Math.round(diffSec / 60), "minute");
-  if (abs < 86400) return RTF.format(Math.round(diffSec / 3600), "hour");
-  if (abs < 86400 * 7) return RTF.format(Math.round(diffSec / 86400), "day");
-  return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
 
 /**
  * Inline action row that sits directly under `HeroCard` so the primary
@@ -490,39 +549,18 @@ function ActionRow({
   return (
     <div className="flex gap-2">
       {isOwn ? (
-        <>
-          {habit.status === "active" ? (
-            <LogDayButton
-              habitId={habit.id}
-              habitName={habit.name}
-              habitIcon={habit.icon}
-              nextDayNumber={nextDayNumber}
-            />
-          ) : (
-            <span className="grid flex-1 cursor-not-allowed place-items-center rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
-              {habit.status} · no new logs
-            </span>
-          )}
-          <Link
-            href={`/habit/${habit.id}/edit`}
-            aria-label="edit habit"
-            className="grid place-items-center rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 text-hc-ink hover:bg-hc-surface-alt"
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden
-            >
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-            </svg>
-          </Link>
-        </>
+        habit.status === "active" ? (
+          <LogDayButton
+            habitId={habit.id}
+            habitName={habit.name}
+            habitIcon={habit.icon}
+            nextDayNumber={nextDayNumber}
+          />
+        ) : (
+          <span className="grid flex-1 cursor-not-allowed place-items-center rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
+            {habit.status} · no new logs
+          </span>
+        )
       ) : habit.status === "active" ? (
         <>
           <ChewOutButton

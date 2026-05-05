@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { auth } from "~/server/auth";
@@ -139,7 +138,7 @@ export async function createHabitAction(
   });
 
   revalidatePath(`/profile/${session.user.username}`);
-  redirect(`/habit/${habit.id}`);
+  return { ok: true, habitId: habit.id };
 }
 
 export async function updateHabitAction(
@@ -188,11 +187,11 @@ export async function updateHabitAction(
 
   revalidatePath(`/habit/${habitId}`);
   revalidatePath(`/profile/${session.user.username}`);
-  redirect(`/habit/${habitId}`);
+  return { ok: true, habitId };
 }
 
 export type DeleteHabitResult =
-  | { ok: true }
+  | { ok: true; redirectTo: string }
   | { ok: false; message: string };
 
 export async function deleteHabitAction(
@@ -234,7 +233,7 @@ export async function deleteHabitAction(
   if (session.user.username) {
     revalidatePath(`/profile/${session.user.username}`);
   }
-  redirect("/profile");
+  return { ok: true, redirectTo: "/profile" };
 }
 
 // ============================================================

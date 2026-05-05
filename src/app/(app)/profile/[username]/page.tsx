@@ -6,10 +6,9 @@ import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 
 import { type HabitCardData } from "../../habit/_components/habit-card";
+import { PROFILE_LOG_PAGE_SIZE, type ProfileLogsCursor } from "../_data";
 import { type ProfileLogRow } from "../_components/profile-log-row";
 import { ProfileView } from "../_components/profile-view";
-
-const PROFILE_LOG_LIMIT = 30;
 
 type Params = Promise<{ username: string }>;
 
@@ -43,7 +42,21 @@ export default async function UserProfilePage({ params }: { params: Params }) {
     },
   });
 
-  if (!user?.username) notFound();
+  // Username history fallback: if no current user owns this handle, see
+  // whether someone *used to* — if so, redirect to their current handle
+  // so old share-links and push-notification URLs stay live after a
+  // rename. The primary lookup runs first so a new account claiming an
+  // abandoned handle still wins; only orphaned handles fall through here.
+  if (!user?.username) {
+    const renamed = await db.user.findFirst({
+      where: { previousUsernames: { has: username.toLowerCase() } },
+      select: { username: true },
+    });
+    if (renamed?.username) {
+      redirect(`/profile/${renamed.username}`);
+    }
+    notFound();
+  }
 
   const isOwn = user.id === session.user.id;
 
@@ -114,8 +127,8 @@ export default async function UserProfilePage({ params }: { params: Params }) {
           ? {}
           : { habit: { isPublic: true, status: "active" as const } }),
       },
-      orderBy: { completedAt: "desc" },
-      take: PROFILE_LOG_LIMIT,
+      orderBy: [{ completedAt: "desc" }, { id: "desc" }],
+      take: PROFILE_LOG_PAGE_SIZE,
       select: {
         id: true,
         completedAt: true,
@@ -199,6 +212,14 @@ export default async function UserProfilePage({ params }: { params: Params }) {
     }),
   }));
 
+  // Cursor for the client-side "load more" — only present when we filled
+  // the first page. A short page means we already hit the end.
+  const lastRaw = logsRaw[logsRaw.length - 1];
+  const initialLogsCursor: ProfileLogsCursor | null =
+    logsRaw.length === PROFILE_LOG_PAGE_SIZE && lastRaw
+      ? { completedAt: lastRaw.completedAt.toISOString(), id: lastRaw.id }
+      : null;
+
   return (
     <ProfileView
       isOwn={isOwn}
@@ -217,6 +238,7 @@ export default async function UserProfilePage({ params }: { params: Params }) {
       // content "should be filtered from view" for the blocker.
       habits={iAmBlockingThem ? [] : habitCards}
       logs={iAmBlockingThem ? [] : logRows}
+      initialLogsCursor={iAmBlockingThem ? null : initialLogsCursor}
       topStreak={iAmBlockingThem ? 0 : topStreak}
       totalLogs={iAmBlockingThem ? 0 : totalLogs}
     />

@@ -30,7 +30,8 @@ export default function ProfileLoading() {
           </div>
         </section>
         <div className="border-b border-hc-line" />
-        <SkeletonGrid />
+        <SkeletonTabs />
+        <SkeletonLogsList />
       </div>
 
       {/* Desktop */}
@@ -56,10 +57,55 @@ export default function ProfileLoading() {
             ))}
           </div>
           <div className="mt-5">
-            <SkeletonGrid />
+            <SkeletonTabs />
+            <SkeletonLogsList />
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SkeletonTabs() {
+  return (
+    <div className="flex gap-1 border-b border-hc-line px-1">
+      {["logs", "habits"].map((label, i) => (
+        <div
+          key={label}
+          className={`relative flex items-center gap-1.5 px-3.5 py-3 ${
+            i === 0 ? "" : "opacity-60"
+          }`}
+        >
+          <Bar className="h-4 w-12" />
+          <Bar className="h-3.5 w-6 rounded-full" />
+          {i === 0 && (
+            <span className="absolute inset-x-2 -bottom-px h-hc-tabline rounded-sm bg-hc-line-strong" />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SkeletonLogsList() {
+  return (
+    <div className="flex flex-col gap-3 px-1 py-5 md:px-0 md:py-6">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex items-start gap-3 rounded-hc-3 border-hc border-hc-line bg-hc-surface p-3.5"
+        >
+          <span className="size-12 shrink-0 animate-pulse rounded-hc-2 bg-hc-line-strong" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <Bar className="h-4 w-24 rounded-full" />
+              <Bar className="h-3 w-12" />
+            </div>
+            <Bar className="h-3 w-3/4" />
+            <Bar className="h-3 w-1/2" />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -73,23 +119,3 @@ function Bar({ className }: { className: string }) {
   );
 }
 
-function SkeletonGrid() {
-  return (
-    <div className="grid grid-cols-2 gap-3 px-1 py-5 md:px-0 md:py-6 lg:grid-cols-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div
-          key={i}
-          className="flex flex-col gap-2.5 rounded-hc-3 border border-hc-line bg-hc-surface p-3.5"
-        >
-          <div className="flex items-start justify-between">
-            <span className="size-9 animate-pulse rounded-hc-2 bg-hc-line" />
-            <Bar className="h-4 w-12" />
-          </div>
-          <Bar className="h-4 w-2/3" />
-          <Bar className="h-9 w-16 rounded-sm" />
-          <Bar className="h-2 w-3/4" />
-        </div>
-      ))}
-    </div>
-  );
-}

@@ -90,7 +90,8 @@ export default async function HabitDetailPage({ params }: { params: Params }) {
   const [allLogs, recentLogs] = await Promise.all([
     db.habitLog.findMany({
       where: { habitId: habit.id },
-      select: { completedAt: true },
+      orderBy: { completedAt: "desc" },
+      select: { id: true, completedAt: true },
     }),
     db.habitLog.findMany({
       where: { habitId: habit.id },
@@ -108,9 +109,14 @@ export default async function HabitDetailPage({ params }: { params: Params }) {
   ]);
 
   const dayCounts = new Map<string, number>();
+  // Most-recent log id per local day so each heatmap square can deep-link
+  // to /habit-log/[id]. `allLogs` is ordered desc, so the first entry
+  // wins via setdefault semantics.
+  const logIdByDay = new Map<string, string>();
   for (const l of allLogs) {
     const ymd = localYmd(l.completedAt, habit.user.timezone);
     dayCounts.set(ymd, (dayCounts.get(ymd) ?? 0) + 1);
+    if (!logIdByDay.has(ymd)) logIdByDay.set(ymd, l.id);
   }
 
   return (
@@ -137,6 +143,7 @@ export default async function HabitDetailPage({ params }: { params: Params }) {
         },
       }}
       logs={allLogs}
+      logIdByDay={Object.fromEntries(logIdByDay)}
       recentLogs={recentLogs.map((l) => ({
         id: l.id,
         completedAt: l.completedAt,

@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { isValidTimezone } from "~/lib/timezones";
@@ -16,7 +15,14 @@ import {
   publicUrlForKey,
 } from "~/server/r2";
 
+// NOTES.md §4 username rules — kept in sync with create-account/_actions.
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,32}$/;
+
 const UpdateProfileSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .regex(USERNAME_RE, "3–32 chars · letters, numbers, underscore"),
   bio: z
     .string()
     .trim()
@@ -38,10 +44,10 @@ const UpdateProfileSchema = z.object({
 });
 
 export type UpdateProfileResult =
-  | { ok: true }
+  | { ok: true; username: string }
   | {
       ok: false;
-      field?: "bio" | "timezone" | "avatar";
+      field?: "username" | "bio" | "timezone" | "avatar";
       message: string;
     };
 
@@ -67,8 +73,9 @@ export async function getAvatarUploadUrl(input: {
   }
 }
 
-// Username isn't editable here — it's a unique identity slot used in share
-// links and @-mentions; changing it would be a separate flow.
+// Username IS editable here — but it's a unique slot used in share-links
+// and @-mentions, so we re-validate uniqueness against the DB and revalidate
+// the OLD username's profile path so any cached page picks up the rename.
 export async function updateProfile(
   formData: FormData,
 ): Promise<UpdateProfileResult> {
@@ -79,6 +86,7 @@ export async function updateProfile(
   }
 
   const parsed = UpdateProfileSchema.safeParse({
+    username: formData.get("username"),
     bio: formData.get("bio"),
     timezone: formData.get("timezone"),
     avatarObjectKey: formData.get("avatarObjectKey"),
@@ -89,7 +97,7 @@ export async function updateProfile(
     return {
       ok: false,
       field:
-        field === "bio" || field === "timezone"
+        field === "username" || field === "bio" || field === "timezone"
           ? field
           : field === "avatarObjectKey"
             ? "avatar"
@@ -98,7 +106,7 @@ export async function updateProfile(
     };
   }
 
-  const { bio, timezone, avatarObjectKey } = parsed.data;
+  const { username, bio, timezone, avatarObjectKey } = parsed.data;
 
   if (avatarObjectKey && !isOwnedAvatarKey(avatarObjectKey, session.user.id)) {
     return {
@@ -108,34 +116,61 @@ export async function updateProfile(
     };
   }
 
-  // Captured before the write so we can delete the old object after replace —
-  // without this, every avatar swap leaks an R2 object indefinitely.
-  const priorImage = avatarObjectKey
-    ? (
-        await db.user.findUnique({
-          where: { id: session.user.id },
-          select: { image: true },
-        })
-      )?.image ?? null
-    : null;
+  // One read for prior state — we need the prior image (for R2 cleanup)
+  // and the prior username (to push onto previousUsernames if it changed).
+  // Session-cached username can be slightly stale across renames, so the
+  // DB row is the source of truth here.
+  const priorRow = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { image: true, username: true, previousUsernames: true },
+  });
+  const priorImage = priorRow?.image ?? null;
+  const priorUsername = priorRow?.username ?? session.user.username;
+  const usernameChanged = priorUsername.toLowerCase() !== username.toLowerCase();
+  // Append the prior handle to history (lowercased, deduped) so a future
+  // visit to /profile/<old-handle> can fall back to the renamed account.
+  const nextHistory = usernameChanged
+    ? Array.from(
+        new Set([
+          ...(priorRow?.previousUsernames ?? []),
+          priorUsername.toLowerCase(),
+        ]),
+      ).filter((h) => h !== username.toLowerCase())
+    : (priorRow?.previousUsernames ?? []);
 
   try {
     await db.user.update({
       where: { id: session.user.id },
       data: {
+        username,
         bio,
         timezone,
+        ...(usernameChanged ? { previousUsernames: nextHistory } : {}),
         ...(avatarObjectKey
           ? { image: publicUrlForKey(avatarObjectKey) }
           : {}),
       },
     });
   } catch (err) {
+    // P2002 = unique constraint violation. Username is the only unique
+    // field changed on this update path, so attribute it.
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err &&
+      (err as { code: unknown }).code === "P2002"
+    ) {
+      if (avatarObjectKey) await deleteAvatarObject(avatarObjectKey);
+      return {
+        ok: false,
+        field: "username",
+        message: "that username is already taken",
+      };
+    }
     if (avatarObjectKey) await deleteAvatarObject(avatarObjectKey);
     throw err;
   }
 
-  // Must run before redirect() — that throws NEXT_REDIRECT.
   // `ownedAvatarKeyFromPublicUrl` returns null for non-R2 URLs (e.g. Discord
   // CDN avatars from OAuth) so we never touch storage we don't own.
   if (avatarObjectKey && priorImage) {
@@ -145,8 +180,13 @@ export async function updateProfile(
     }
   }
 
-  revalidatePath(`/profile/${session.user.username}`);
+  // Revalidate both old and new username paths — the old one would otherwise
+  // serve stale cached HTML, and we want the new one to render fresh.
+  // The old path will now redirect (via the previousUsernames lookup in
+  // /profile/[username]/page.tsx) instead of 404'ing.
+  revalidatePath(`/profile/${priorUsername}`);
+  revalidatePath(`/profile/${username}`);
   revalidatePath("/profile");
 
-  redirect(`/profile/${session.user.username}`);
+  return { ok: true, username };
 }

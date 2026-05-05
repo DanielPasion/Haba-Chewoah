@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { RelativeTime } from "~/components/relative-time";
 
 import type { MediaType } from "../../../../../generated/prisma";
 import { LikeButton } from "../../habit-log/_components/like-button";
@@ -55,17 +56,18 @@ export function FeedCard({ item }: { item: FeedItem }) {
               {item.author.displayName}
             </Link>
             <span className="font-mono text-hc-tiny font-medium text-hc-muted">
-              · {formatRelative(item.completedAt)}
+              · <RelativeTime date={item.completedAt} />
             </span>
           </div>
           <div className="mt-1 flex items-center gap-2">
             <Link
               href={`/habit/${item.habit.id}`}
               className="max-w-full truncate rounded-full bg-hc-brand px-2 py-0.5 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-brand-ink"
+              title={item.habit.name}
             >
               {item.habit.icon ?? "✨"} {item.habit.name}
             </Link>
-            <span className="font-mono text-hc-tiny font-semibold text-hc-muted">
+            <span className="font-mono text-hc-tiny font-bold text-hc-accent">
               day {item.dayNumber}
             </span>
           </div>
@@ -155,14 +157,3 @@ function formatDuration(ms: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const RTF = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-function formatRelative(date: Date) {
-  const now = Date.now();
-  const diffSec = Math.round((date.getTime() - now) / 1000);
-  const abs = Math.abs(diffSec);
-  if (abs < 60) return RTF.format(diffSec, "second");
-  if (abs < 3600) return RTF.format(Math.round(diffSec / 60), "minute");
-  if (abs < 86400) return RTF.format(Math.round(diffSec / 3600), "hour");
-  if (abs < 86400 * 7) return RTF.format(Math.round(diffSec / 86400), "day");
-  return date.toLocaleDateString();
-}

@@ -50,6 +50,8 @@ export function LogActions({
     });
   }
 
+  if (!isOwn) return null;
+
   return (
     <div ref={wrapperRef} className="relative">
       <button
@@ -63,27 +65,14 @@ export function LogActions({
       </button>
       {open && (
         <div className="absolute right-0 top-11 z-20 w-44 overflow-hidden rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface shadow-hc">
-          {isOwn ? (
-            <button
-              type="button"
-              onClick={onDelete}
-              disabled={pending}
-              className="block w-full px-4 py-2.5 text-left font-sans text-sm font-semibold text-hc-accent hover:bg-hc-surface-alt disabled:opacity-60"
-            >
-              {pending ? "deleting…" : "delete log"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                alert("reports are coming soon");
-              }}
-              className="block w-full px-4 py-2.5 text-left font-sans text-sm font-semibold text-hc-ink hover:bg-hc-surface-alt"
-            >
-              report (soon)
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={pending}
+            className="block w-full px-4 py-2.5 text-left font-sans text-sm font-semibold text-hc-accent hover:bg-hc-surface-alt disabled:opacity-60"
+          >
+            {pending ? "deleting…" : "delete log"}
+          </button>
         </div>
       )}
     </div>

@@ -3,8 +3,8 @@
 export const BRAND = {
   ink: "#1F1B2E",
   inkLegacy: "#1B1726",
-  brand: "#D8FF3C",
-  brandStrong: "#C7EE2B",
+  brand: "#F5D76E",
+  brandStrong: "#E8C456",
   accent: "#E8769A",
   accentInk: "#FFFFFF",
   // Original hot pink, kept distinct from the dustier accent for character recognition.

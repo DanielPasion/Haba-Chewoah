@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { AvatarUploader } from "~/components/avatar-uploader";
@@ -13,7 +14,7 @@ import {
 } from "../_actions";
 
 type FieldErrors = Partial<
-  Record<"bio" | "timezone" | "avatar" | "form", string>
+  Record<"username" | "bio" | "timezone" | "avatar" | "form", string>
 >;
 
 type Props = {
@@ -29,6 +30,7 @@ export function EditProfileForm({
   defaultTimezone,
   defaultAvatarUrl,
 }: Props) {
+  const router = useRouter();
   const [errors, setErrors] = useState<FieldErrors>({});
   const [pending, startTransition] = useTransition();
 
@@ -36,7 +38,11 @@ export function EditProfileForm({
     setErrors({});
     startTransition(async () => {
       const result: UpdateProfileResult = await updateProfile(formData);
-      if (result.ok) return; // server redirected; unreachable in practice
+      if (result.ok) {
+        router.push(`/profile/${result.username}`);
+        router.refresh();
+        return;
+      }
       if (result.field) setErrors({ [result.field]: result.message });
       else setErrors({ form: result.message });
     });
@@ -55,16 +61,27 @@ export function EditProfileForm({
       <div className="flex w-full flex-col gap-5">
         <Field
           label="username"
-          hint="locked — usernames stay tied to your share-links"
+          hint="3–32 chars · letters, numbers, underscore"
+          error={errors.username}
         >
-          <input
-            type="text"
-            value={`@${username}`}
-            disabled
-            readOnly
-            aria-readonly
-            className="w-full cursor-not-allowed rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface-alt px-4 py-3 font-mono text-sm font-medium text-hc-muted outline-none"
-          />
+          <div className="flex items-stretch overflow-hidden rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface focus-within:border-hc-ink">
+            <span className="grid place-items-center bg-hc-surface-alt px-3 font-mono text-sm font-bold text-hc-muted">
+              @
+            </span>
+            <input
+              type="text"
+              name="username"
+              defaultValue={username}
+              required
+              minLength={3}
+              maxLength={32}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              pattern="[A-Za-z0-9_]{3,32}"
+              className="min-w-0 flex-1 bg-transparent px-3 py-3 font-mono text-sm font-semibold text-hc-ink outline-none placeholder:text-hc-muted-soft"
+            />
+          </div>
         </Field>
 
         <Field

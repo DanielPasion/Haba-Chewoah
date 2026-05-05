@@ -8,13 +8,13 @@ import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 import { type AddSheetHabit, getMyHabitsForAddSheet } from "../_actions";
 
 /**
- * Add-sheet trigger button. Used twice on mobile:
+ * Add-sheet trigger button. The same component drives:
  *
- *  - **Top bar `+`** (compact 36px button, matches the bell/search styling).
- *  - **Bottom FAB** (legacy slot, currently retired — see `app-nav.tsx`).
+ *  - **Mobile bottom FAB** (variant `fab`) — large floating button.
+ *  - **Desktop top-bar `+`** (variant `topbar`) — compact 36px button.
  *
- * `variant` swaps the visual treatment but the underlying open/close logic
- * stays in one place so both entry points show the same sheet.
+ * Variant only swaps the trigger visuals; the sheet that opens is the same
+ * (responsive: bottom sheet on mobile, centered modal on desktop).
  */
 export function MobileAddButton({
   variant = "topbar",
@@ -46,7 +46,7 @@ export function MobileAddButton({
   const triggerClass =
     variant === "fab"
       ? "-mt-6 grid size-14 cursor-pointer place-items-center rounded-full border border-hc-line bg-hc-brand text-hc-brand-ink shadow-hc transition-transform hover:-translate-y-px"
-      : "grid size-9 cursor-pointer place-items-center rounded-full border border-hc-line bg-hc-brand text-hc-brand-ink transition-transform hover:-translate-y-px";
+      : "grid size-9 shrink-0 cursor-pointer place-items-center rounded-full border border-hc-line bg-hc-brand text-hc-brand-ink transition-transform hover:-translate-y-px";
 
   const iconSize = variant === "fab" ? 24 : 18;
 
@@ -104,7 +104,7 @@ function AddSheet({ onClose }: { onClose: () => void }) {
       role="dialog"
       aria-modal="true"
       aria-label="what now"
-      className="fixed inset-0 z-50 flex flex-col justify-end md:hidden"
+      className="fixed inset-0 z-50 flex flex-col justify-end md:items-center md:justify-center md:p-6"
     >
       <button
         type="button"
@@ -114,12 +114,12 @@ function AddSheet({ onClose }: { onClose: () => void }) {
       />
 
       <div
-        className="relative max-h-[85dvh] w-full overflow-hidden rounded-t-hc-5 border border-b-0 border-hc-line bg-hc-bg shadow-hc-lg"
+        className="relative max-h-[85dvh] w-full overflow-hidden rounded-t-hc-5 border border-b-0 border-hc-line bg-hc-bg shadow-hc-lg md:max-w-md md:rounded-hc-5 md:border md:shadow-hc-stamp"
         style={{ animation: "hc-sheet-up 220ms cubic-bezier(.2,.9,.3,1)" }}
       >
-        <div className="px-5 pt-3.5">
+        <div className="px-5 pt-3.5 md:pt-5">
           <div
-            className="mx-auto mb-3.5 h-1.5 w-12 rounded-full bg-hc-line-strong"
+            className="mx-auto mb-3.5 h-1.5 w-12 rounded-full bg-hc-line-strong md:hidden"
             aria-hidden
           />
 
@@ -195,7 +195,7 @@ function AddSheet({ onClose }: { onClose: () => void }) {
                         {h.name}
                       </div>
                       <div className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-                        {h.isPublic ? "· public" : "🔒 folder"} · tap to log
+                        {h.isPublic ? "· public" : "🔒 folder"}
                       </div>
                     </div>
                     <svg
