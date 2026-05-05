@@ -50,6 +50,7 @@ export default async function ExplorePage() {
       name: true,
       bio: true,
       image: true,
+      createdAt: true,
       _count: {
         select: { habits: true, followers: true },
       },
@@ -67,6 +68,7 @@ export default async function ExplorePage() {
       habitCount: u._count.habits,
       followerCount: u._count.followers,
       isFollowing: followingSet.has(u.id),
+      joinedAt: u.createdAt.toISOString(),
     }));
 
   return (
@@ -92,8 +94,7 @@ export default async function ExplorePage() {
             Find your people.
           </h2>
           <p className="mt-1.5 max-w-lg text-[15px] leading-relaxed text-hc-muted">
-            people building habits together. follow a few to fill your feed —
-            their wins make yours feel less lonely.
+            people building habits together. follow a few to fill your feed
           </p>
         </section>
 

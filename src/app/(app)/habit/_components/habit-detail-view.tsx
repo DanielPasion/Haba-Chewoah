@@ -303,9 +303,39 @@ function Heatmap({
   logIdByDay: Record<string, string>;
   todayYmd: string;
 }) {
+  // Date-range header: first column starts at the Sunday of 8 weeks ago,
+  // last column ends at this Saturday. Showing the visible window helps
+  // readers orient before they parse individual squares.
+  const firstYmd = cells[0]?.[0]?.ymd ?? null;
+  const lastCol = cells[cells.length - 1];
+  const lastYmd = lastCol?.[lastCol.length - 1]?.ymd ?? null;
+  const rangeLabel =
+    firstYmd && lastYmd
+      ? `${formatRangePart(firstYmd)} — ${formatRangePart(lastYmd)}`
+      : null;
+
+  // Mark the column where the month changes; rendered above the grid as a
+  // small label so a reader can pin "this column is december."
+  const monthMarkers = cells.map((col, idx) => {
+    const firstCell = col[0];
+    if (!firstCell) return null;
+    const monthIdx = monthOf(firstCell.ymd);
+    const prevMonth =
+      idx === 0
+        ? null
+        : monthOf(cells[idx - 1]![0]!.ymd);
+    if (idx === 0 || monthIdx !== prevMonth) {
+      return MONTH_NAMES[monthIdx];
+    }
+    return null;
+  });
+
+  // Sun..Sat day labels mirror the row order from buildHeatmap (row 0 = Sun).
+  const dayLabels = ["s", "m", "t", "w", "t", "f", "s"];
+
   return (
     <section>
-      <div className="mb-3 flex items-baseline justify-between">
+      <div className="mb-1 flex items-baseline justify-between">
         <h2
           className="font-display text-base font-extrabold text-hc-ink"
           style={{ letterSpacing: "-0.03em" }}
@@ -316,40 +346,70 @@ function Heatmap({
           {totalLogs === 0 ? "no logs yet" : `${totalLogs} logs total`}
         </span>
       </div>
-      <div className="flex gap-2 rounded-hc-3 border border-hc-line bg-hc-surface p-4">
-        <div
-          className="flex flex-col justify-around pr-1 font-mono text-hc-tiny font-medium text-hc-muted"
-          aria-hidden
-        >
-          {["m", "w", "f"].map((d) => (
-            <span key={d}>{d}</span>
+      {rangeLabel && (
+        <p className="mb-3 font-mono text-hc-tiny font-medium text-hc-muted">
+          {rangeLabel} · oldest on the left, this week on the right
+        </p>
+      )}
+
+      <div className="rounded-hc-3 border border-hc-line bg-hc-surface p-4">
+        {/* Month markers: align to columns by sharing the same grid */}
+        <div className="mb-1.5 flex gap-1.5 pl-5">
+          {monthMarkers.map((label, i) => (
+            <span
+              key={i}
+              className="flex-1 font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow-narrow text-hc-muted"
+              aria-hidden
+            >
+              {label ?? ""}
+            </span>
           ))}
         </div>
-        <div className="grid flex-1 grid-cols-8 gap-1.5">
-          {cells.map((col, w) => (
-            <div key={w} className="grid grid-rows-7 gap-1.5">
-              {col.map((cell) => (
-                <HeatmapSquare
-                  key={cell.ymd}
-                  cell={cell}
-                  logId={logIdByDay[cell.ymd] ?? null}
-                  isToday={cell.ymd === todayYmd}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="mt-2 flex flex-wrap items-center gap-3 font-mono text-hc-tiny font-medium text-hc-muted">
-        <Legend className="bg-hc-ink dark:bg-hc-brand">done</Legend>
-        <Legend className="bg-hc-line">no log</Legend>
-        <span className="inline-flex items-center gap-1.5">
-          <span
+
+        <div className="flex gap-1.5">
+          {/* All seven Sun..Sat labels, one per row, perfectly aligned. */}
+          <div
+            className="grid w-3.5 grid-rows-7 gap-1.5 font-mono text-hc-tiny font-medium leading-none text-hc-muted"
             aria-hidden
-            className="size-2.5 rounded-sm bg-hc-line ring-2 ring-hc-accent ring-offset-1 ring-offset-hc-surface"
-          />
-          today
-        </span>
+          >
+            {dayLabels.map((d, i) => (
+              <span key={i} className="flex items-center justify-center">
+                {d}
+              </span>
+            ))}
+          </div>
+          <div className="grid flex-1 grid-cols-8 gap-1.5">
+            {cells.map((col, w) => (
+              <div key={w} className="grid grid-rows-7 gap-1.5">
+                {col.map((cell) => (
+                  <HeatmapSquare
+                    key={cell.ymd}
+                    cell={cell}
+                    logId={logIdByDay[cell.ymd] ?? null}
+                    isToday={cell.ymd === todayYmd}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-hc-line pt-3 font-mono text-hc-tiny font-medium text-hc-muted">
+          <div className="flex flex-wrap items-center gap-3">
+            <Legend className="bg-hc-ink dark:bg-hc-brand">logged</Legend>
+            <Legend className="bg-hc-line">missed</Legend>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="size-2.5 rounded-sm bg-hc-line ring-2 ring-hc-accent ring-offset-1 ring-offset-hc-surface"
+              />
+              today
+            </span>
+          </div>
+          <span className="font-sans text-xs italic text-hc-muted">
+            tap a logged day to open it
+          </span>
+        </div>
       </div>
     </section>
   );
@@ -365,8 +425,19 @@ function HeatmapSquare({
   isToday: boolean;
 }) {
   const done = cell.count > 0;
-  const title = `${cell.ymd} · ${cell.count} log${cell.count === 1 ? "" : "s"}${isToday ? " · today" : ""}`;
-  const baseClass = `aspect-square rounded-sm ${done ? "bg-hc-ink dark:bg-hc-brand" : "bg-hc-line"} ${isToday ? "ring-2 ring-hc-accent ring-offset-1 ring-offset-hc-surface" : ""}`;
+  const isMulti = cell.count > 1;
+  const title = `${formatTitleDate(cell.ymd)}${isToday ? " · today" : ""} · ${cell.count} log${cell.count === 1 ? "" : "s"}`;
+  const baseClass = `relative aspect-square rounded-sm ${done ? "bg-hc-ink dark:bg-hc-brand" : "bg-hc-line"} ${isToday ? "ring-2 ring-hc-accent ring-offset-1 ring-offset-hc-surface" : ""}`;
+  // Cells with multiple logs render the count inside so readers don't
+  // need to hover/long-press to learn a day was unusually productive.
+  const countBadge = isMulti ? (
+    <span
+      aria-hidden
+      className="absolute inset-0 grid place-items-center font-display text-[9px] font-extrabold leading-none text-hc-bg dark:text-hc-brand-ink"
+    >
+      {cell.count}
+    </span>
+  ) : null;
   if (logId) {
     return (
       <Link
@@ -374,10 +445,16 @@ function HeatmapSquare({
         title={title}
         aria-label={title}
         className={`${baseClass} block transition-transform hover:scale-110`}
-      />
+      >
+        {countBadge}
+      </Link>
     );
   }
-  return <span title={title} className={baseClass} aria-hidden />;
+  return (
+    <span title={title} className={baseClass} aria-hidden>
+      {countBadge}
+    </span>
+  );
 }
 
 function Legend({
@@ -393,6 +470,46 @@ function Legend({
       {children}
     </span>
   );
+}
+
+const MONTH_NAMES = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "may",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "oct",
+  "nov",
+  "dec",
+];
+
+function monthOf(ymd: string) {
+  // ymd is "YYYY-MM-DD" — month is at chars 5..7 (1-indexed). Subtract 1
+  // to get a JS-style month index.
+  return Number.parseInt(ymd.slice(5, 7), 10) - 1;
+}
+
+function formatRangePart(ymd: string) {
+  const month = MONTH_NAMES[monthOf(ymd)];
+  const day = Number.parseInt(ymd.slice(8, 10), 10);
+  return `${month} ${day}`;
+}
+
+const TITLE_FMT = new Intl.DateTimeFormat("en", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+});
+
+function formatTitleDate(ymd: string) {
+  // `T12:00:00Z` keeps the date stable regardless of viewer timezone
+  // (matches buildHeatmap's parsing strategy).
+  const d = new Date(`${ymd}T12:00:00Z`);
+  return TITLE_FMT.format(d).toLowerCase();
 }
 
 function DescriptionCard({ description }: { description: string }) {

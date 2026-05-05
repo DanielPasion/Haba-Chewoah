@@ -183,24 +183,24 @@ function DesktopProfile({
   return (
     <div className="hidden md:block">
       <div
-        className="relative z-0 h-36 overflow-hidden border-b border-hc-line"
+        className="relative z-0 h-44 overflow-hidden border-b border-hc-line"
         style={{
           background:
-            "linear-gradient(135deg, var(--color-hc-brand) 0%, var(--color-hc-brand) 55%, var(--color-hc-accent) 100%)",
+            "linear-gradient(135deg, #f5d76e 0%, #f5d76e 50%, #e8769a 100%)",
         }}
       >
         <div
-          className="absolute inset-0 opacity-50"
+          className="absolute inset-0 opacity-55"
           style={{
             background:
-              "repeating-linear-gradient(45deg, rgb(31 27 46 / 0.05) 0 1px, transparent 1px 18px)",
+              "repeating-linear-gradient(45deg, rgba(31, 27, 46, 0.06) 0 1px, transparent 1px 18px)",
           }}
           aria-hidden
         />
       </div>
 
       <div className="relative z-10 -mt-14 px-8">
-        <div className="flex items-end gap-5">
+        <div className="flex items-end justify-between gap-5">
           <div className="text-hc-bg">
             <ProfileAvatar
               imageUrl={user.imageUrl}
@@ -210,19 +210,6 @@ function DesktopProfile({
               size={112}
               ringWidth={4}
             />
-          </div>
-          <div className="min-w-0 flex-1 pb-3.5">
-            {user.displayName && (
-              <h1
-                className="font-display text-3xl font-extrabold leading-none text-hc-ink"
-                style={{ letterSpacing: "-0.04em" }}
-              >
-                {user.displayName}
-              </h1>
-            )}
-            <p className="mt-1 font-mono text-sm font-medium text-hc-muted">
-              @{user.username}
-            </p>
           </div>
           <div className="pb-3.5">
             <ProfileActions
@@ -235,8 +222,22 @@ function DesktopProfile({
           </div>
         </div>
 
+        <div className="mt-5">
+          {user.displayName && (
+            <h1
+              className="font-display text-3xl font-extrabold leading-tight text-hc-ink"
+              style={{ letterSpacing: "-0.04em" }}
+            >
+              {user.displayName}
+            </h1>
+          )}
+          <p className="mt-1 font-mono text-sm font-medium text-hc-muted">
+            @{user.username}
+          </p>
+        </div>
+
         {user.bio && (
-          <p className="mt-5 max-w-155 text-[15px] leading-relaxed text-hc-ink">
+          <p className="mt-4 max-w-155 text-[15px] leading-relaxed text-hc-ink">
             {user.bio}
           </p>
         )}

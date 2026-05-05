@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Avatar } from "~/components/avatar";
 
 import { type FollowListUser, getFollowListAction } from "../_actions";
+import { FollowToggleButton } from "./follow-toggle-button";
 
 type Kind = "followers" | "following";
 
@@ -169,6 +170,14 @@ export function FollowListModal({
                         @{u.username}
                       </div>
                     </div>
+                    {!u.isSelf && (
+                      <FollowToggleButton
+                        targetUserId={u.id}
+                        initialIsFollowing={u.isFollowing}
+                        size="sm"
+                        refreshOnChange
+                      />
+                    )}
                   </Link>
                 </li>
               ))}

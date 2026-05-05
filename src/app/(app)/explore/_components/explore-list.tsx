@@ -6,6 +6,8 @@ import { useMemo, useState } from "react";
 import { Avatar } from "~/components/avatar";
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 
+import { FollowToggleButton } from "../../profile/_components/follow-toggle-button";
+
 export type ExploreUser = {
   id: string;
   username: string;
@@ -15,6 +17,9 @@ export type ExploreUser = {
   habitCount: number;
   followerCount: number;
   isFollowing: boolean;
+  /** ISO 8601 date — passed as a string so the cache-friendly props stay
+   *  serializable when crossing the server/client boundary. */
+  joinedAt: string;
 };
 
 export function ExploreList({ users }: { users: ExploreUser[] }) {
@@ -116,20 +121,18 @@ function UserCard({ user }: { user: ExploreUser }) {
           alt={`${user.displayName} avatar`}
         />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <p className="truncate font-sans text-sm font-bold text-hc-ink">
-              {user.displayName}
-            </p>
-            {user.isFollowing && (
-              <span className="shrink-0 rounded-full bg-hc-surface-alt px-1.5 py-px font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow-narrow text-hc-muted group-hover:bg-hc-line">
-                following
-              </span>
-            )}
-          </div>
+          <p className="truncate font-sans text-sm font-bold text-hc-ink">
+            {user.displayName}
+          </p>
           <p className="truncate font-mono text-hc-meta font-medium text-hc-muted">
             @{user.username}
           </p>
         </div>
+        <FollowToggleButton
+          targetUserId={user.id}
+          initialIsFollowing={user.isFollowing}
+          size="sm"
+        />
       </div>
 
       {user.bio && (
@@ -138,15 +141,45 @@ function UserCard({ user }: { user: ExploreUser }) {
         </p>
       )}
 
-      <div className="mt-auto flex items-baseline gap-4 border-t border-hc-line pt-3">
-        <Stat value={user.habitCount} label={user.habitCount === 1 ? "habit" : "habits"} />
-        <Stat
-          value={user.followerCount}
-          label={user.followerCount === 1 ? "follower" : "followers"}
-        />
+      <div className="mt-auto flex flex-col gap-2 border-t border-hc-line pt-3">
+        <div className="flex items-baseline gap-4">
+          <Stat value={user.habitCount} label={user.habitCount === 1 ? "habit" : "habits"} />
+          <Stat
+            value={user.followerCount}
+            label={user.followerCount === 1 ? "follower" : "followers"}
+          />
+        </div>
+        <div className="flex items-center gap-1.5 font-mono text-hc-tiny font-medium text-hc-muted">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.85"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <rect x="3" y="5" width="18" height="16" rx="2" />
+            <path d="M3 10h18M8 3v4M16 3v4" />
+          </svg>
+          joined {formatJoined(user.joinedAt)}
+        </div>
       </div>
     </Link>
   );
+}
+
+const JOINED_FMT = new Intl.DateTimeFormat("en", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
+function formatJoined(iso: string) {
+  const date = new Date(iso);
+  return JOINED_FMT.format(date).toLowerCase();
 }
 
 function Stat({ value, label }: { value: number; label: string }) {
