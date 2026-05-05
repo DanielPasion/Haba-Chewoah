@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
 
+import { Avatar } from "~/components/avatar";
 import { LogoText } from "~/components/brand/logo-text";
-import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 import { SettingsButton } from "~/components/settings-button";
 
 import { MobileAddButton } from "./add-sheet";
@@ -14,15 +14,34 @@ type NavItem = {
   href: string;
   label: string;
   icon: React.ReactNode;
+  iconActive?: React.ReactNode;
 };
 
-const HOME_ICON = (
-  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z" />
+// Filled glyphs render on the active tab so the bottom bar reads like a
+// modern social app — Threads/Instagram pattern. Inactive uses the outline
+// version (lower visual weight).
+const HOME_OUTLINE = (
+  <path d="M3 9.5l9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z" />
 );
-const PROFILE_ICON = (
-  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0z" />
+const HOME_FILLED = (
+  <path
+    d="M3 9.5l9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"
+    fill="currentColor"
+  />
 );
-const EXPLORE_ICON = (
+const PROFILE_OUTLINE = (
+  <>
+    <circle cx="12" cy="8" r="4.2" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
+  </>
+);
+const PROFILE_FILLED = (
+  <>
+    <circle cx="12" cy="8" r="4.2" fill="currentColor" />
+    <path d="M4 21a8 8 0 0 1 16 0" fill="currentColor" />
+  </>
+);
+const EXPLORE_OUTLINE = (
   <>
     <circle cx="11" cy="11" r="7" />
     <path d="M21 21l-4.35-4.35" />
@@ -30,20 +49,22 @@ const EXPLORE_ICON = (
 );
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/feed", label: "home", icon: HOME_ICON },
-  { href: "/explore", label: "explore", icon: EXPLORE_ICON },
-  { href: "/profile", label: "profile", icon: PROFILE_ICON },
+  {
+    href: "/feed",
+    label: "home",
+    icon: HOME_OUTLINE,
+    iconActive: HOME_FILLED,
+  },
+  { href: "/explore", label: "explore", icon: EXPLORE_OUTLINE },
+  {
+    href: "/profile",
+    label: "profile",
+    icon: PROFILE_OUTLINE,
+    iconActive: PROFILE_FILLED,
+  },
 ];
 
-// Mobile bottom tab bar — three slots: home · center plus · profile.
-// Mirrors `.claude/ui/project/profile-page.jsx` (`ProfileTabBar`). The
-// center plus is the BeReal-style FAB that opens the AddSheet. Explore +
-// refresh live in the mobile top header (`AppMobileTopBar`) instead so
-// the bottom bar stays a thumb-friendly three-target shelf.
-const MOBILE_TAB_ITEMS: NavItem[] = [
-  { href: "/feed", label: "home", icon: HOME_ICON },
-  { href: "/profile", label: "profile", icon: PROFILE_ICON },
-];
+const MOBILE_TAB_ITEMS: NavItem[] = [NAV_ITEMS[0]!, NAV_ITEMS[2]!];
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -51,8 +72,8 @@ function isActive(pathname: string, href: string) {
 
 function NavIcon({
   children,
-  size = 20,
-  strokeWidth = 2,
+  size = 22,
+  strokeWidth = 1.75,
 }: {
   children: React.ReactNode;
   size?: number;
@@ -86,12 +107,12 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-1 overflow-y-auto border-r border-hc-line bg-hc-bg px-4 pb-4 pt-5 md:flex">
-      <Link href="/feed" className="px-2 pb-5 pt-1">
+    <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-1 overflow-y-auto border-r border-hc-line bg-hc-bg px-4 pb-4 pt-6 md:flex">
+      <Link href="/feed" className="px-3 pb-6 pt-1">
         <LogoText size={18} />
       </Link>
 
-      <ul className="flex flex-col gap-1">
+      <ul className="flex flex-col gap-0.5">
         {NAV_ITEMS.map((item) => {
           const active = isActive(pathname, item.href);
           return (
@@ -104,28 +125,33 @@ export function AppSidebar({
 
       <div className="flex-1" />
 
-      <div className="flex items-center gap-2.5 rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface p-2.5">
-        <div className="grid size-9 shrink-0 place-items-center rounded-full bg-hc-ink">
-          <TwoFaceMascot size={32} bg="#1B1726" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-sans text-hc-button font-bold text-hc-ink">
-            {displayName}
+      <div className="flex items-center gap-3 rounded-hc-2 border border-hc-line bg-hc-surface p-2.5">
+        <Link
+          href="/profile"
+          className="flex min-w-0 flex-1 items-center gap-3 rounded-hc-1 transition-colors"
+        >
+          <Avatar
+            imageUrl={null}
+            name={displayName}
+            fallbackName={username}
+            size={36}
+            alt={`${displayName} avatar`}
+          />
+          <div className="min-w-0 flex-1">
+            <div className="truncate font-sans text-hc-button font-bold text-hc-ink">
+              {displayName}
+            </div>
+            <div className="truncate font-mono text-hc-eyebrow font-medium text-hc-muted">
+              @{username}
+            </div>
           </div>
-          <div className="truncate font-mono text-hc-eyebrow font-medium text-hc-muted">
-            @{username}
-          </div>
-        </div>
+        </Link>
         <SettingsButton signOutAction={signOutAction} variant="sidebar" />
       </div>
     </aside>
   );
 }
 
-// Click on the active nav route triggers `router.refresh()` instead of a
-// no-op navigation. Other clicks behave like a normal `<Link>`. Keeps the
-// "I'm already here" tap useful (pull-to-refresh equivalent) without
-// re-fetching the same RSC payload twice.
 function NavSidebarLink({ item, active }: { item: NavItem; active: boolean }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -138,38 +164,30 @@ function NavSidebarLink({ item, active }: { item: NavItem; active: boolean }) {
         startTransition(() => router.refresh());
       }}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-3 rounded-hc-2 border-hc px-3 py-2.5 font-sans text-sm transition-colors ${
+      className={`flex items-center gap-3 rounded-hc-2 px-3 py-2.5 font-sans text-sm transition-colors ${
         active
-          ? "border-hc-ink bg-hc-surface font-bold text-hc-ink"
-          : "border-transparent font-semibold text-hc-ink hover:bg-hc-surface-alt"
+          ? "bg-hc-surface font-bold text-hc-ink"
+          : "font-medium text-hc-ink/75 hover:bg-hc-surface hover:text-hc-ink"
       }`}
     >
-      <NavIcon>{item.icon}</NavIcon>
-      <span className="flex-1">{item.label}</span>
-      {active && (
-        <span
-          aria-hidden
-          className={`size-2 rounded-full bg-hc-accent ${pending ? "animate-pulse" : ""}`}
-        />
+      <NavIcon strokeWidth={active ? 2.1 : 1.75}>
+        {active && item.iconActive ? item.iconActive : item.icon}
+      </NavIcon>
+      <span className="flex-1 capitalize">{item.label}</span>
+      {active && pending && (
+        <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-hc-accent" />
       )}
     </Link>
   );
 }
 
-// Desktop-only top bar carrying the right-side actions: refresh, add,
-// notifications. The username search lives on /explore as a list filter,
-// so the bar stays uncluttered.
-//
-// The shared `MobileAddButton` (despite its name) is the desktop's add
-// entry point too — same trigger logic, same sheet, just rendered as a
-// centered modal instead of a bottom sheet via responsive classes.
 export function AppDesktopTopBar({
   hasUnreadNotifications = false,
 }: {
   hasUnreadNotifications?: boolean;
 }) {
   return (
-    <header className="hidden items-center justify-end gap-3 border-b border-hc-line bg-hc-bg px-8 py-3 md:flex">
+    <header className="hidden items-center justify-end gap-2 border-b border-hc-line bg-hc-bg px-8 py-3 md:flex">
       <RefreshButton />
       <MobileAddButton variant="topbar" />
       <NotificationBell hasUnread={hasUnreadNotifications} />
@@ -177,9 +195,6 @@ export function AppDesktopTopBar({
   );
 }
 
-// Forces a fresh RSC fetch for the current route. Distinct from clicking
-// an active nav link (which also refreshes) — the dedicated button gives
-// users an unambiguous "reload" affordance without leaving the page.
 function RefreshButton() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -190,7 +205,7 @@ function RefreshButton() {
       title="refresh"
       onClick={() => startTransition(() => router.refresh())}
       disabled={pending}
-      className="grid size-9 shrink-0 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink hover:bg-hc-surface-alt disabled:opacity-60"
+      className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-full text-hc-ink hover:bg-hc-surface disabled:opacity-60"
     >
       <svg
         width="18"
@@ -198,7 +213,7 @@ function RefreshButton() {
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2.2"
+        strokeWidth="1.85"
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden
@@ -216,22 +231,17 @@ export function AppMobileTopBar({
 }: {
   hasUnreadNotifications?: boolean;
 }) {
-  // `viewport-fit=cover` lets the page render behind the iOS status bar /
-  // dynamic island. Pad by `env(safe-area-inset-top)` so the row's contents
-  // sit below the notch instead of being clipped by it. The header itself
-  // keeps `top-0` because the safe-area padding is part of its own height.
   return (
     <header
-      className="sticky top-0 z-20 border-b border-hc-line bg-hc-bg/90 backdrop-blur md:hidden"
+      className="sticky top-0 z-20 border-b border-hc-line bg-hc-bg/85 backdrop-blur md:hidden"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="relative flex items-center justify-between gap-2 px-5 py-3">
         <Link href="/feed" className="shrink-0">
           <LogoText size={16} />
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <ExploreIconLink />
-          <RefreshButton />
           <NotificationBell hasUnread={hasUnreadNotifications} />
         </div>
       </div>
@@ -255,13 +265,13 @@ function ExploreIconLink() {
         startTransition(() => router.refresh());
       }}
       aria-current={active ? "page" : undefined}
-      className={`grid size-9 shrink-0 place-items-center rounded-full border border-hc-line ${
+      className={`grid size-9 shrink-0 place-items-center rounded-full transition-colors ${
         active
-          ? "bg-hc-ink text-hc-brand"
-          : "bg-hc-surface text-hc-ink hover:bg-hc-surface-alt"
+          ? "bg-hc-ink text-hc-bg dark:bg-hc-brand dark:text-hc-brand-ink"
+          : "text-hc-ink hover:bg-hc-surface"
       }`}
     >
-      <NavIcon size={18}>{EXPLORE_ICON}</NavIcon>
+      <NavIcon size={19}>{EXPLORE_OUTLINE}</NavIcon>
     </Link>
   );
 }
@@ -270,18 +280,16 @@ function NotificationBell({ hasUnread }: { hasUnread: boolean }) {
   return (
     <Link
       href="/notifications"
-      aria-label={
-        hasUnread ? "notifications · unread" : "notifications"
-      }
-      className="relative grid size-9 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink hover:bg-hc-surface-alt"
+      aria-label={hasUnread ? "notifications · unread" : "notifications"}
+      className="relative grid size-9 place-items-center rounded-full text-hc-ink hover:bg-hc-surface"
     >
       <svg
-        width="18"
-        height="18"
+        width="19"
+        height="19"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2.2"
+        strokeWidth="1.85"
         strokeLinecap="round"
         strokeLinejoin="round"
         aria-hidden
@@ -291,7 +299,7 @@ function NotificationBell({ hasUnread }: { hasUnread: boolean }) {
       {hasUnread && (
         <span
           aria-hidden
-          className="absolute right-1.5 top-1.5 size-2.5 rounded-full border border-hc-bg bg-hc-accent"
+          className="absolute right-2 top-2 size-2 rounded-full bg-hc-accent ring-2 ring-hc-bg"
         />
       )}
     </Link>
@@ -301,18 +309,13 @@ function NotificationBell({ hasUnread }: { hasUnread: boolean }) {
 export function AppMobileTabBar() {
   const pathname = usePathname();
   // Three equal-width grid slots so the center FAB sits at the geometric
-  // center of the bar regardless of the outer tab labels' widths.
-  // `justify-around` would skew the FAB right when "home" is shorter than
-  // "profile" (or vice versa). Bottom padding respects iOS home-indicator
-  // safe area so the bar doesn't sit underneath it.
-  //
-  // `before:` extends the surface upward by ~28px so the elevated FAB
-  // (`-mt-6`, size-14) sits over an opaque backdrop instead of letting
-  // feed photos peek through the corners of its circular silhouette.
+  // centre regardless of label widths. The `before:` extends the surface
+  // upward so the elevated FAB sits over an opaque backdrop instead of
+  // letting feed photos peek through the corners of its silhouette.
   return (
     <nav
-      className="sticky bottom-0 z-20 grid grid-cols-3 items-center border-t border-hc-line bg-hc-surface px-4 pt-2.5 before:pointer-events-none before:absolute before:-top-7 before:left-0 before:right-0 before:h-7 before:bg-hc-surface before:content-[''] md:hidden"
-      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+      className="sticky bottom-0 z-20 grid grid-cols-3 items-center border-t border-hc-line bg-hc-surface px-3 pt-1.5 md:hidden"
+      style={{ paddingBottom: "max(0.4rem, env(safe-area-inset-bottom))" }}
     >
       <div className="relative z-10 flex justify-center">
         <MobileTabLink item={MOBILE_TAB_ITEMS[0]!} pathname={pathname} />
@@ -346,14 +349,14 @@ function MobileTabLink({
         startTransition(() => router.refresh());
       }}
       aria-current={active ? "page" : undefined}
-      className={`flex flex-col items-center gap-0.5 px-3 py-1 ${
-        active ? "text-hc-ink" : "text-hc-muted opacity-60"
+      aria-label={item.label}
+      className={`flex items-center justify-center px-4 py-1.5 ${
+        active ? "text-hc-ink" : "text-hc-muted"
       }`}
     >
-      <NavIcon size={22}>{item.icon}</NavIcon>
-      <span className="font-mono text-hc-tiny font-semibold uppercase tracking-wider">
-        {item.label}
-      </span>
+      <NavIcon size={26} strokeWidth={active ? 2 : 1.75}>
+        {active && item.iconActive ? item.iconActive : item.icon}
+      </NavIcon>
     </Link>
   );
 }

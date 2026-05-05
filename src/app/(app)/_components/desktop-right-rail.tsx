@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { HabitIcon } from "~/components/habit-icon";
 import { localYmd } from "~/lib/habit-stats";
 import { db } from "~/server/db";
 
@@ -127,14 +128,14 @@ export async function DesktopRightRail({
   const totalToday = todayItems.length;
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-80 shrink-0 flex-col gap-5 overflow-y-auto border-l border-hc-line bg-hc-bg px-6 py-5 xl:flex">
+    <aside className="sticky top-0 hidden h-dvh w-80 shrink-0 flex-col gap-6 overflow-y-auto border-l border-hc-line bg-hc-bg px-6 py-6 xl:flex">
       <section>
         <div className="mb-3 flex items-baseline justify-between">
           <h2
-            className="font-display text-sm font-extrabold leading-none text-hc-ink"
-            style={{ letterSpacing: "-0.02em" }}
+            className="font-display text-base font-extrabold text-hc-ink"
+            style={{ letterSpacing: "-0.03em" }}
           >
-            today · {doneToday} of {totalToday}
+            today
           </h2>
           <span className="font-mono text-hc-tiny font-semibold text-hc-muted">
             {formatTodayLabel()}
@@ -142,17 +143,25 @@ export async function DesktopRightRail({
         </div>
 
         {totalToday === 0 ? (
-          <p className="rounded-hc-2 border-hc border-dashed border-hc-line-strong bg-hc-surface-alt px-3 py-3 font-mono text-hc-eyebrow text-hc-muted">
-            no active habits — start one to populate this rail.
+          <p className="rounded-hc-2 border border-dashed border-hc-line-strong bg-hc-surface-alt px-3 py-3 text-sm text-hc-muted">
+            no active habits yet — start one to populate this rail.
           </p>
         ) : (
           <>
+            <div className="mb-3 flex items-baseline justify-between">
+              <span className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+                {doneToday} of {totalToday} done
+              </span>
+              <span className="font-mono text-hc-tiny font-semibold text-hc-muted">
+                {Math.round((doneToday / totalToday) * 100)}%
+              </span>
+            </div>
             <div
-              className="h-2 overflow-hidden rounded-full border border-hc-line bg-hc-line"
+              className="h-1 overflow-hidden rounded-full bg-hc-line"
               aria-hidden
             >
               <div
-                className="h-full bg-hc-brand transition-all"
+                className="h-full bg-hc-ink transition-all dark:bg-hc-brand"
                 style={{
                   width: `${
                     totalToday === 0 ? 0 : (doneToday / totalToday) * 100
@@ -160,48 +169,46 @@ export async function DesktopRightRail({
                 }}
               />
             </div>
-            <ul className="mt-3 flex flex-col gap-2">
+            <ul className="mt-3 flex flex-col gap-1">
               {todayItems.map((t) => (
                 <li key={t.id}>
                   <Link
                     href={`/habit/${t.id}`}
-                    className={`flex items-center gap-2.5 rounded-hc-2 border-hc px-2.5 py-2 transition-colors ${
-                      t.loggedToday
-                        ? "border-hc-ink bg-hc-brand"
-                        : "border-hc-line-strong bg-hc-surface hover:bg-hc-surface-alt"
-                    }`}
+                    className="flex items-center gap-2.5 rounded-hc-2 px-2 py-2 transition-colors hover:bg-hc-surface"
                   >
-                    <span
-                      className={`grid size-7 shrink-0 place-items-center rounded-hc-2 text-base ${
-                        t.loggedToday
-                          ? "border border-hc-brand-ink/15 bg-hc-brand-ink/10 text-hc-brand-ink"
-                          : "border border-hc-line-strong bg-hc-bg text-hc-ink"
-                      }`}
-                    >
-                      {t.icon ?? "✨"}
-                    </span>
+                    <HabitIcon value={t.icon} size={32} />
                     <div className="min-w-0 flex-1">
-                      <div
-                        className={`truncate font-sans text-hc-button font-bold ${
-                          t.loggedToday ? "text-hc-brand-ink" : "text-hc-ink"
-                        }`}
-                      >
+                      <div className="truncate font-sans text-hc-button font-bold text-hc-ink">
                         {t.name}
                       </div>
                       <div
-                        className={`font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow ${
-                          t.loggedToday
-                            ? "text-hc-brand-ink/70"
-                            : "text-hc-muted"
+                        className={`font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow-narrow ${
+                          t.loggedToday ? "text-hc-ink" : "text-hc-muted"
                         }`}
                       >
                         {t.total === 0
                           ? "no logs yet"
                           : t.loggedToday
-                            ? "done today ✓"
+                            ? "done today"
                             : "due today"}
                       </div>
                     </div>
+                    {t.loggedToday && (
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden
+                        className="shrink-0 text-hc-ink"
+                      >
+                        <path d="M5 12l5 5 9-11" />
+                      </svg>
+                    )}
                   </Link>
                 </li>
               ))}
@@ -213,24 +220,24 @@ export async function DesktopRightRail({
       <section>
         <div className="mb-3 flex items-baseline justify-between">
           <h2
-            className="font-display text-sm font-extrabold leading-none text-hc-ink"
-            style={{ letterSpacing: "-0.02em" }}
+            className="font-display text-base font-extrabold text-hc-ink"
+            style={{ letterSpacing: "-0.03em" }}
           >
             activity
           </h2>
           <Link
             href="/notifications"
-            className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted hover:text-hc-ink"
+            className="font-sans text-xs font-semibold text-hc-muted hover:text-hc-ink"
           >
             see all
           </Link>
         </div>
         {activityVMs.length === 0 ? (
-          <p className="rounded-hc-2 border-hc border-dashed border-hc-line-strong bg-hc-surface-alt px-3 py-3 font-mono text-hc-eyebrow text-hc-muted">
+          <p className="rounded-hc-2 border border-dashed border-hc-line-strong bg-hc-surface-alt px-3 py-3 text-sm text-hc-muted">
             no recent activity yet.
           </p>
         ) : (
-          <ul className="flex flex-col gap-2.5">
+          <ul className="flex flex-col gap-1">
             {activityVMs.map((n) => (
               <li key={n.id}>
                 <ActivityRow notification={n} variant="compact" />

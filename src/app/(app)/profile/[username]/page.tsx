@@ -35,6 +35,7 @@ export default async function UserProfilePage({ params }: { params: Params }) {
     select: {
       id: true,
       username: true,
+      name: true,
       bio: true,
       image: true,
       timezone: true,
@@ -228,6 +229,7 @@ export default async function UserProfilePage({ params }: { params: Params }) {
       user={{
         id: user.id,
         username: user.username,
+        displayName: user.name ?? undefined,
         bio: user.bio,
         imageUrl: user.image,
         followers: user._count.followers,

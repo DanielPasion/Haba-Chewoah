@@ -85,15 +85,15 @@ export default async function NotificationsPage() {
 
   return (
     <div className="-mx-5 -my-6 flex flex-col gap-5 pb-2 md:-mx-8 md:-my-8 md:gap-6">
-      <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
+      <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/85 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
         <h1
-          className="min-w-0 flex-1 truncate font-display text-base font-extrabold leading-none text-hc-ink"
-          style={{ letterSpacing: "-0.02em" }}
+          className="min-w-0 flex-1 truncate font-display text-xl font-extrabold text-hc-ink"
+          style={{ letterSpacing: "-0.04em" }}
         >
           notifications
         </h1>
         {unreadCount > 0 && (
-          <span className="rounded-full border border-hc-line bg-hc-accent px-2.5 py-1 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-accent-ink">
+          <span className="rounded-full bg-hc-accent px-2.5 py-1 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-accent-ink">
             {unreadCount} new
           </span>
         )}
@@ -123,7 +123,7 @@ export default async function NotificationsPage() {
                 <input type="hidden" name="t" value={Date.now()} />
                 <button
                   type="submit"
-                  className="self-start rounded-full border border-hc-line bg-hc-surface px-4 py-1.5 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-ink hover:bg-hc-surface-alt"
+                  className="self-start rounded-full border border-hc-line bg-hc-surface px-4 py-1.5 font-sans text-xs font-semibold text-hc-ink hover:bg-hc-surface-alt"
                 >
                   mark all read
                 </button>
@@ -138,15 +138,26 @@ export default async function NotificationsPage() {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-hc-3 border-hc border-dashed border-hc-line-strong bg-hc-surface-alt px-6 py-10 text-center">
-      <span className="text-3xl" aria-hidden>
-        🔔
-      </span>
-      <p className="font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
+    <div className="flex flex-col items-center gap-3 rounded-hc-3 border border-dashed border-hc-line-strong bg-hc-surface-alt px-6 py-12 text-center">
+      <svg
+        width="36"
+        height="36"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+        className="text-hc-muted"
+      >
+        <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />
+      </svg>
+      <p className="font-display text-base font-extrabold text-hc-ink">
         all quiet
       </p>
-      <p className="max-w-xs text-sm text-hc-ink">
-        likes, comments, follows, mentions, and chew-outs land here.
+      <p className="max-w-xs text-sm text-hc-muted">
+        likes, comments, follows, and mentions will land here.
       </p>
     </div>
   );

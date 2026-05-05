@@ -59,12 +59,22 @@ export function LogActions({
         onClick={() => setOpen((v) => !v)}
         aria-label="more"
         aria-expanded={open}
-        className="grid size-9 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink shadow-hc-soft hover:bg-hc-surface-alt"
+        className="grid size-9 place-items-center rounded-full text-hc-ink hover:bg-hc-surface"
       >
-        <span className="text-base font-bold leading-none">⋯</span>
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden
+        >
+          <circle cx="5" cy="12" r="1.7" />
+          <circle cx="12" cy="12" r="1.7" />
+          <circle cx="19" cy="12" r="1.7" />
+        </svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-11 z-20 w-44 overflow-hidden rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface shadow-hc">
+        <div className="absolute right-0 top-11 z-20 w-44 overflow-hidden rounded-hc-2 border border-hc-line bg-hc-surface shadow-hc-lg">
           <button
             type="button"
             onClick={onDelete}

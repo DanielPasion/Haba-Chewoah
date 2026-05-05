@@ -1,7 +1,10 @@
-import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { Avatar } from "~/components/avatar";
 
 type ProfileAvatarProps = {
   imageUrl: string | null | undefined;
+  /** Used to seed initials/colour when no image is available. */
+  name?: string;
+  fallbackName?: string;
   alt: string;
   /** Outer diameter in px. */
   size: number;
@@ -9,32 +12,27 @@ type ProfileAvatarProps = {
   ringWidth?: number;
 };
 
+/**
+ * Profile-page avatar wrapper. Delegates to the shared `Avatar` component;
+ * exists as a thin shim so legacy call sites that haven't migrated to
+ * passing `name` directly still render correctly.
+ */
 export function ProfileAvatar({
   imageUrl,
+  name,
+  fallbackName,
   alt,
   size,
   ringWidth = 0,
 }: ProfileAvatarProps) {
   return (
-    <div
-      className="grid shrink-0 place-items-center overflow-hidden rounded-full bg-hc-ink shadow-hc"
-      style={{
-        width: size,
-        height: size,
-        border: ringWidth ? `${ringWidth}px solid var(--color-hc-bg)` : undefined,
-      }}
-    >
-      {imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={imageUrl}
-          alt={alt}
-          className="size-full object-cover"
-          referrerPolicy="no-referrer"
-        />
-      ) : (
-        <TwoFaceMascot size={Math.round(size * 0.92)} bg="#1B1726" />
-      )}
-    </div>
+    <Avatar
+      imageUrl={imageUrl}
+      name={name ?? alt}
+      fallbackName={fallbackName}
+      size={size}
+      ringWidth={ringWidth}
+      alt={alt}
+    />
   );
 }

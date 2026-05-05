@@ -43,9 +43,9 @@ export function ChewOutButton({
   const disabled = pending || status === "sent" || status === "cooldown";
   const label =
     status === "sent"
-      ? "chewed ⚡"
+      ? "chewed out"
       : status === "cooldown"
-        ? "buzzed today ✓"
+        ? "buzzed today"
         : pending
           ? "chewing…"
           : "chew out";
@@ -57,10 +57,10 @@ export function ChewOutButton({
         onClick={onClick}
         disabled={disabled}
         aria-label={`chew out @${recipientHandle}`}
-        className={`flex flex-1 items-center justify-center gap-2 rounded-hc-3 border border-hc-line px-4 py-4 text-center font-display text-base font-extrabold shadow-hc-stamp transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 ${
+        className={`flex flex-1 items-center justify-center gap-2 rounded-hc-3 px-4 py-4 text-center font-display text-base font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
           status === "sent"
-            ? "bg-hc-brand text-hc-brand-ink"
-            : "bg-hc-accent text-hc-accent-ink"
+            ? "bg-hc-ink text-hc-bg dark:bg-hc-brand dark:text-hc-brand-ink"
+            : "bg-hc-accent text-hc-accent-ink hover:bg-hc-accent/90"
         }`}
         style={{ letterSpacing: "-0.02em" }}
       >

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { HabitIcon } from "~/components/habit-icon";
 
 import { type AddSheetHabit, getMyHabitsForAddSheet } from "../_actions";
 
@@ -45,10 +46,10 @@ export function MobileAddButton({
 
   const triggerClass =
     variant === "fab"
-      ? "-mt-6 grid size-14 cursor-pointer place-items-center rounded-full border border-hc-line bg-hc-brand text-hc-brand-ink shadow-hc transition-transform hover:-translate-y-px"
-      : "grid size-9 shrink-0 cursor-pointer place-items-center rounded-full border border-hc-line bg-hc-brand text-hc-brand-ink transition-transform hover:-translate-y-px";
+      ? "-mt-9 grid size-14 cursor-pointer place-items-center rounded-full bg-hc-brand text-hc-brand-ink shadow-hc-lg ring-4 ring-hc-surface transition-transform hover:-translate-y-px"
+      : "grid size-9 shrink-0 cursor-pointer place-items-center rounded-full bg-hc-ink text-hc-bg transition-colors hover:bg-hc-ink-soft dark:bg-hc-brand dark:text-hc-brand-ink";
 
-  const iconSize = variant === "fab" ? 24 : 18;
+  const iconSize = variant === "fab" ? 26 : 18;
 
   return (
     <>
@@ -114,7 +115,7 @@ function AddSheet({ onClose }: { onClose: () => void }) {
       />
 
       <div
-        className="relative max-h-[85dvh] w-full overflow-hidden rounded-t-hc-5 border border-b-0 border-hc-line bg-hc-bg shadow-hc-lg md:max-w-md md:rounded-hc-5 md:border md:shadow-hc-stamp"
+        className="relative max-h-[85dvh] w-full overflow-hidden rounded-t-hc-5 border border-b-0 border-hc-line bg-hc-bg shadow-hc-lg md:max-w-md md:rounded-hc-5 md:border md:shadow-hc-lg"
         style={{ animation: "hc-sheet-up 220ms cubic-bezier(.2,.9,.3,1)" }}
       >
         <div className="px-5 pt-3.5 md:pt-5">
@@ -123,22 +124,22 @@ function AddSheet({ onClose }: { onClose: () => void }) {
             aria-hidden
           />
 
-          <div className="mb-3 flex items-baseline justify-between">
+          <div className="mb-4 flex items-baseline justify-between">
             <div>
               <p className="font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
                 log a habit
               </p>
               <h2
-                className="mt-0.5 font-display text-2xl font-extrabold text-hc-ink"
+                className="mt-1 font-display text-2xl font-extrabold text-hc-ink"
                 style={{ letterSpacing: "-0.03em" }}
               >
-                what'd you do?
+                what did you do today?
               </h2>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-muted"
+              className="font-sans text-sm font-semibold text-hc-muted hover:text-hc-ink"
             >
               cancel
             </button>
@@ -169,42 +170,42 @@ function AddSheet({ onClose }: { onClose: () => void }) {
               ))}
             </div>
           ) : habits.length === 0 ? (
-            <div className="mb-3 flex flex-col items-center gap-2 rounded-hc-3 border-hc border-dashed border-hc-line-strong bg-hc-surface-alt px-5 py-6 text-center">
-              <TwoFaceMascot size={56} mood="default" bg="#1B1726" />
-              <p className="font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
-                no active habits
-              </p>
-              <p className="text-sm text-hc-ink">
-                start one below and you'll be able to log it here.
-              </p>
+            <div className="mb-3 flex flex-col items-center gap-3 rounded-hc-3 border border-dashed border-hc-line-strong bg-hc-surface-alt px-5 py-8 text-center">
+              <TwoFaceMascot size={48} mood="default" bg="#1B1726" />
+              <div className="flex flex-col gap-1">
+                <p className="font-display text-base font-extrabold text-hc-ink">
+                  no active habits yet
+                </p>
+                <p className="text-sm text-hc-muted">
+                  start one below and it&rsquo;ll show up here.
+                </p>
+              </div>
             </div>
           ) : (
-            <ul className="mb-3 flex flex-col gap-2">
+            <ul className="mb-3 flex flex-col gap-1.5">
               {habits.map((h) => (
                 <li key={h.id}>
                   <Link
                     href={`/habit/${h.id}`}
                     onClick={onClose}
-                    className="flex items-center gap-3 rounded-hc-3 border border-hc-line bg-hc-surface p-3 transition-transform hover:-translate-y-px hover:bg-hc-surface-alt"
+                    className="flex items-center gap-3 rounded-hc-3 border border-hc-line bg-hc-surface p-3 transition-colors hover:bg-hc-surface-alt"
                   >
-                    <span className="grid size-11 shrink-0 place-items-center rounded-hc-2 border border-hc-line-strong bg-hc-bg text-2xl">
-                      {h.icon ?? "✨"}
-                    </span>
+                    <HabitIcon value={h.icon} size={42} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-sans text-sm font-bold text-hc-ink">
                         {h.name}
                       </div>
                       <div className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-                        {h.isPublic ? "· public" : "🔒 folder"}
+                        {h.isPublic ? "public" : "private"}
                       </div>
                     </div>
                     <svg
-                      width="18"
-                      height="18"
+                      width="16"
+                      height="16"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2.4"
+                      strokeWidth="1.85"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       aria-hidden
@@ -219,37 +220,37 @@ function AddSheet({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        <div className="border-t border-hc-line bg-hc-bg px-5 pb-7 pt-3">
+        <div className="border-t border-hc-line bg-hc-bg px-5 pb-7 pt-3.5">
           <Link
             href="/habit/new"
             onClick={onClose}
-            className="flex w-full items-center gap-3.5 rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-3.5 text-left transition-transform hover:-translate-y-px"
+            className="flex w-full items-center gap-3.5 rounded-hc-3 bg-hc-ink px-4 py-3.5 text-left text-hc-bg transition-colors hover:bg-hc-ink-soft dark:bg-hc-brand dark:text-hc-brand-ink"
           >
-            <span className="grid size-10 shrink-0 place-items-center rounded-hc-2 border border-hc-line-strong bg-hc-bg font-display text-xl font-extrabold text-hc-ink">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-white/15 font-display text-lg font-extrabold dark:bg-hc-brand-ink/15">
               +
             </span>
             <span className="flex-1">
               <span
-                className="block font-display text-sm font-extrabold text-hc-ink"
+                className="block font-display text-sm font-extrabold"
                 style={{ letterSpacing: "-0.02em" }}
               >
                 start a new habit
               </span>
-              <span className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-                say &ldquo;i bet i won&rsquo;t…&rdquo; and prove yourself wrong
+              <span className="block font-sans text-xs opacity-75">
+                set the rule, log day one
               </span>
             </span>
             <svg
-              width="18"
-              height="18"
+              width="16"
+              height="16"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.4"
+              strokeWidth="1.85"
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden
-              className="text-hc-muted"
+              className="opacity-80"
             >
               <path d="M9 18l6-6-6-6" />
             </svg>

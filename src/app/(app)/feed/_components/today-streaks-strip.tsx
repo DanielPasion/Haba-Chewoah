@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { HabitIcon } from "~/components/habit-icon";
+
 export type TodayStreak = {
   id: string;
   name: string;
@@ -9,12 +11,13 @@ export type TodayStreak = {
 };
 
 /**
- * Mobile-only "today" strip on the feed — mirrors `.claude/ui/project/home-feed.jsx`
- * `MyStreaks`. Horizontal scroll list of the viewer's active habits with a
- * brand surface when logged today, neutral when due.
+ * Mobile-only "today" strip on the feed. Horizontal scroll of the viewer's
+ * active habits with a quiet check-state — done habits get a thin ink ring;
+ * undone stay neutral. The day number sits as a soft eyebrow under the name
+ * so the row reads name-first, status-second.
  *
- * Desktop hides this (`md:hidden`) because the right rail already surfaces
- * the same data; duplicating it would just push real feed cards down.
+ * Desktop hides this (`md:hidden`) because the right rail surfaces the same
+ * data; duplicating it would push real feed cards down.
  */
 export function TodayStreaksStrip({
   items,
@@ -30,48 +33,38 @@ export function TodayStreaksStrip({
     <section className="md:hidden">
       <div className="mb-2.5 flex items-baseline justify-between gap-2 px-5">
         <h2
-          className="font-display text-sm font-extrabold leading-none text-hc-ink"
-          style={{ letterSpacing: "-0.02em" }}
+          className="font-display text-base font-extrabold text-hc-ink"
+          style={{ letterSpacing: "-0.03em" }}
         >
-          today · {done} of {total}
+          today
         </h2>
+        <span className="font-mono text-hc-tiny font-semibold text-hc-muted">
+          {done} of {total} done
+        </span>
       </div>
 
-      <div className="flex gap-2.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex gap-2.5 overflow-x-auto px-5 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {items.map((it) => (
           <Link
             key={it.id}
             href={`/habit/${it.id}`}
-            className={`grid w-25 shrink-0 grid-rows-[auto_1fr_auto] place-items-center gap-1.5 rounded-hc-3 border-hc px-2 py-3 text-center transition-transform hover:-translate-y-px ${
+            className={`group flex w-30 shrink-0 flex-col items-center gap-2 rounded-hc-3 bg-hc-surface px-3 py-3.5 text-center transition-transform hover:-translate-y-px ${
               it.done
-                ? "border-hc-ink bg-hc-brand"
-                : "border-hc-line-strong bg-hc-surface"
+                ? "border-hc border-hc-ink"
+                : "border border-hc-line"
             }`}
           >
-            <span
-              className={`grid size-9 place-items-center rounded-hc-2 text-xl ${
-                it.done
-                  ? "border border-hc-brand-ink/15 bg-hc-brand-ink/10 text-hc-brand-ink"
-                  : "border border-hc-line-strong bg-hc-bg text-hc-ink"
-              }`}
-              aria-hidden
-            >
-              {it.icon ?? "✨"}
-            </span>
-            <div
-              className={`self-start font-sans text-hc-meta font-bold leading-tight ${
-                it.done ? "text-hc-brand-ink" : "text-hc-ink"
-              }`}
-            >
+            <HabitIcon value={it.icon} size={42} emphasis={it.done ? "strong" : "soft"} />
+            <span className="line-clamp-1 self-stretch font-sans text-xs font-bold text-hc-ink">
               {it.name}
-            </div>
-            <div
-              className={`whitespace-nowrap font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow ${
-                it.done ? "text-hc-brand-ink" : "text-hc-muted"
+            </span>
+            <span
+              className={`font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow-narrow ${
+                it.done ? "text-hc-ink" : "text-hc-muted"
               }`}
             >
-              {it.done ? `✓ day ${it.day}` : `day ${it.day}`}
-            </div>
+              {it.done ? "done · " : ""}day {it.day}
+            </span>
           </Link>
         ))}
       </div>

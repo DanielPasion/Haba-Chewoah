@@ -10,7 +10,7 @@ import {
   type HabitMutationResult,
   deleteHabitAction,
 } from "../_actions";
-import { EmojiPicker } from "./emoji-picker";
+import { IconPicker } from "./icon-picker";
 
 type FrequencyType = "daily" | "weekly" | "n_per_period";
 
@@ -125,7 +125,7 @@ export function HabitForm({
 
       <Field label="habit name" error={errors.name}>
         <div className="flex items-stretch gap-2">
-          <EmojiPicker value={icon} onChange={setIcon} />
+          <IconPicker value={icon} onChange={setIcon} />
           <input
             type="text"
             name="name"
@@ -133,7 +133,7 @@ export function HabitForm({
             placeholder="cold plunge"
             maxLength={80}
             required
-            className="min-w-0 flex-1 rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface px-4 py-3 font-sans text-sm font-semibold text-hc-ink outline-none placeholder:text-hc-muted-soft focus:border-hc-ink"
+            className="min-w-0 flex-1 rounded-hc-2 border border-hc-line-strong bg-hc-surface px-4 py-3 font-sans text-sm font-semibold text-hc-ink outline-none placeholder:text-hc-muted-soft focus:border-hc-ink"
           />
         </div>
       </Field>
@@ -221,14 +221,14 @@ export function HabitForm({
           <VisibilityChip
             selected={isPublic}
             onClick={() => setIsPublic(true)}
-            title="· public"
+            title="public"
             hint="shows in feed"
           />
           <VisibilityChip
             selected={!isPublic}
             onClick={() => setIsPublic(false)}
-            title="🔒 folder"
-            hint="just you"
+            title="private"
+            hint="just for you"
           />
         </div>
       </Field>

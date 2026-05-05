@@ -70,20 +70,33 @@ export default async function ExplorePage() {
     }));
 
   return (
-    <div className="-mx-5 -my-6 flex flex-col gap-4 pb-2 md:-mx-8 md:-my-8 md:gap-6">
-      <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
+    <div className="-mx-5 -my-6 flex flex-col gap-5 pb-2 md:-mx-8 md:-my-8 md:gap-7">
+      <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/85 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
         <h1
-          className="font-display text-2xl font-extrabold leading-none text-hc-ink"
+          className="font-display text-xl font-extrabold text-hc-ink md:text-2xl"
           style={{ letterSpacing: "-0.04em" }}
         >
           explore
         </h1>
-        <span className="font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-          · find your people
-        </span>
       </header>
 
-      <div className="mx-auto flex w-full max-w-180 flex-col gap-4 px-5 md:px-8">
+      <div className="mx-auto flex w-full max-w-260 flex-col gap-6 px-5 md:px-8">
+        <section className="hidden md:block">
+          <p className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+            discover
+          </p>
+          <h2
+            className="mt-1 font-display text-3xl font-extrabold text-hc-ink"
+            style={{ letterSpacing: "-0.05em" }}
+          >
+            Find your people.
+          </h2>
+          <p className="mt-1.5 max-w-lg text-[15px] leading-relaxed text-hc-muted">
+            people building habits together. follow a few to fill your feed —
+            their wins make yours feel less lonely.
+          </p>
+        </section>
+
         <ExploreList users={items} />
       </div>
     </div>
