@@ -73,6 +73,49 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 });
+
+// Web Push: payload is a JSON-encoded { title, body, url } we send from
+// src/server/notifications.ts. If decoding fails (browser triggered the
+// event without our payload), we still surface a generic notification so
+// the user knows *something* happened.
+self.addEventListener("push", (event) => {
+  let payload = { title: "Haba-Chewoah", body: "you've got activity", url: "/notifications" };
+  if (event.data) {
+    try {
+      payload = { ...payload, ...event.data.json() };
+    } catch (e) {
+      payload.body = event.data.text() || payload.body;
+    }
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: "/icon.png",
+      badge: "/icon.png",
+      tag: payload.url,
+      data: { url: payload.url },
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || "/notifications";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      // If a tab is already open on this origin, focus it and route there
+      // instead of stacking a new tab on every push.
+      for (const w of wins) {
+        if ("focus" in w) {
+          w.focus();
+          if ("navigate" in w) w.navigate(target);
+          return;
+        }
+      }
+      if (self.clients.openWindow) self.clients.openWindow(target);
+    }),
+  );
+});
 `;
 
 export function GET() {

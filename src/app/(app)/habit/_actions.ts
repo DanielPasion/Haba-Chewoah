@@ -6,12 +6,17 @@ import { z } from "zod";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { localYmd } from "~/lib/habit-stats";
+import { createNotification } from "~/server/notifications";
 import {
   deleteHabitLogMediaObject,
   ownedHabitLogMediaKeyFromPublicUrl,
 } from "~/server/r2";
 
-import { FrequencyType } from "../../../../generated/prisma";
+import { FrequencyType, NotificationType, Prisma } from "../../../../generated/prisma";
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const FREQUENCY_VALUES = [
   FrequencyType.daily,
@@ -230,4 +235,147 @@ export async function deleteHabitAction(
     revalidatePath(`/profile/${session.user.username}`);
   }
   redirect("/profile");
+}
+
+// ============================================================
+// CHEW-OUT
+// ============================================================
+// "Chew out" pings a friend about an active habit they haven't completed
+// yet today. Cooldown: one chew-out per (sender, recipient, habit, day),
+// where `day` is the *recipient's* local YMD — so an East-Coaster chewing
+// out a West-Coaster doesn't reset at the wrong wall-clock hour.
+//
+// Refused when:
+//   - habit isn't active (challenge ended or owner abandoned)
+//   - habit is private (no chewing out things you can't see)
+//   - either party blocks the other (NOTES.md §9)
+//   - recipient already logged today (don't pile on after they're done)
+//   - sender already chewed out this combo today (DB unique catches the race)
+
+export type ChewOutResult =
+  | { ok: true }
+  | { ok: false; message: string; cooldown?: boolean };
+
+export async function chewOutAction(habitId: string): Promise<ChewOutResult> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, message: "not signed in" };
+  if (typeof habitId !== "string" || !UUID_RE.test(habitId)) {
+    return { ok: false, message: "invalid habit id" };
+  }
+
+  const habit = await db.habit.findUnique({
+    where: { id: habitId },
+    select: {
+      id: true,
+      userId: true,
+      name: true,
+      isPublic: true,
+      status: true,
+      user: { select: { id: true, username: true, timezone: true } },
+    },
+  });
+  if (!habit) return { ok: false, message: "habit not found" };
+  if (habit.userId === session.user.id) {
+    return { ok: false, message: "can't chew out your own habit" };
+  }
+  if (!habit.isPublic) {
+    return { ok: false, message: "habit not found" };
+  }
+  if (habit.status !== "active") {
+    return { ok: false, message: "habit is no longer active" };
+  }
+
+  const block = await db.block.findFirst({
+    where: {
+      OR: [
+        { blockerId: session.user.id, blockedId: habit.userId },
+        { blockerId: habit.userId, blockedId: session.user.id },
+      ],
+    },
+    select: { blockerId: true },
+  });
+  if (block) return { ok: false, message: "habit not found" };
+
+  // "Already logged today" — relative to the *recipient's* timezone.
+  const recipientTz = habit.user.timezone;
+  const todayYmd = localYmd(new Date(), recipientTz);
+  const dayDate = new Date(`${todayYmd}T00:00:00Z`);
+  const tomorrowDate = new Date(dayDate);
+  tomorrowDate.setUTCDate(tomorrowDate.getUTCDate() + 1);
+
+  // We can't filter by "local YMD" in SQL without a tz join, so pull a
+  // generous 48h window and finish the comparison in JS (matches the
+  // pattern in `desktop-right-rail.tsx` `loggedToday` check).
+  const recentLogsCutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+  const recentLogs = await db.habitLog.findMany({
+    where: { habitId: habit.id, completedAt: { gte: recentLogsCutoff } },
+    select: { completedAt: true },
+  });
+  const loggedToday = recentLogs.some(
+    (l) => localYmd(l.completedAt, recipientTz) === todayYmd,
+  );
+  if (loggedToday) {
+    return { ok: false, message: "they already logged today — go cheer them" };
+  }
+
+  // Cooldown — DB unique on (sender, recipient, habit, day). The findFirst
+  // is a UX optimization (returns a friendly message instead of P2002);
+  // the real protection is the unique index.
+  const existing = await db.chewout.findFirst({
+    where: {
+      senderId: session.user.id,
+      recipientId: habit.userId,
+      habitId: habit.id,
+      day: dayDate,
+    },
+    select: { id: true },
+  });
+  if (existing) {
+    return {
+      ok: false,
+      cooldown: true,
+      message: "you already chewed them out today",
+    };
+  }
+
+  try {
+    await db.chewout.create({
+      data: {
+        senderId: session.user.id,
+        recipientId: habit.userId,
+        habitId: habit.id,
+        day: dayDate,
+      },
+    });
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      return {
+        ok: false,
+        cooldown: true,
+        message: "you already chewed them out today",
+      };
+    }
+    throw err;
+  }
+
+  const senderHandle = session.user.username ?? "someone";
+  await createNotification({
+    recipientId: habit.userId,
+    actorId: session.user.id,
+    type: NotificationType.chewout,
+    habitId: habit.id,
+    pushTitle: `@${senderHandle} chewed you out`,
+    pushBody: `finish "${habit.name}" before the day ends`,
+    pushUrl: `/habit/${habit.id}`,
+  });
+
+  revalidatePath(`/habit/${habit.id}`);
+  if (habit.user.username) {
+    revalidatePath(`/profile/${habit.user.username}`);
+  }
+
+  return { ok: true };
 }

@@ -53,6 +53,18 @@ enum NotificationType {
   follow
   like
   comment
+  // `mention` — author of a comment @-tagged you. Distinct from `comment`
+  // so a single comment that both lands on your log AND mentions you only
+  // surfaces once (the comment-on-own-log fanout suppresses the mention).
+  mention
+  // `chewout` — a follower hit "chew out" on your active habit before
+  // end-of-day. Cooldown enforced by the `chewouts` table, not here.
+  chewout
+  // System-fired (cron). actor_id is NULL on these.
+  reminder
+  streak_at_risk
+  streak_milestone
+  habit_succeeded
 
   @@map("notification_type")
 }
@@ -121,6 +133,9 @@ model User {
   notifications          Notification[] @relation("Recipient")
   triggeredNotifications Notification[] @relation("Actor")
   deviceTokens           DeviceToken[]
+  pushSubscriptions      PushSubscription[]
+  chewoutsSent           Chewout[]      @relation("ChewoutSender")
+  chewoutsReceived       Chewout[]      @relation("ChewoutRecipient")
 
   @@index([discordId])
   @@index([username])
@@ -189,8 +204,10 @@ model Habit {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
-  schedules HabitSchedule[]
-  logs      HabitLog[]
+  schedules     HabitSchedule[]
+  logs          HabitLog[]
+  notifications Notification[]
+  chewouts      Chewout[]
 
   @@index([userId])
   @@index([userId, status])
@@ -324,6 +341,11 @@ model Notification {
   actorId    String?          @map("actor_id") @db.Uuid
   actor      User?            @relation("Actor", fields: [actorId], references: [id], onDelete: Cascade)
   type       NotificationType
+  // `habitId` is the habit this notification is *about* — set on chewout,
+  // reminder, streak_*, habit_succeeded. Likes/comments/mentions/follows
+  // leave it null (those scope by habitLogId or actorId instead).
+  habitId    String?          @map("habit_id") @db.Uuid
+  habit      Habit?           @relation(fields: [habitId], references: [id], onDelete: Cascade)
   habitLogId String?          @map("habit_log_id") @db.Uuid
   habitLog   HabitLog?        @relation(fields: [habitLogId], references: [id], onDelete: Cascade)
   commentId  String?          @map("comment_id") @db.Uuid
@@ -333,6 +355,10 @@ model Notification {
 
   @@index([userId, isRead])
   @@index([userId, createdAt(sort: Desc)])
+  // Cron jobs check "did we already fire this type for this habit today?"
+  // before inserting a new system notification — this index keeps that
+  // dedup query cheap.
+  @@index([userId, type, habitId, createdAt])
   @@map("notifications")
 }
 
@@ -346,4 +372,45 @@ model DeviceToken {
 
   @@index([userId])
   @@map("device_tokens")
+}
+
+// Web Push (VAPID) subscription. Distinct from `DeviceToken` because the
+// browser push protocol identifies a recipient by the endpoint URL plus a
+// pair of keys, not a single opaque string. iOS/Android (APNs/FCM) keep
+// using `DeviceToken` when wired up.
+model PushSubscription {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// "Chew-out" — a follower pings another user about an unfinished active
+// habit. One chew-out per (sender, recipient, habit, day) — `day` is the
+// recipient's local YMD so timezones don't reset cooldowns mid-evening.
+//
+// The notification fanout uses this row's existence to enforce dedup; the
+// notification itself lives in the `notifications` table with type=chewout.
+model Chewout {
+  id          String   @id @default(uuid()) @db.Uuid
+  senderId    String   @map("sender_id") @db.Uuid
+  sender      User     @relation("ChewoutSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId String   @map("recipient_id") @db.Uuid
+  recipient   User     @relation("ChewoutRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  habitId     String   @map("habit_id") @db.Uuid
+  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  day         DateTime @db.Date
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@unique([senderId, recipientId, habitId, day])
+  @@index([recipientId, day])
+  @@map("chewouts")
 }

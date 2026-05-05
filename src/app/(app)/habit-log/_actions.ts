@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { createNotification } from "~/server/notifications";
 import {
   type HabitLogMediaUploadGrant,
   VIDEO_MAX_DURATION_MS,
@@ -16,6 +17,23 @@ import {
 } from "~/server/r2";
 
 import { MediaType, NotificationType } from "../../../../generated/prisma";
+
+// Same regex used by the comment renderer (`comment-section.tsx`); kept in
+// sync with NOTES.md §4 (3–32 chars of [A-Za-z0-9_]).
+const MENTION_RE = /@([A-Za-z0-9_]{3,32})/g;
+
+function extractMentionUsernames(content: string): string[] {
+  const found = new Set<string>();
+  for (const match of content.matchAll(MENTION_RE)) {
+    if (match[1]) found.add(match[1].toLowerCase());
+  }
+  return Array.from(found);
+}
+
+function summarizeForPush(text: string, max = 120): string {
+  const trimmed = text.trim().replace(/\s+/g, " ");
+  return trimmed.length > max ? `${trimmed.slice(0, max - 1)}…` : trimmed;
+}
 
 // ============================================================
 // SHARED HELPERS
@@ -336,20 +354,19 @@ export async function toggleLikeAction(
     liked = true;
 
     // Notification creation is best-effort: a duplicate or transient
-    // failure must not roll back the like itself.
+    // failure must not roll back the like itself. `createNotification`
+    // also fans out to web push.
     if (log.userId !== session.user.id) {
-      try {
-        await db.notification.create({
-          data: {
-            userId: log.userId,
-            actorId: session.user.id,
-            type: NotificationType.like,
-            habitLogId: log.id,
-          },
-        });
-      } catch (err) {
-        console.warn("[notif] like notification failed", err);
-      }
+      const actorHandle = session.user.username ?? "someone";
+      await createNotification({
+        recipientId: log.userId,
+        actorId: session.user.id,
+        type: NotificationType.like,
+        habitLogId: log.id,
+        pushTitle: `@${actorHandle} liked your log`,
+        pushBody: "tap to see it",
+        pushUrl: `/habit-log/${log.id}`,
+      });
     }
   }
 
@@ -412,19 +429,46 @@ export async function createCommentAction(
     select: { id: true },
   });
 
+  const actorHandle = session.user.username ?? "someone";
+  const preview = summarizeForPush(content);
+
+  // Comment-on-own-log notification (skipped when the commenter is the OP).
   if (log.userId !== session.user.id) {
-    try {
-      await db.notification.create({
-        data: {
-          userId: log.userId,
-          actorId: session.user.id,
-          type: NotificationType.comment,
-          habitLogId: log.id,
-          commentId: comment.id,
-        },
+    await createNotification({
+      recipientId: log.userId,
+      actorId: session.user.id,
+      type: NotificationType.comment,
+      habitLogId: log.id,
+      commentId: comment.id,
+      pushTitle: `@${actorHandle} commented on your log`,
+      pushBody: preview,
+      pushUrl: `/habit-log/${log.id}`,
+    });
+  }
+
+  // Mention notifications: one per @-tagged user, EXCLUDING the log owner
+  // (they already got a `comment` notif above) and the commenter themself.
+  // `createNotification` filters self/blocks; we still skip the owner here
+  // so the dedup is explicit rather than relying on type-only uniqueness.
+  const mentionedHandles = extractMentionUsernames(content);
+  if (mentionedHandles.length > 0) {
+    const mentioned = await db.user.findMany({
+      where: { username: { in: mentionedHandles, mode: "insensitive" } },
+      select: { id: true, username: true },
+    });
+    for (const u of mentioned) {
+      if (u.id === log.userId) continue;
+      if (u.id === session.user.id) continue;
+      await createNotification({
+        recipientId: u.id,
+        actorId: session.user.id,
+        type: NotificationType.mention,
+        habitLogId: log.id,
+        commentId: comment.id,
+        pushTitle: `@${actorHandle} mentioned you`,
+        pushBody: preview,
+        pushUrl: `/habit-log/${log.id}`,
       });
-    } catch (err) {
-      console.warn("[notif] comment notification failed", err);
     }
   }
 
