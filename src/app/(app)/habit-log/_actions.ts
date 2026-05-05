@@ -19,8 +19,11 @@ import {
 import { MediaType, NotificationType } from "../../../../generated/prisma";
 
 // Same regex used by the comment renderer (`comment-section.tsx`); kept in
-// sync with NOTES.md §4 (3–32 chars of [A-Za-z0-9_]).
-const MENTION_RE = /@([A-Za-z0-9_]{3,32})/g;
+// sync with NOTES.md §4 (3–32 chars of [A-Za-z0-9_]). The `(?<=^|\s)`
+// lookbehind + `\b` boundary make `bob@example.com` NOT match (the `@` in
+// emails isn't preceded by start/whitespace) per §4's "should NOT match"
+// rule, while still tolerating trailing punctuation like `@alice.`.
+const MENTION_RE = /(?<=^|\s)@([A-Za-z0-9_]{3,32})\b/g;
 
 function extractMentionUsernames(content: string): string[] {
   const found = new Set<string>();

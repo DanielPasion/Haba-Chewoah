@@ -68,9 +68,6 @@ export async function runNotificationsCron(): Promise<CronRunResult> {
     const tz = habit.user.timezone;
     const localNow = getLocalParts(now, tz);
     const todayYmd = localNow.ymd;
-    const todayUtc = ymdAsUtcDate(todayYmd);
-    const tomorrowUtc = new Date(todayUtc);
-    tomorrowUtc.setUTCDate(tomorrowUtc.getUTCDate() + 1);
 
     // Pull a 48h window of logs for this habit so we can answer "logged
     // today?" and feed the streak calculator. Cheaper than a full history
@@ -100,14 +97,12 @@ export async function runNotificationsCron(): Promise<CronRunResult> {
         return Math.abs(cur - target) <= 10;
       });
       if (reminderHit) {
-        const already = await db.notification.findFirst({
-          where: {
-            userId: habit.userId,
-            habitId: habit.id,
-            type: NotificationType.reminder,
-            createdAt: { gte: todayUtc, lt: tomorrowUtc },
-          },
-          select: { id: true },
+        const already = await alreadyFiredOnLocalDay({
+          userId: habit.userId,
+          habitId: habit.id,
+          type: NotificationType.reminder,
+          tz,
+          localYmdToday: todayYmd,
         });
         if (!already) {
           await createNotification({
@@ -138,14 +133,12 @@ export async function runNotificationsCron(): Promise<CronRunResult> {
       // streak ≥ 1 means yesterday counted — i.e. there's something to
       // lose if today goes unlogged.
       if (stats.currentStreak >= 1) {
-        const already = await db.notification.findFirst({
-          where: {
-            userId: habit.userId,
-            habitId: habit.id,
-            type: NotificationType.streak_at_risk,
-            createdAt: { gte: todayUtc, lt: tomorrowUtc },
-          },
-          select: { id: true },
+        const already = await alreadyFiredOnLocalDay({
+          userId: habit.userId,
+          habitId: habit.id,
+          type: NotificationType.streak_at_risk,
+          tz,
+          localYmdToday: todayYmd,
         });
         if (!already) {
           await createNotification({
@@ -174,21 +167,16 @@ export async function runNotificationsCron(): Promise<CronRunResult> {
         periodDays: habit.periodDays,
       });
       if (MILESTONES.includes(stats.currentStreak)) {
-        // Dedup at the milestone level — if we ever notified for THIS
-        // habit at THIS threshold (forever, not just today), don't again.
-        // A user who breaks and re-hits day-30 still gets one celebratory
-        // ping, just not one per re-hit on the same day.
-        const already = await db.notification.findFirst({
-          where: {
-            userId: habit.userId,
-            habitId: habit.id,
-            type: NotificationType.streak_milestone,
-            // The simplest dedup is "already fired today" — milestones
-            // only sit on a single calendar day so that's enough; if the
-            // user hits 30 again next year, they get notified again.
-            createdAt: { gte: todayUtc, lt: tomorrowUtc },
-          },
-          select: { id: true },
+        // Dedup is per-local-day: a milestone day spans one local
+        // calendar date, so "already fired today" prevents the cron from
+        // re-firing on its 15-min cadence. A user who breaks the streak
+        // and re-hits day-30 next year is *intentionally* re-notified.
+        const already = await alreadyFiredOnLocalDay({
+          userId: habit.userId,
+          habitId: habit.id,
+          type: NotificationType.streak_milestone,
+          tz,
+          localYmdToday: todayYmd,
         });
         if (!already) {
           await createNotification({
@@ -206,13 +194,15 @@ export async function runNotificationsCron(): Promise<CronRunResult> {
   }
 
   // ────────────────────────────────────────────────
-  // Habit-succeeded — fires for habits whose status just flipped (or any
-  // status='succeeded' that hasn't been acknowledged yet). NOTES.md §7
-  // describes the auto-eval job that flips status; we read its output
-  // and notify. If that job hasn't run yet, this loop is a cheap no-op.
+  // Habit-succeeded — fires for habits whose status flipped to succeeded
+  // *recently*. The status-flip happens in the daily auto-eval job from
+  // NOTES.md §7, so a 48h `updatedAt` window catches every newly-succeeded
+  // habit even if the cron has been down for a while, without scanning
+  // every succeeded habit ever (which grows forever).
   // ────────────────────────────────────────────────
+  const succeededRecencyCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000);
   const succeededHabits = await db.habit.findMany({
-    where: { status: "succeeded" },
+    where: { status: "succeeded", updatedAt: { gte: succeededRecencyCutoff } },
     select: {
       id: true,
       name: true,
@@ -248,6 +238,42 @@ export async function runNotificationsCron(): Promise<CronRunResult> {
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
+
+/**
+ * "Did we already fire this notification type for this habit on the user's
+ * current local day?" Pulls the last 48h of matching notifications and
+ * checks each against `localYmdToday` in the user's timezone.
+ *
+ * We can't filter by local date in SQL without a TZ-aware date_trunc, so
+ * we widen to a 48h UTC window and finish the comparison in JS. 48h covers
+ * any IANA offset (max ~14h east plus DST) with margin. Volume is bounded:
+ * one row per (user, habit, type, day), so the in-memory filter is cheap.
+ *
+ * Why not a UTC midnight bound? `localYmd → UTC midnight` is wrong for
+ * non-UTC users — their local "today" doesn't start at UTC midnight, so
+ * the bound miss-matches `createdAt` (real UTC) by their TZ offset.
+ */
+async function alreadyFiredOnLocalDay(args: {
+  userId: string;
+  habitId: string;
+  type: NotificationType;
+  tz: string;
+  localYmdToday: string;
+}): Promise<boolean> {
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+  const recent = await db.notification.findMany({
+    where: {
+      userId: args.userId,
+      habitId: args.habitId,
+      type: args.type,
+      createdAt: { gte: cutoff },
+    },
+    select: { createdAt: true },
+  });
+  return recent.some(
+    (n) => localYmd(n.createdAt, args.tz) === args.localYmdToday,
+  );
+}
 
 /** Returns the local YMD plus hour/minute/dow in the given IANA timezone. */
 function getLocalParts(date: Date, timezone: string): {
@@ -287,11 +313,6 @@ const WEEKDAY_TO_INDEX: Record<string, number> = {
   Fri: 5,
   Sat: 6,
 };
-
-function ymdAsUtcDate(ymd: string): Date {
-  const [y, m, d] = ymd.split("-").map(Number);
-  return new Date(Date.UTC(y!, (m ?? 1) - 1, d!, 0, 0, 0));
-}
 
 /** Reads a Postgres `time` value (Prisma returns it as a 1970-01-01 Date)
  * and returns minutes past midnight. */

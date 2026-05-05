@@ -7,14 +7,17 @@ import { db } from "~/server/db";
 import { ActivityRow, type ActivityRowVM } from "../_components/activity-row";
 import { PushToggle } from "../_components/push-toggle";
 import { markAllNotificationsReadOnView } from "./_actions";
+import { AutoMarkRead } from "./_components/auto-mark-read";
 
 const PAGE_LIMIT = 60;
 
 /**
  * `/notifications` — full activity log with push-permission toggle on top.
- * Marking-as-read happens via a fire-and-forget action (`markAllRead…`)
- * dispatched from a hidden form on mount; doing it inline at render time
- * would mutate inside an RSC pass, which Next.js disallows.
+ * Marking-as-read happens via a fire-and-forget action dispatched from
+ * `<AutoMarkRead />` on mount; doing it inline at render time would mutate
+ * inside an RSC pass, which Next.js disallows. The visible "mark all read"
+ * button is a fallback for cases where the auto-fire didn't land (e.g.
+ * client JS disabled, or the user wants an explicit acknowledgement).
  */
 export default async function NotificationsPage() {
   const session = await auth();
@@ -73,6 +76,7 @@ export default async function NotificationsPage() {
 
       <div className="mx-auto flex w-full max-w-180 flex-col gap-4 px-5 md:px-8">
         <PushToggle vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
+        {unreadCount > 0 && <AutoMarkRead />}
 
         {vms.length === 0 ? (
           <EmptyState />
