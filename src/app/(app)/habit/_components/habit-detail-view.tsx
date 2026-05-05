@@ -2,8 +2,19 @@ import Link from "next/link";
 
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 import { buttonClass } from "~/components/ui";
+import {
+  buildHeatmap,
+  computeHabitStats,
+  type HeatmapCell,
+} from "~/lib/habit-stats";
 
-import type { FrequencyType } from "../../../../../generated/prisma";
+import type {
+  FrequencyType,
+  HabitStatus,
+  MediaType,
+} from "../../../../../generated/prisma";
+
+import { LogDayButton } from "./log-day-button";
 
 export type HabitDetailData = {
   id: string;
@@ -14,6 +25,7 @@ export type HabitDetailData = {
   targetCount: number;
   periodDays: number | null;
   isPublic: boolean;
+  status: HabitStatus;
   startDate: Date | null;
   createdAt: Date;
   owner: {
@@ -21,30 +33,69 @@ export type HabitDetailData = {
     username: string;
     displayName: string;
     imageUrl: string | null;
+    timezone: string;
   };
+};
+
+export type RecentLog = {
+  id: string;
+  completedAt: Date;
+  notes: string | null;
+  mediaUrl: string | null;
+  mediaType: MediaType | null;
+  likeCount: number;
+  commentCount: number;
 };
 
 export function HabitDetailView({
   habit,
   isOwn,
+  logs,
+  recentLogs,
 }: {
   habit: HabitDetailData;
   isOwn: boolean;
+  logs: Array<{ completedAt: Date }>;
+  recentLogs: RecentLog[];
 }) {
+  const stats = computeHabitStats({
+    logs,
+    timezone: habit.owner.timezone,
+    startDate: habit.startDate ?? habit.createdAt,
+    frequencyType: habit.frequencyType,
+    targetCount: habit.targetCount,
+    periodDays: habit.periodDays,
+  });
+  const heatmap = buildHeatmap({
+    dayCounts: stats.dayCounts,
+    timezone: habit.owner.timezone,
+  });
+  const completionPct = Math.round(stats.completion * 100);
+  const nextDay = stats.currentStreak + 1;
+
   return (
     <div className="-mx-5 -my-6 flex flex-col gap-5 pb-2 md:-mx-8 md:-my-8 md:gap-6">
       <Header habitId={habit.id} />
 
       <div className="mx-auto flex w-full max-w-180 flex-col gap-5 px-5 md:px-8 md:gap-6">
-        <HeroCard habit={habit} isOwn={isOwn} />
-        <StatsRow />
-        <Heatmap />
+        <HeroCard habit={habit} stats={stats} isOwn={isOwn} />
+        <StatsRow
+          completionPct={completionPct}
+          longest={stats.longestStreak}
+          current={stats.currentStreak}
+          total={stats.totalLogs}
+        />
+        <Heatmap cells={heatmap} totalLogs={stats.totalLogs} />
         {habit.description && <DescriptionCard description={habit.description} />}
         {!isOwn && <OwnerCard owner={habit.owner} />}
-        <RecentLogsEmpty />
+        <RecentLogs logs={recentLogs} habitIcon={habit.icon} />
       </div>
 
-      <StickyAction habitId={habit.id} isOwn={isOwn} />
+      <StickyAction
+        habit={habit}
+        isOwn={isOwn}
+        nextDayNumber={nextDay}
+      />
     </div>
   );
 }
@@ -81,11 +132,15 @@ function Header({ habitId }: { habitId: string }) {
 
 function HeroCard({
   habit,
+  stats,
   isOwn,
 }: {
   habit: HabitDetailData;
+  stats: ReturnType<typeof computeHabitStats>;
   isOwn: boolean;
 }) {
+  const dayCount = stats.currentStreak;
+  const hasStreak = dayCount > 0;
   return (
     <section className="relative overflow-hidden rounded-hc-4 border-hc border-hc-line bg-hc-surface p-6 shadow-hc">
       <span
@@ -119,23 +174,29 @@ function HeroCard({
               className="font-display text-7xl font-extrabold leading-none text-hc-ink tabular-nums"
               style={{ letterSpacing: "-0.05em" }}
             >
-              0
+              {dayCount}
             </span>
             <span
               className="font-display text-2xl font-extrabold text-hc-ink"
               style={{ letterSpacing: "-0.03em" }}
             >
-              days
+              {dayCount === 1 ? "day" : "days"}
             </span>
           </div>
           <p className="mt-1 font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-ink/70">
-            {isOwn
-              ? "log your first day to start the streak"
-              : "tracking hasn't started yet"}
+            {hasStreak
+              ? `streak alive · ${stats.totalLogs} total logs`
+              : isOwn
+                ? "log your first day to start the streak"
+                : "no streak yet"}
           </p>
         </div>
         <div className="-mb-2 shrink-0">
-          <TwoFaceMascot size={84} mood="default" bg="#1B1726" />
+          <TwoFaceMascot
+            size={84}
+            mood={hasStreak ? "celebrate" : "default"}
+            bg="#1B1726"
+          />
         </div>
       </div>
     </section>
@@ -150,12 +211,22 @@ function frequencyLabel(habit: HabitDetailData) {
   return `${habit.targetCount}× / ${habit.periodDays ?? 7} days`;
 }
 
-function StatsRow() {
+function StatsRow({
+  completionPct,
+  longest,
+  current,
+  total,
+}: {
+  completionPct: number;
+  longest: number;
+  current: number;
+  total: number;
+}) {
   const stats = [
-    { value: "0%", label: "completion" },
-    { value: "0", label: "longest" },
-    { value: "0", label: "current" },
-    { value: "0", label: "total logs" },
+    { value: `${completionPct}%`, label: "completion" },
+    { value: longest.toString(), label: "longest" },
+    { value: current.toString(), label: "current" },
+    { value: total.toString(), label: "total logs" },
   ];
   return (
     <div className="grid grid-cols-2 gap-px overflow-hidden rounded-hc-3 border-hc border-hc-line bg-hc-line sm:grid-cols-4">
@@ -179,7 +250,13 @@ function StatsRow() {
   );
 }
 
-function Heatmap() {
+function Heatmap({
+  cells,
+  totalLogs,
+}: {
+  cells: HeatmapCell[][];
+  totalLogs: number;
+}) {
   return (
     <section>
       <div className="mb-2 flex items-baseline justify-between">
@@ -190,7 +267,7 @@ function Heatmap() {
           last 8 weeks
         </h2>
         <span className="font-mono text-hc-eyebrow font-semibold text-hc-muted">
-          no logs yet
+          {totalLogs === 0 ? "no logs yet" : `${totalLogs} logs total`}
         </span>
       </div>
       <div className="flex gap-2 rounded-hc-3 border-hc border-hc-line bg-hc-surface p-3.5">
@@ -203,12 +280,19 @@ function Heatmap() {
           ))}
         </div>
         <div className="grid flex-1 grid-cols-8 gap-1.5">
-          {Array.from({ length: 8 }).map((_, w) => (
+          {cells.map((col, w) => (
             <div key={w} className="grid grid-rows-7 gap-1.5">
-              {Array.from({ length: 7 }).map((_, d) => (
-                <div
-                  key={d}
-                  className="aspect-square rounded-sm bg-hc-line"
+              {col.map((cell) => (
+                <span
+                  key={cell.ymd}
+                  title={`${cell.ymd} · ${cell.count} log${cell.count === 1 ? "" : "s"}`}
+                  className={`aspect-square rounded-sm ${
+                    cell.isFuture
+                      ? "bg-hc-line/40"
+                      : cell.count > 0
+                        ? "bg-hc-brand"
+                        : "bg-hc-line"
+                  }`}
                   aria-hidden
                 />
               ))}
@@ -218,8 +302,8 @@ function Heatmap() {
       </div>
       <div className="mt-2 flex flex-wrap gap-3 font-mono text-hc-tiny font-semibold text-hc-muted">
         <Legend color="bg-hc-brand">done</Legend>
-        <Legend color="bg-hc-accent">missed</Legend>
-        <Legend color="bg-hc-line">n/a</Legend>
+        <Legend color="bg-hc-line">no log</Legend>
+        <Legend color="bg-hc-line/40">future</Legend>
       </div>
     </section>
   );
@@ -287,7 +371,13 @@ function OwnerCard({ owner }: { owner: HabitDetailData["owner"] }) {
   );
 }
 
-function RecentLogsEmpty() {
+function RecentLogs({
+  logs,
+  habitIcon,
+}: {
+  logs: RecentLog[];
+  habitIcon: string | null;
+}) {
   return (
     <section>
       <h2
@@ -296,42 +386,96 @@ function RecentLogsEmpty() {
       >
         recent logs
       </h2>
-      <div className="flex flex-col items-center gap-2 rounded-hc-3 border-hc border-dashed border-hc-line-strong bg-hc-surface-alt px-6 py-8 text-center">
-        <TwoFaceMascot size={56} mood="wink" bg="#1B1726" />
-        <p className="font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
-          logs · coming soon
-        </p>
-        <p className="max-w-xs text-sm text-hc-ink">
-          every check-in shows up here once habit logging ships.
-        </p>
-      </div>
+      {logs.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-hc-3 border-hc border-dashed border-hc-line-strong bg-hc-surface-alt px-6 py-8 text-center">
+          <TwoFaceMascot size={56} mood="wink" bg="#1B1726" />
+          <p className="font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
+            no logs yet
+          </p>
+          <p className="max-w-xs text-sm text-hc-ink">
+            tap the big button below and prove yourself.
+          </p>
+        </div>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {logs.map((l) => (
+            <li key={l.id}>
+              <Link
+                href={`/habit-log/${l.id}`}
+                className="flex items-center gap-3 rounded-hc-2 border-hc border-hc-line bg-hc-surface p-3 transition-transform hover:-translate-y-px hover:bg-hc-surface-alt"
+              >
+                <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-hc-2 border border-hc-line-strong bg-hc-bg text-xl">
+                  {l.mediaUrl && l.mediaType === "photo" ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={l.mediaUrl}
+                      alt=""
+                      className="size-full object-cover"
+                    />
+                  ) : l.mediaUrl && l.mediaType === "video" ? (
+                    <span aria-hidden>▶</span>
+                  ) : (
+                    habitIcon ?? "✨"
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-sans text-sm font-semibold text-hc-ink">
+                    {l.notes ?? "logged · no note"}
+                  </p>
+                  <p className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+                    {formatStamp(l.completedAt)} · ♥ {l.likeCount} · 💬 {l.commentCount}
+                  </p>
+                </div>
+                <span
+                  className="font-mono text-hc-tiny font-bold text-hc-ink"
+                  aria-hidden
+                >
+                  →
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
 
+function formatStamp(date: Date) {
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 function StickyAction({
-  habitId,
+  habit,
   isOwn,
+  nextDayNumber,
 }: {
-  habitId: string;
+  habit: HabitDetailData;
   isOwn: boolean;
+  nextDayNumber: number;
 }) {
   return (
     <div className="sticky bottom-0 z-10 mx-auto w-full max-w-180 px-5 pb-4 pt-2 md:px-8">
       <div className="flex gap-2">
         {isOwn ? (
           <>
-            <button
-              type="button"
-              disabled
-              title="logging coming soon"
-              className="grid flex-1 cursor-not-allowed place-items-center gap-1 rounded-hc-3 border border-hc-line bg-hc-ink/90 px-4 py-4 font-display text-base font-extrabold text-hc-brand opacity-90 shadow-hc-stamp dark:bg-hc-brand/80 dark:text-hc-brand-ink"
-              style={{ letterSpacing: "-0.02em" }}
-            >
-              + log day 1 (soon)
-            </button>
+            {habit.status === "active" ? (
+              <LogDayButton
+                habitId={habit.id}
+                habitName={habit.name}
+                habitIcon={habit.icon}
+                nextDayNumber={nextDayNumber}
+              />
+            ) : (
+              <span className="grid flex-1 cursor-not-allowed place-items-center rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
+                {habit.status} · no new logs
+              </span>
+            )}
             <Link
-              href={`/habit/${habitId}/edit`}
+              href={`/habit/${habit.id}/edit`}
               aria-label="edit habit"
               className="grid place-items-center rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 text-hc-ink hover:bg-hc-surface-alt"
             >
@@ -351,15 +495,13 @@ function StickyAction({
             </Link>
           </>
         ) : (
-          <button
-            type="button"
-            disabled
-            title="cheering coming soon"
-            className="flex-1 cursor-not-allowed rounded-hc-3 border border-hc-line bg-hc-accent px-4 py-4 font-display text-base font-extrabold text-hc-accent-ink opacity-90 shadow-hc-stamp"
+          <Link
+            href={`/profile/${habit.owner.username}`}
+            className="flex-1 rounded-hc-3 border border-hc-line bg-hc-accent px-4 py-4 text-center font-display text-base font-extrabold text-hc-accent-ink shadow-hc-stamp transition-transform hover:-translate-y-px"
             style={{ letterSpacing: "-0.02em" }}
           >
-            cheer (soon)
-          </button>
+            view @{habit.owner.username}
+          </Link>
         )}
       </div>
     </div>

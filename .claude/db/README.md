@@ -51,6 +51,9 @@ The schema relies on app code (not DB triggers) for these:
 - **Stale device tokens cleanup** — periodic job, deletes `device_tokens` whose
   `last_used_at` is older than ~60 days, or that received "invalid" responses
   from APNs/FCM. Suggested cadence: daily.
+- **Orphan habit-log media cleanup** — periodic job, lists R2 keys under
+  `habit-logs/` and deletes any that don't appear in `habit_logs.media_url`.
+  See NOTES.md §17. Suggested cadence: weekly.
 
 ## Required App-Layer Enforcement
 

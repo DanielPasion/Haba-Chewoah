@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 import { buttonClass } from "~/components/ui";
+import { computeHabitStats } from "~/lib/habit-stats";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 
@@ -16,19 +17,54 @@ export default async function HabitsPage() {
   if (!session?.user) redirect("/auth/signin");
   if (!session.user.username) redirect("/create-account");
 
-  const habits = await db.habit.findMany({
-    where: { userId: session.user.id },
-    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
-    select: {
-      id: true,
-      name: true,
-      icon: true,
-      description: true,
-      frequencyType: true,
-      targetCount: true,
-      periodDays: true,
-      isPublic: true,
-    },
+  const [me, habits] = await Promise.all([
+    db.user.findUnique({
+      where: { id: session.user.id },
+      select: { timezone: true },
+    }),
+    db.habit.findMany({
+      where: { userId: session.user.id },
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+      select: {
+        id: true,
+        name: true,
+        icon: true,
+        description: true,
+        frequencyType: true,
+        targetCount: true,
+        periodDays: true,
+        isPublic: true,
+        logs: { select: { completedAt: true } },
+      },
+    }),
+  ]);
+  const timezone = me?.timezone ?? "UTC";
+
+  // Cards need a current-streak number to render "day N · M logs". The
+  // computation lives in `~/lib/habit-stats` so it stays consistent with
+  // the detail page; we run it once per habit here, then drop the raw
+  // logs (only counts + day cross the client boundary).
+  const cardData = habits.map((h) => {
+    const stats = computeHabitStats({
+      logs: h.logs,
+      timezone,
+      startDate: null,
+      frequencyType: h.frequencyType,
+      targetCount: h.targetCount,
+      periodDays: h.periodDays,
+    });
+    return {
+      id: h.id,
+      name: h.name,
+      icon: h.icon,
+      description: h.description,
+      frequencyType: h.frequencyType,
+      targetCount: h.targetCount,
+      periodDays: h.periodDays,
+      isPublic: h.isPublic,
+      currentStreak: stats.currentStreak,
+      totalLogs: stats.totalLogs,
+    };
   });
 
   return (
@@ -53,11 +89,11 @@ export default async function HabitsPage() {
         </Link>
       </div>
 
-      {habits.length === 0 ? (
+      {cardData.length === 0 ? (
         <EmptyState />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {habits.map((h) => (
+          {cardData.map((h) => (
             <HabitCard key={h.id} habit={h} />
           ))}
         </div>

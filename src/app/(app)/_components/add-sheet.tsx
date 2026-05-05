@@ -98,11 +98,10 @@ function AddSheet({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <button
-          type="button"
-          disabled
-          title="logging coming soon"
-          className="mb-3 flex w-full cursor-not-allowed items-center gap-3.5 rounded-hc-3 border border-hc-line bg-hc-brand/70 px-4 py-4 text-left opacity-90"
+        <Link
+          href="/habits"
+          onClick={onClose}
+          className="mb-3 flex w-full items-center gap-3.5 rounded-hc-3 border border-hc-line bg-hc-brand px-4 py-4 text-left transition-transform hover:-translate-y-px"
         >
           <span className="grid size-11 shrink-0 place-items-center rounded-hc-2 bg-hc-ink">
             <TwoFaceMascot size={36} mood="celebrate" bg="#1B1726" />
@@ -115,10 +114,24 @@ function AddSheet({ onClose }: { onClose: () => void }) {
               log a habit
             </span>
             <span className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-brand-ink/70">
-              coming soon
+              pick which one
             </span>
           </span>
-        </button>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+            className="text-hc-brand-ink"
+          >
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </Link>
 
         <Link
           href="/habit/new"

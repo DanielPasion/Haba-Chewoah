@@ -38,6 +38,7 @@ Enums in use:
 | `report_status` | `pending`, `reviewed`, `dismissed` |
 | `notification_type` | `follow`, `like`, `comment` |
 | `device_platform` | `ios`, `android`, `web` |
+| `media_type` | `photo`, `video` |
 
 Adding a new enum value requires `ALTER TYPE ... ADD VALUE` in a migration. Don't forget.
 
@@ -457,3 +458,78 @@ We could drop `sessions` and `verification_tokens` by switching to
 - The cost is two extra tables and one extra round-trip per auth check.
 
 Revisit if write volume becomes a concern.
+
+---
+
+## 17. Habit Log Media (R2 storage)
+
+A `habit_logs` row may carry a single optional attachment — either a photo
+or a short video — stored in Cloudflare R2. The DB only holds metadata.
+
+### Columns
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `media_url` | `text` | Public R2 URL (`{R2_PUBLIC_URL}/habit-logs/{userId}/{uuid}.{ext}`). NULL when log is text-only. |
+| `media_type` | `media_type` enum | `photo` or `video`. |
+| `media_duration_ms` | `int` | Required for video, NULL for photo. Capped at 15000 by CHECK. |
+
+Two `CHECK` constraints enforce coherence (see `001_init.sql`):
+
+- `media_pair_consistent` — `media_url` and `media_type` are both NULL or
+  both NOT NULL. No half-stored rows.
+- `media_duration_matches_type` — only `video` rows carry a duration;
+  `0 < media_duration_ms <= 15000`.
+
+### Limits (app-layer)
+
+| Kind | Max bytes | Max duration | Allowed MIME |
+| --- | --- | --- | --- |
+| Photo | 8 MB | n/a | `image/jpeg`, `image/png`, `image/webp` |
+| Video | 30 MB | 15 seconds | `video/mp4`, `video/quicktime`, `video/webm` |
+
+The byte ceilings are enforced both by the client (pre-upload) and by the
+presigned-URL contract (R2 honours `Content-Length` set by the browser).
+Video duration is enforced **client-side via `HTMLVideoElement.duration`**
+before upload, then re-validated on the server when the row is created
+(the value is what the client claims — the server cannot decode the video
+to verify, so the DB CHECK is the floor that catches malice/bugs).
+
+### R2 object key shape
+
+```
+habit-logs/{userId}/{uuid}.{ext}
+```
+
+Same pattern as avatars (`users/{userId}/avatar/{uuid}.{ext}`). The `userId`
+prefix is what `isOwnedHabitLogMediaKey()` checks before accepting a key
+posted from the client — prevents a malicious client from claiming another
+user's object.
+
+### Cleanup contract
+
+The DB cascades `habit_logs` deletes (per §1) but **does not know about R2**.
+Whenever a habit log row goes away, its R2 object must be deleted too:
+
+- **User deletes own log** → server action calls `deleteHabitLogMediaObject`
+  before/after the DB delete (best-effort, logged on failure).
+- **User deletes habit** → all logs cascade in DB; their R2 objects must be
+  enumerated and deleted by app code in the same action.
+- **User deletes account** → all habits + logs cascade in DB; orphan R2
+  cleanup is best-effort. A periodic sweeper that lists `habit-logs/` keys
+  and cross-references against `habit_logs.media_url` is recommended (out
+  of scope for v1 — track in TODO).
+
+### Why store the URL, not just the key
+
+We store the full public URL because it's what the `<img>` and `<video>`
+tags consume directly, and because it survives R2 bucket renames (we'd
+also have to rename `R2_PUBLIC_URL`, which is a migration anyway). The
+key is recovered from the URL by `ownedHabitLogMediaKeyFromPublicUrl()`
+when we need to delete — same pattern as avatars.
+
+### Why no per-log thumbnail column
+
+For v1 we trust R2's CDN + the original asset. If the feed turns out to
+be too heavy on mobile, add a `media_thumb_url` column and generate a
+small JPEG in a Cloudflare Worker on upload — not a schema concern today.

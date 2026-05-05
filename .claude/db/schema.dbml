@@ -128,8 +128,16 @@ Table habit_logs {
   user_id GUID [ref: > users.id, not null]
   completed_at timestamp [not null]
   notes text
+
+  // Optional R2-hosted attachment. `media_url` is the public URL; the
+  // object key is derived from it for cleanup. See NOTES.md §17 for size +
+  // duration limits and the cleanup contract.
+  media_url varchar [note: 'public R2 URL; null when log is text-only']
+  media_type varchar [note: 'photo, video — see media_type enum']
+  media_duration_ms int [note: 'video only; capped at 15000 by CHECK']
+
   created_at timestamp [default: `now()`]
-  
+
   indexes {
     habit_id
     user_id

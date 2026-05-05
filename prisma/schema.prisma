@@ -65,6 +65,13 @@ enum DevicePlatform {
   @@map("device_platform")
 }
 
+enum MediaType {
+  photo
+  video
+
+  @@map("media_type")
+}
+
 // ============================================================
 // USERS + NEXTAUTH (Discord OAuth only)
 //
@@ -210,7 +217,16 @@ model HabitLog {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   completedAt DateTime @map("completed_at") @db.Timestamptz
   notes       String?
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Optional photo/video attachment stored in R2. `mediaUrl` is the public
+  // URL; the object key is derived from it for cleanup. `mediaDurationMs`
+  // is required for video (capped at 15_000 by app + DB CHECK) and null
+  // for photo. See .claude/db/NOTES.md §17.
+  mediaUrl        String?    @map("media_url")
+  mediaType       MediaType? @map("media_type")
+  mediaDurationMs Int?       @map("media_duration_ms")
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   likes         Like[]
   comments      Comment[]
