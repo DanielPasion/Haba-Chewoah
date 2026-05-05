@@ -93,6 +93,7 @@ export function HabitLogDetailView({
           habitLogId={log.id}
           comments={log.comments}
           viewer={viewer}
+          ownerId={log.owner.id}
         />
       </div>
     </div>
