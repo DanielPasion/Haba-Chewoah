@@ -111,22 +111,25 @@ export default async function FeedPage() {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center gap-4 rounded-hc-3 border-hc border-dashed border-hc-line-strong bg-hc-surface-alt px-6 py-12 text-center">
-      <TwoFaceMascot size={84} mood="wink" bg="#1B1726" />
-      <div className="flex flex-col items-center gap-1">
-        <p className="font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
-          quiet in here
-        </p>
-        <p className="max-w-sm text-sm text-hc-ink">
-          follow some humans, or log your own habit. either way, the feed only
-          shows up when somebody actually does the thing.
+    <div className="flex flex-col items-center gap-5 rounded-hc-3 border border-dashed border-hc-line-strong bg-hc-surface-alt px-6 py-14 text-center">
+      <TwoFaceMascot size={72} mood="wink" bg="#1B1726" />
+      <div className="flex flex-col items-center gap-2">
+        <h2
+          className="font-display text-xl font-extrabold text-hc-ink"
+          style={{ letterSpacing: "-0.03em" }}
+        >
+          your feed is quiet
+        </h2>
+        <p className="max-w-sm text-sm leading-relaxed text-hc-muted">
+          follow a few humans, or log a habit of your own. the feed lights up
+          when people show up for themselves.
         </p>
       </div>
       <Link
         href="/profile"
         className={buttonClass({ variant: "primary", size: "md" })}
       >
-        log something →
+        log something
       </Link>
     </div>
   );

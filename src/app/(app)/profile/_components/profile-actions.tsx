@@ -127,7 +127,7 @@ function FollowButton({
         isPending ? "opacity-70" : ""
       }`}
     >
-      {optimistic ? "✓ following" : "+ follow"}
+      {optimistic ? "following" : "follow"}
     </button>
   );
 }
@@ -252,11 +252,11 @@ function ChewOutButton({
     pending || status === "sent" || status === "cooldown" || status === "ineligible";
   const label =
     status === "sent"
-      ? "chewed ⚡"
+      ? "chewed out"
       : status === "cooldown"
         ? "buzzed today"
         : status === "ineligible"
-          ? "they're done for today"
+          ? "they're done today"
           : pending
             ? "chewing…"
             : "chew out";

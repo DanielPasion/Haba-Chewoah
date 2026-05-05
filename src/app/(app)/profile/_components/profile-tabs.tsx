@@ -61,7 +61,7 @@ export function ProfileTabs({
 
   return (
     <div>
-      <div role="tablist" className="flex gap-1 border-b border-hc-line px-1">
+      <div role="tablist" className="flex gap-4 border-b border-hc-line px-5 md:px-0">
         {tabs.map((t) => {
           const sel = t.id === tab;
           return (
@@ -70,22 +70,16 @@ export function ProfileTabs({
               role="tab"
               aria-selected={sel}
               onClick={() => setTab(t.id)}
-              className={`relative flex items-center gap-1.5 px-3.5 py-3 font-sans text-sm font-bold transition-colors ${
+              className={`relative flex items-center gap-1.5 px-1 py-3 font-sans text-sm font-bold transition-colors ${
                 sel ? "text-hc-ink" : "text-hc-muted hover:text-hc-ink"
               }`}
             >
-              {t.label}
-              <span
-                className={`rounded-full px-1.5 py-px font-mono text-hc-eyebrow font-bold ${
-                  sel
-                    ? "bg-hc-brand text-hc-brand-ink"
-                    : "bg-hc-line-strong text-hc-muted"
-                }`}
-              >
+              <span className="capitalize">{t.label}</span>
+              <span className="font-mono text-hc-tiny font-medium text-hc-muted">
                 {t.count}
               </span>
               {sel && (
-                <span className="absolute inset-x-2 -bottom-px h-hc-tabline rounded-sm bg-hc-ink" />
+                <span className="absolute inset-x-0 -bottom-px h-hc-tabline rounded-sm bg-hc-ink" />
               )}
             </button>
           );
@@ -124,7 +118,7 @@ export function ProfileTabs({
           }
         />
       ) : (
-        <div className="grid grid-cols-2 gap-3 px-1 py-5 md:px-0 md:py-6 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 px-5 py-5 md:px-0 md:py-6 lg:grid-cols-3">
           {habits.map((h) => (
             <HabitCard key={h.id} habit={h} />
           ))}
@@ -207,7 +201,7 @@ function PaginatedLogsList({
   }, [cursor, loadMore]);
 
   return (
-    <div className="flex flex-col gap-3 px-1 py-5 md:px-0 md:py-6">
+    <div className="flex flex-col gap-3 px-5 py-5 md:px-0 md:py-6">
       {items.map((l) => (
         <ProfileLogRow key={l.id} log={l} isOwn={isOwn} />
       ))}
@@ -217,7 +211,7 @@ function PaginatedLogsList({
             type="button"
             onClick={loadMore}
             disabled={pending}
-            className="rounded-full border border-hc-line-strong bg-hc-surface px-4 py-2 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-ink hover:bg-hc-surface-alt disabled:opacity-60"
+            className="rounded-full border border-hc-line bg-hc-surface px-5 py-2 font-sans text-xs font-semibold text-hc-ink hover:bg-hc-surface-alt disabled:opacity-60"
           >
             {pending ? "loading…" : "load more"}
           </button>

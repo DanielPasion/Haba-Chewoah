@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { Avatar } from "~/components/avatar";
+import { HabitIcon } from "~/components/habit-icon";
 import { RelativeTime } from "~/components/relative-time";
 
 import type { MediaType } from "../../../../../generated/prisma";
@@ -68,7 +69,7 @@ export function HabitLogDetailView({
   viewer: LogViewer;
 }) {
   return (
-    <div className="-mx-5 -my-6 flex flex-col gap-4 pb-2 md:-mx-8 md:-my-8 md:gap-6">
+    <div className="-mx-5 -my-6 flex flex-col gap-5 pb-2 md:-mx-8 md:-my-8 md:gap-6">
       <Header
         logId={log.id}
         isOwn={isOwn}
@@ -79,7 +80,7 @@ export function HabitLogDetailView({
 
       <div className="mx-auto flex w-full max-w-130 flex-col gap-4 px-5 md:px-8 md:gap-5">
         <AuthorStrip log={log} dayNumber={dayNumber} isOwn={isOwn} />
-        {log.media && <MediaHero log={log} dayNumber={dayNumber} />}
+        {log.media && <MediaHero log={log} />}
         {log.notes && <Caption notes={log.notes} />}
 
         <Reactions
@@ -115,19 +116,19 @@ function Header({
   habitName: string;
 }) {
   return (
-    <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
+    <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/85 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
       <Link
         href={isOwn ? `/habit/${habitId}` : `/profile/${ownerUsername}`}
         aria-label="back"
-        className="grid size-9 shrink-0 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink shadow-hc-soft hover:bg-hc-surface-alt"
+        className="grid size-9 shrink-0 place-items-center rounded-full text-hc-ink hover:bg-hc-surface"
       >
         <svg
-          width="16"
-          height="16"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.4"
+          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden
@@ -136,10 +137,10 @@ function Header({
         </svg>
       </Link>
       <h1
-        className="min-w-0 flex-1 truncate font-display text-base font-extrabold leading-none text-hc-ink"
-        style={{ letterSpacing: "-0.02em" }}
+        className="min-w-0 flex-1 truncate font-display text-base font-extrabold text-hc-ink"
+        style={{ letterSpacing: "-0.03em" }}
       >
-        {habitName} · log
+        {habitName}
       </h1>
       <LogActions logId={logId} habitId={habitId} isOwn={isOwn} />
     </header>
@@ -159,18 +160,16 @@ function AuthorStrip({
     <div className="flex items-center gap-3">
       <Link
         href={`/profile/${log.owner.username}`}
-        className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-hc-line bg-hc-ink"
+        className="shrink-0"
+        aria-label={`@${log.owner.username}`}
       >
-        {log.owner.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={log.owner.imageUrl}
-            alt={`@${log.owner.username}`}
-            className="size-full object-cover"
-          />
-        ) : (
-          <TwoFaceMascot size={36} bg="#1B1726" />
-        )}
+        <Avatar
+          imageUrl={log.owner.imageUrl}
+          name={log.owner.displayName}
+          fallbackName={log.owner.username}
+          size={44}
+          alt={`${log.owner.displayName} avatar`}
+        />
       </Link>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-1.5">
@@ -181,40 +180,36 @@ function AuthorStrip({
             {log.owner.displayName}
           </Link>
           {isOwn && (
-            <span className="font-mono text-hc-tiny font-semibold text-hc-muted">
+            <span className="font-mono text-hc-tiny font-medium text-hc-muted">
               (you)
             </span>
           )}
         </div>
-        <p className="truncate font-mono text-hc-meta font-semibold text-hc-muted">
+        <p className="truncate font-mono text-hc-meta font-medium text-hc-muted">
           @{log.owner.username} · <RelativeTime date={log.completedAt} />
         </p>
       </div>
       <Link
         href={`/habit/${log.habit.id}`}
-        className="flex min-w-0 max-w-40 shrink items-center gap-1 truncate rounded-full border border-hc-line bg-hc-brand px-3 py-1.5 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-brand-ink"
+        className="flex shrink-0 items-center gap-2 rounded-full bg-hc-surface-alt px-2.5 py-1.5 transition-colors hover:bg-hc-line"
         title={`${log.habit.name} · day ${dayNumber}`}
       >
-        <span className="shrink-0" aria-hidden>
-          {log.habit.icon ?? "✨"}
+        <HabitIcon value={log.habit.icon} size={20} />
+        <span className="max-w-32 truncate font-sans text-xs font-bold text-hc-ink">
+          {log.habit.name}
         </span>
-        <span className="truncate">{log.habit.name}</span>
-        <span className="shrink-0">· d{dayNumber}</span>
+        <span className="font-mono text-hc-tiny font-bold text-hc-muted">
+          d{dayNumber}
+        </span>
       </Link>
     </div>
   );
 }
 
-function MediaHero({
-  log,
-  dayNumber,
-}: {
-  log: HabitLogDetailData;
-  dayNumber: number;
-}) {
+function MediaHero({ log }: { log: HabitLogDetailData }) {
   if (!log.media) return null;
   return (
-    <div className="relative mx-auto w-full max-w-100 overflow-hidden rounded-hc-4 border-hc border-hc-line bg-hc-ink shadow-hc">
+    <div className="relative mx-auto w-full overflow-hidden rounded-hc-4 border border-hc-line bg-hc-ink">
       {log.media.type === "video" ? (
         <video
           src={log.media.url}
@@ -230,21 +225,21 @@ function MediaHero({
           className="aspect-[4/5] w-full object-cover"
         />
       )}
-      <div className="pointer-events-none absolute left-3 top-3 rounded-full border border-hc-line bg-hc-brand px-3 py-1 font-display text-sm font-extrabold text-hc-brand-ink">
-        day {dayNumber}
-      </div>
-      <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-hc-ink/70 px-2.5 py-1 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-bg backdrop-blur">
-        {log.media.type === "video"
-          ? `▶ video${log.media.durationMs ? ` · ${formatDuration(log.media.durationMs)}` : ""}`
-          : "📷 photo"}
-      </div>
+      {log.media.type === "video" && (
+        <div className="pointer-events-none absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-hc-ink/70 px-2.5 py-1 font-mono text-hc-tiny font-bold text-hc-bg backdrop-blur">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          {log.media.durationMs ? formatDuration(log.media.durationMs) : "video"}
+        </div>
+      )}
     </div>
   );
 }
 
 function Caption({ notes }: { notes: string }) {
   return (
-    <p className="whitespace-pre-wrap break-words text-base leading-relaxed text-hc-ink">
+    <p className="whitespace-pre-wrap break-words text-[16px] leading-relaxed text-hc-ink">
       {notes}
     </p>
   );
@@ -264,20 +259,20 @@ function Reactions({
   likers: HabitLogDetailData["likers"];
 }) {
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-5 border-y border-hc-line py-3">
       <LikeButton
         habitLogId={logId}
         initialLiked={likedByMe}
         initialCount={likeCount}
       />
-      <span className="flex items-center gap-1.5 font-mono text-sm font-bold text-hc-ink">
+      <span className="flex items-center gap-1.5 text-sm font-semibold text-hc-ink">
         <svg
-          width="20"
-          height="20"
+          width="22"
+          height="22"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="1.75"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden
@@ -287,7 +282,7 @@ function Reactions({
         {commentCount}
       </span>
       {likers.length > 0 && (
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-2">
           <div className="flex">
             {likers.map((u, i) => (
               <Link
@@ -295,24 +290,23 @@ function Reactions({
                 href={`/profile/${u.username}`}
                 aria-label={`@${u.username}`}
                 title={`@${u.username}`}
-                className="grid size-6 place-items-center overflow-hidden rounded-full border border-hc-bg bg-hc-ink"
                 style={{ marginLeft: i === 0 ? 0 : -8 }}
+                className="block"
               >
-                {u.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={u.imageUrl}
-                    alt=""
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  <TwoFaceMascot size={20} bg="#1B1726" />
-                )}
+                <Avatar
+                  imageUrl={u.imageUrl}
+                  name={u.displayName}
+                  fallbackName={u.username}
+                  size={24}
+                  ringWidth={2}
+                  ringClassName="text-hc-bg"
+                  alt={`${u.displayName} avatar`}
+                />
               </Link>
             ))}
           </div>
           {likeCount > likers.length && (
-            <span className="font-mono text-hc-tiny font-semibold text-hc-muted">
+            <span className="font-mono text-hc-tiny font-medium text-hc-muted">
               +{likeCount - likers.length}
             </span>
           )}
@@ -328,4 +322,3 @@ function formatDuration(ms: number) {
   const s = totalSec % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
-

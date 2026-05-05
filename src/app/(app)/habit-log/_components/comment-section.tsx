@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 
-import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { Avatar } from "~/components/avatar";
 import { RelativeTime } from "~/components/relative-time";
 
 import { createCommentAction, deleteCommentAction } from "../_actions";
@@ -26,24 +26,29 @@ export function CommentSection({
     <div className="flex flex-col gap-4">
       <div className="flex items-baseline justify-between">
         <h2
-          className="font-display text-base font-bold text-hc-ink"
-          style={{ letterSpacing: "-0.02em" }}
+          className="font-display text-base font-extrabold text-hc-ink"
+          style={{ letterSpacing: "-0.03em" }}
         >
-          {comments.length === 1
-            ? "1 comment"
-            : `${comments.length} comments`}
+          {comments.length === 1 ? "1 comment" : `${comments.length} comments`}
         </h2>
       </div>
 
-      <div className="flex flex-col gap-3">
-        {comments.map((c) => (
-          <CommentRow
-            key={c.id}
-            comment={c}
-            isOwnerOfPost={c.author.id === ownerId}
-          />
-        ))}
-      </div>
+      {comments.length === 0 ? (
+        <p className="rounded-hc-2 border border-dashed border-hc-line-strong bg-hc-surface-alt px-4 py-5 text-center text-sm text-hc-muted">
+          be the first to say something nice.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-4">
+          {comments.map((c) => (
+            <li key={c.id}>
+              <CommentRow
+                comment={c}
+                isOwnerOfPost={c.author.id === ownerId}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
 
       <Composer habitLogId={habitLogId} viewer={viewer} />
     </div>
@@ -68,58 +73,47 @@ function CommentRow({
   }
 
   return (
-    <div className="flex items-start gap-2.5">
+    <div className="flex items-start gap-3">
       <Link
         href={`/profile/${comment.author.username}`}
-        className="grid size-8 shrink-0 place-items-center overflow-hidden rounded-full border border-hc-line bg-hc-ink"
+        className="shrink-0"
         aria-label={`@${comment.author.username}`}
       >
-        {comment.author.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={comment.author.imageUrl}
-            alt=""
-            className="size-full object-cover"
-          />
-        ) : (
-          <TwoFaceMascot size={28} bg="#1B1726" />
-        )}
+        <Avatar
+          imageUrl={comment.author.imageUrl}
+          name={comment.author.displayName}
+          fallbackName={comment.author.username}
+          size={36}
+          alt={`${comment.author.displayName} avatar`}
+        />
       </Link>
       <div className="min-w-0 flex-1">
-        <div
-          className={`rounded-hc-2 border-hc px-3 py-2 ${
-            comment.isMine
-              ? "border-hc-ink bg-hc-brand text-hc-brand-ink dark:bg-hc-brand dark:text-hc-brand-ink"
-              : "border-hc-line-strong bg-hc-surface text-hc-ink"
-          }`}
-        >
-          <div className="mb-0.5 flex items-baseline gap-1.5">
-            <Link
-              href={`/profile/${comment.author.username}`}
-              className="font-sans text-xs font-bold hover:underline"
-            >
-              @{comment.author.username}
-            </Link>
-            {isOwnerOfPost && (
-              <span className="rounded-sm bg-hc-ink px-1.5 py-px font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow-narrow text-hc-brand">
-                OP
-              </span>
-            )}
-            <RelativeTime
-              date={comment.createdAt}
-              className="font-mono text-hc-tiny font-medium opacity-70"
-            />
-          </div>
-          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
-            {renderMentions(comment.content)}
-          </p>
+        <div className="mb-1 flex items-baseline gap-1.5">
+          <Link
+            href={`/profile/${comment.author.username}`}
+            className="font-sans text-sm font-bold text-hc-ink hover:underline"
+          >
+            {comment.author.displayName}
+          </Link>
+          {isOwnerOfPost && (
+            <span className="rounded-full bg-hc-surface-alt px-1.5 py-px font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow-narrow text-hc-muted">
+              author
+            </span>
+          )}
+          <RelativeTime
+            date={comment.createdAt}
+            className="font-mono text-hc-tiny font-medium text-hc-muted"
+          />
         </div>
+        <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed text-hc-ink">
+          {renderMentions(comment.content)}
+        </p>
         {comment.isMine && (
           <button
             type="button"
             onClick={onDelete}
             disabled={pending}
-            className="mt-1 px-1 font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted hover:text-hc-accent disabled:opacity-50"
+            className="mt-1 font-sans text-xs font-semibold text-hc-muted hover:text-hc-accent disabled:opacity-50"
           >
             {pending ? "deleting…" : "delete"}
           </button>
@@ -161,45 +155,37 @@ function Composer({
     <form
       ref={formRef}
       action={onSubmit}
-      className="sticky bottom-0 -mx-5 flex items-center gap-2.5 border-t border-hc-line bg-hc-bg/95 px-5 py-2.5 backdrop-blur md:-mx-8 md:px-8"
+      className="sticky bottom-0 -mx-5 flex items-center gap-2.5 border-t border-hc-line bg-hc-bg/95 px-5 py-3 backdrop-blur md:-mx-8 md:px-8"
     >
       <input type="hidden" name="habitLogId" value={habitLogId} />
-      <div
-        aria-hidden
-        className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-hc-line bg-hc-ink"
-      >
-        {viewer.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={viewer.imageUrl}
-            alt=""
-            className="size-full object-cover"
-          />
-        ) : (
-          <TwoFaceMascot size={32} bg="#1B1726" />
-        )}
-      </div>
-      <div className="flex flex-1 items-center gap-2 rounded-full border border-hc-line bg-hc-surface px-3.5 py-1">
+      <Avatar
+        imageUrl={viewer.imageUrl}
+        name={viewer.displayName}
+        fallbackName={viewer.username}
+        size={36}
+        alt=""
+      />
+      <div className="flex flex-1 items-center gap-2 rounded-full border border-hc-line bg-hc-surface px-4 py-1">
         <input
           type="text"
           name="content"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="add a cheer or a roast…"
+          placeholder="add a comment…"
           maxLength={2000}
           disabled={pending}
-          className="min-w-0 flex-1 bg-transparent py-1 text-sm text-hc-ink outline-none placeholder:text-hc-muted-soft"
+          className="min-w-0 flex-1 bg-transparent py-2 text-sm text-hc-ink outline-none placeholder:text-hc-muted-soft"
         />
         <button
           type="submit"
           disabled={!canSend}
-          className={`rounded-full px-3.5 py-1.5 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow transition-colors ${
+          className={`rounded-full px-4 py-1.5 font-sans text-xs font-bold transition-colors ${
             canSend
-              ? "bg-hc-accent text-hc-accent-ink"
-              : "bg-hc-line-strong text-hc-muted"
+              ? "bg-hc-ink text-hc-bg hover:bg-hc-ink-soft dark:bg-hc-brand dark:text-hc-brand-ink"
+              : "text-hc-muted"
           }`}
         >
-          {pending ? "sending…" : "send"}
+          {pending ? "sending…" : "post"}
         </button>
       </div>
       {error && (
@@ -208,7 +194,6 @@ function Composer({
     </form>
   );
 }
-
 
 // `@username` runs in the comment text become profile links. Username
 // rules per .claude/db/NOTES.md §4: 3-32 chars of [A-Za-z0-9_]. The

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { Avatar } from "~/components/avatar";
+import { HabitIcon } from "~/components/habit-icon";
 import { RelativeTime } from "~/components/relative-time";
 
 import type { MediaType } from "../../../../../generated/prisma";
@@ -28,63 +29,69 @@ export type FeedItem = {
 };
 
 export function FeedCard({ item }: { item: FeedItem }) {
+  const hasMedia = item.mediaUrl !== null && item.mediaType !== null;
+
   return (
-    <article className="overflow-hidden rounded-hc-3 border-hc border-hc-line bg-hc-surface shadow-hc-soft">
-      <div className="flex items-start gap-3 p-3.5">
+    <article className="overflow-hidden rounded-hc-3 border border-hc-line bg-hc-surface">
+      <header className="flex items-center gap-3 px-4 pt-4">
         <Link
           href={`/profile/${item.author.username}`}
           aria-label={`@${item.author.username}`}
-          className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full border border-hc-line bg-hc-ink"
+          className="shrink-0"
         >
-          {item.author.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={item.author.imageUrl}
-              alt=""
-              className="size-full object-cover"
-            />
-          ) : (
-            <TwoFaceMascot size={36} bg="#1B1726" />
-          )}
+          <Avatar
+            imageUrl={item.author.imageUrl}
+            name={item.author.displayName}
+            fallbackName={item.author.username}
+            size={40}
+            alt={`${item.author.displayName} avatar`}
+          />
         </Link>
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline gap-1.5">
-            <Link
-              href={`/profile/${item.author.username}`}
-              className="truncate font-sans text-sm font-bold text-hc-ink hover:underline"
-            >
-              {item.author.displayName}
-            </Link>
-            <span className="font-mono text-hc-tiny font-medium text-hc-muted">
-              · <RelativeTime date={item.completedAt} />
-            </span>
-          </div>
-          <div className="mt-1 flex items-center gap-2">
-            <Link
-              href={`/habit/${item.habit.id}`}
-              className="max-w-full truncate rounded-full bg-hc-brand px-2 py-0.5 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-brand-ink"
-              title={item.habit.name}
-            >
-              {item.habit.icon ?? "✨"} {item.habit.name}
-            </Link>
-            <span className="font-mono text-hc-tiny font-bold text-hc-accent">
-              day {item.dayNumber}
-            </span>
-          </div>
+          <Link
+            href={`/profile/${item.author.username}`}
+            className="block truncate font-sans text-sm font-bold text-hc-ink hover:underline"
+          >
+            {item.author.displayName}
+          </Link>
+          <p className="truncate font-mono text-hc-tiny font-medium text-hc-muted">
+            @{item.author.username} · <RelativeTime date={item.completedAt} />
+          </p>
         </div>
-      </div>
+        <Link
+          href={`/habit/${item.habit.id}`}
+          className="flex shrink-0 items-center gap-2 rounded-full bg-hc-surface-alt px-2.5 py-1.5 transition-colors hover:bg-hc-line"
+          title={item.habit.name}
+        >
+          <HabitIcon value={item.habit.icon} size={20} />
+          <span className="max-w-32 truncate font-sans text-xs font-bold text-hc-ink">
+            {item.habit.name}
+          </span>
+          <span className="font-mono text-hc-tiny font-bold text-hc-muted">
+            d{item.dayNumber}
+          </span>
+        </Link>
+      </header>
 
-      {item.mediaUrl && item.mediaType && (
+      {item.notes && (
+        <Link href={`/habit-log/${item.id}`} className="block">
+          <p className="px-4 pb-3 pt-2 text-[15px] leading-relaxed text-hc-ink">
+            {item.notes}
+          </p>
+        </Link>
+      )}
+
+      {hasMedia && (
         <Link
           href={`/habit-log/${item.id}`}
           className="block"
           aria-label="open log"
         >
-          <div className="relative mx-3.5 overflow-hidden rounded-hc-2 border border-hc-line bg-hc-ink">
+          <div className="relative overflow-hidden border-y border-hc-line bg-hc-ink">
             {item.mediaType === "video" ? (
               <video
-                src={item.mediaUrl}
-                className="aspect-[4/3] w-full object-cover"
+                src={item.mediaUrl!}
+                className="aspect-[4/5] w-full object-cover"
                 muted
                 playsInline
                 preload="metadata"
@@ -92,29 +99,24 @@ export function FeedCard({ item }: { item: FeedItem }) {
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={item.mediaUrl}
+                src={item.mediaUrl!}
                 alt=""
-                className="aspect-[4/3] w-full object-cover"
+                className="aspect-[4/5] w-full object-cover"
               />
             )}
-            <div className="pointer-events-none absolute left-2 top-2 rounded-full bg-hc-ink/75 px-2 py-0.5 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-bg backdrop-blur">
-              {item.mediaType === "video"
-                ? `▶ ${formatDuration(item.mediaDurationMs ?? 0)}`
-                : "📷 photo"}
-            </div>
+            {item.mediaType === "video" && (
+              <div className="pointer-events-none absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-hc-ink/70 px-2.5 py-1 font-mono text-hc-tiny font-bold text-hc-bg backdrop-blur">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                {formatDuration(item.mediaDurationMs ?? 0)}
+              </div>
+            )}
           </div>
         </Link>
       )}
 
-      {item.notes && (
-        <Link href={`/habit-log/${item.id}`} className="block">
-          <p className="px-4 pb-1 pt-3 text-sm leading-relaxed text-hc-ink">
-            {item.notes}
-          </p>
-        </Link>
-      )}
-
-      <div className="flex items-center gap-4 px-4 pb-3 pt-2">
+      <footer className="flex items-center gap-5 px-4 py-3">
         <LikeButton
           habitLogId={item.id}
           initialLiked={item.likedByMe}
@@ -122,15 +124,16 @@ export function FeedCard({ item }: { item: FeedItem }) {
         />
         <Link
           href={`/habit-log/${item.id}#comments`}
-          className="flex items-center gap-1.5 font-mono text-sm font-bold text-hc-ink"
+          className="flex items-center gap-1.5 text-sm font-semibold text-hc-ink"
+          aria-label={`${item.commentCount} comments`}
         >
           <svg
-            width="20"
-            height="20"
+            width="22"
+            height="22"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.75"
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden
@@ -141,11 +144,11 @@ export function FeedCard({ item }: { item: FeedItem }) {
         </Link>
         <Link
           href={`/habit-log/${item.id}`}
-          className="ml-auto font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-ink"
+          className="ml-auto font-sans text-xs font-semibold text-hc-muted hover:text-hc-ink"
         >
-          open →
+          view log
         </Link>
-      </div>
+      </footer>
     </article>
   );
 }
@@ -156,4 +159,3 @@ function formatDuration(ms: number) {
   const s = totalSec % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
-

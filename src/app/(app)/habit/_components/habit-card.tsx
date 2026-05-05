@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { HabitIcon } from "~/components/habit-icon";
+
 import type { FrequencyType } from "../../../../../generated/prisma";
 
 export type HabitCardData = {
@@ -20,81 +22,55 @@ export type HabitCardData = {
 };
 
 /**
- * Habit tile shown in the profile "habits" tab. Mirrors
- * `.claude/ui/project/profile-page.jsx` (`HabitCard`) — public habits get the
- * brand-yellow surface, private get the neutral surface, and the streak day
- * is the dominant focal element.
+ * Habit tile shown in the profile "habits" tab. Editorial restraint:
+ *
+ *  - hairline border, no fill change between public/private;
+ *  - the streak number is the focal point but rendered in restrained ink;
+ *  - the public/private state is a subtle eyebrow label rather than a
+ *    sticker-style background swap.
  */
 export function HabitCard({ habit }: { habit: HabitCardData }) {
-  const isPublic = habit.isPublic;
-  const surfaceClass = isPublic
-    ? "bg-hc-brand text-hc-brand-ink"
-    : "bg-hc-surface text-hc-ink";
-  const subtleTextClass = isPublic ? "text-hc-brand-ink/70" : "text-hc-muted";
-
+  const hasStreak = habit.currentStreak > 0;
   return (
     <Link
       href={`/habit/${habit.id}`}
-      className={`group relative flex flex-col gap-2.5 rounded-hc-3 border border-hc-line p-3.5 shadow-hc-soft transition-transform hover:-translate-y-px hover:shadow-hc ${surfaceClass}`}
+      className="group flex flex-col gap-3 rounded-hc-3 border border-hc-line bg-hc-surface p-4 transition-colors hover:bg-hc-surface-alt"
     >
       <div className="flex items-start justify-between gap-2">
-        <span
-          className={`grid size-9 shrink-0 place-items-center rounded-hc-2 text-xl ${
-            isPublic
-              ? "border border-hc-brand-ink/15 bg-hc-brand-ink/10"
-              : "border border-hc-line-strong bg-hc-bg"
-          }`}
-        >
-          {habit.icon ?? "✨"}
-        </span>
-        <span
-          className={`shrink-0 rounded px-1.5 py-0.5 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow ${
-            isPublic
-              ? "bg-hc-brand-ink text-hc-brand"
-              : "bg-hc-bg text-hc-muted"
-          }`}
-        >
-          {isPublic ? "· public" : "🔒 folder"}
+        <HabitIcon value={habit.icon} size={40} />
+        <span className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+          {habit.isPublic ? "public" : "private"}
         </span>
       </div>
 
       <h3
-        className={`font-display text-sm font-extrabold leading-tight ${
-          isPublic ? "text-hc-brand-ink" : "text-hc-ink"
-        }`}
-        style={{ letterSpacing: "-0.02em" }}
+        className="font-display text-base font-extrabold leading-tight text-hc-ink"
+        style={{ letterSpacing: "-0.03em" }}
       >
         {habit.name}
       </h3>
 
-      <div className="mt-auto flex items-end justify-between gap-2">
+      <div className="mt-auto flex items-end justify-between gap-2 pt-1">
         <div className="min-w-0">
           <div className="flex items-baseline gap-1">
             <span
-              className={`font-display text-3xl font-extrabold leading-none ${
-                isPublic ? "text-hc-brand-ink" : "text-hc-ink"
+              className={`font-display font-extrabold leading-none tabular-nums ${
+                hasStreak ? "text-hc-ink" : "text-hc-ink/40"
               }`}
-              style={{ letterSpacing: "-0.04em" }}
+              style={{ fontSize: 32, letterSpacing: "-0.04em" }}
             >
               {habit.currentStreak}
             </span>
-            <span
-              className={`font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow ${subtleTextClass}`}
-            >
-              days
+            <span className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+              day{habit.currentStreak === 1 ? "" : "s"}
             </span>
           </div>
-          <div
-            className={`mt-1 truncate font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow ${subtleTextClass}`}
-          >
-            {frequencyShort(habit)} · {habit.completion}% rate
+          <div className="mt-1 truncate font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+            {frequencyShort(habit)} · {habit.completion}%
           </div>
         </div>
-        <div
-          className={`shrink-0 text-right font-mono text-hc-tiny font-semibold ${subtleTextClass}`}
-        >
-          <div className="opacity-70">last log</div>
-          <div>{formatLastLog(habit.lastLogAt)}</div>
+        <div className="shrink-0 text-right font-mono text-hc-tiny font-medium text-hc-muted">
+          {formatLastLog(habit.lastLogAt)}
         </div>
       </div>
     </Link>
@@ -111,7 +87,7 @@ function frequencyShort(habit: HabitCardData) {
 
 const RTF = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
 function formatLastLog(date: Date | null) {
-  if (!date) return "—";
+  if (!date) return "no logs";
   const now = Date.now();
   const diffSec = Math.round((date.getTime() - now) / 1000);
   const abs = Math.abs(diffSec);

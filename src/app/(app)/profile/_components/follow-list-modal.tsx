@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { Avatar } from "~/components/avatar";
 
 import { type FollowListUser, getFollowListAction } from "../_actions";
+import { FollowToggleButton } from "./follow-toggle-button";
 
 type Kind = "followers" | "following";
 
@@ -84,10 +85,10 @@ export function FollowListModal({
         onClick={onClose}
         className="absolute inset-0 bg-hc-ink/40 backdrop-blur-sm"
       />
-      <div className="relative m-3 flex max-h-[85vh] w-full max-w-115 flex-col overflow-hidden rounded-hc-4 border-hc border-hc-ink bg-hc-surface shadow-hc-stamp">
+      <div className="relative m-3 flex max-h-[85vh] w-full max-w-115 flex-col overflow-hidden rounded-hc-4 border border-hc-line bg-hc-surface shadow-hc-lg">
         <div className="flex items-start justify-between gap-3 border-b border-hc-line p-5">
           <div>
-            <div className="font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+            <div className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
               {eyebrow}
             </div>
             <h2
@@ -101,7 +102,7 @@ export function FollowListModal({
             type="button"
             onClick={onClose}
             aria-label="close"
-            className="grid h-8 w-8 cursor-pointer place-items-center rounded-full border-hc border-hc-ink bg-hc-bg text-hc-ink transition-transform hover:-translate-y-[1px]"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-hc-ink hover:bg-hc-surface-alt"
           >
             <svg
               width="16"
@@ -109,7 +110,7 @@ export function FollowListModal({
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.4"
+              strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden
@@ -140,14 +141,13 @@ export function FollowListModal({
               ))}
             </div>
           ) : users.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
-              <TwoFaceMascot size={64} mood="default" bg="#1B1726" />
-              <p className="font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
+            <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+              <p className="font-display text-base font-extrabold text-hc-ink">
                 {kind === "followers" ? "no followers yet" : "not following anyone yet"}
               </p>
             </div>
           ) : (
-            <ul className="flex flex-col gap-1">
+            <ul className="flex flex-col gap-0.5">
               {users.map((u) => (
                 <li key={u.id}>
                   <Link
@@ -155,26 +155,29 @@ export function FollowListModal({
                     onClick={onClose}
                     className="flex items-center gap-3 rounded-hc-2 px-3 py-2.5 transition-colors hover:bg-hc-surface-alt"
                   >
-                    <div className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full border border-hc-line bg-hc-ink">
-                      {u.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={u.imageUrl}
-                          alt=""
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <TwoFaceMascot size={36} bg="#1B1726" />
-                      )}
-                    </div>
+                    <Avatar
+                      imageUrl={u.imageUrl}
+                      name={u.displayName}
+                      fallbackName={u.username}
+                      size={40}
+                      alt={`${u.displayName} avatar`}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-sans text-sm font-bold text-hc-ink">
                         {u.displayName}
                       </div>
-                      <div className="truncate font-mono text-hc-eyebrow font-medium text-hc-muted">
+                      <div className="truncate font-mono text-hc-meta font-medium text-hc-muted">
                         @{u.username}
                       </div>
                     </div>
+                    {!u.isSelf && (
+                      <FollowToggleButton
+                        targetUserId={u.id}
+                        initialIsFollowing={u.isFollowing}
+                        size="sm"
+                        refreshOnChange
+                      />
+                    )}
                   </Link>
                 </li>
               ))}

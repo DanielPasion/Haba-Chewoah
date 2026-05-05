@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
-import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { HabitIcon } from "~/components/habit-icon";
 import { HabitLogMediaPicker } from "~/components/habit-log-media-picker";
 import { buttonClass } from "~/components/ui";
 
@@ -82,13 +82,11 @@ export function QuickLogSheet({
           aria-hidden
         />
 
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="grid size-10 place-items-center rounded-hc-2 border border-hc-line-strong bg-hc-brand text-xl">
-              {habitIcon ?? "✨"}
-            </span>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <HabitIcon value={habitIcon} size={44} emphasis="strong" />
             <div className="min-w-0">
-              <p className="font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-muted">
+              <p className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
                 logging
               </p>
               <h2
@@ -102,7 +100,7 @@ export function QuickLogSheet({
           <button
             type="button"
             onClick={onClose}
-            className="font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-muted"
+            className="font-sans text-sm font-semibold text-hc-muted hover:text-hc-ink"
           >
             cancel
           </button>
@@ -139,8 +137,7 @@ export function QuickLogSheet({
           </div>
 
           {error && (
-            <p className="flex items-center gap-2 rounded-hc-2 border-hc border-hc-accent/40 bg-hc-accent/10 px-3 py-2 font-mono text-hc-eyebrow uppercase tracking-hc-eyebrow text-hc-accent">
-              <TwoFaceMascot size={20} mood="dead" bg="#1B1726" />
+            <p className="rounded-hc-2 border border-hc-accent/40 bg-hc-accent/10 px-3 py-2 text-sm text-hc-accent">
               {error}
             </p>
           )}
@@ -150,7 +147,7 @@ export function QuickLogSheet({
             disabled={pending}
             className={`${buttonClass({ variant: "primary", size: "lg", fullWidth: true })} disabled:cursor-not-allowed disabled:opacity-60`}
           >
-            {pending ? "logging…" : "+ log it"}
+            {pending ? "logging…" : "log it"}
           </button>
         </form>
       </div>

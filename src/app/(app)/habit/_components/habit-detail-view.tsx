@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { Avatar } from "~/components/avatar";
+import { HabitIcon } from "~/components/habit-icon";
 import { RelativeTime } from "~/components/relative-time";
 import { buttonClass } from "~/components/ui";
 import {
@@ -80,7 +81,7 @@ export function HabitDetailView({
   const nextDay = stats.currentStreak + 1;
 
   return (
-    <div className="-mx-5 -my-6 flex flex-col gap-5 pb-2 md:-mx-8 md:-my-8 md:gap-6">
+    <div className="-mx-5 -my-6 flex flex-col gap-6 pb-2 md:-mx-8 md:-my-8 md:gap-7">
       <Header habitName={habit.name} habitId={habit.id} isOwn={isOwn} />
 
       <div className="mx-auto flex w-full max-w-180 flex-col gap-5 px-5 md:px-8 md:gap-6">
@@ -116,19 +117,19 @@ function Header({
   isOwn: boolean;
 }) {
   return (
-    <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
+    <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/85 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
       <Link
         href="/profile"
         aria-label="back to profile"
-        className="grid size-9 shrink-0 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink shadow-hc-soft hover:bg-hc-surface-alt"
+        className="grid size-9 shrink-0 place-items-center rounded-full text-hc-ink hover:bg-hc-surface"
       >
         <svg
-          width="16"
-          height="16"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.4"
+          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden
@@ -137,8 +138,8 @@ function Header({
         </svg>
       </Link>
       <h1
-        className="min-w-0 flex-1 truncate font-display text-base font-extrabold leading-none text-hc-ink"
-        style={{ letterSpacing: "-0.02em" }}
+        className="min-w-0 flex-1 truncate font-display text-base font-extrabold text-hc-ink"
+        style={{ letterSpacing: "-0.03em" }}
       >
         {habitName}
       </h1>
@@ -146,15 +147,15 @@ function Header({
         <Link
           href={`/habit/${habitId}/edit`}
           aria-label="edit habit"
-          className="grid size-9 shrink-0 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink shadow-hc-soft hover:bg-hc-surface-alt"
+          className="grid size-9 shrink-0 place-items-center rounded-full text-hc-ink hover:bg-hc-surface"
         >
           <svg
-            width="16"
-            height="16"
+            width="17"
+            height="17"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2.2"
+            strokeWidth="1.85"
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden
@@ -179,63 +180,56 @@ function HeroCard({
   const dayCount = stats.currentStreak;
   const hasStreak = dayCount > 0;
   const sinceDate = habit.startDate ?? habit.createdAt;
-  return (
-    <section className="relative overflow-hidden rounded-hc-4 border-hc border-hc-line bg-hc-surface p-6 shadow-hc">
-      <span
-        className="absolute inset-x-0 top-0 h-1.5 bg-hc-brand"
-        aria-hidden
-      />
-      <span className="absolute right-4 top-4 rounded-full bg-hc-ink px-2 py-1 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-brand dark:bg-hc-brand dark:text-hc-brand-ink">
-        {habit.isPublic ? "· live public" : "🔒 folder"}
-      </span>
 
-      <div className="mb-2 flex items-center gap-3">
-        <span className="text-3xl leading-none" aria-hidden>
-          {habit.icon ?? "✨"}
-        </span>
-        <span className="font-mono text-hc-meta font-bold uppercase tracking-hc-eyebrow text-hc-ink/70">
-          {frequencyLabel(habit)}
-        </span>
+  return (
+    <section className="flex flex-col gap-5 rounded-hc-4 border border-hc-line bg-hc-surface p-6 md:p-8">
+      <div className="flex items-start gap-4">
+        <HabitIcon value={habit.icon} size={56} emphasis="strong" />
+        <div className="min-w-0 flex-1">
+          <p className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+            {frequencyLabel(habit)} · {habit.isPublic ? "public" : "private"}
+          </p>
+          <h1
+            className="mt-1 font-display text-2xl font-extrabold leading-tight text-hc-ink md:text-3xl"
+            style={{ letterSpacing: "-0.04em" }}
+          >
+            {habit.name}
+          </h1>
+        </div>
       </div>
 
-      <h1
-        className="mb-4 font-display text-4xl font-extrabold leading-none text-hc-ink"
-        style={{ letterSpacing: "-0.04em" }}
-      >
-        {habit.name}
-      </h1>
-
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-baseline gap-2">
+      <div className="flex items-end justify-between gap-3 border-t border-hc-line pt-5">
+        <div>
+          <p className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+            current streak
+          </p>
+          <div className="mt-1 flex items-baseline gap-2">
             <span
-              className="font-display text-8xl font-extrabold leading-[0.85] text-hc-ink tabular-nums"
+              className="font-display text-7xl font-extrabold leading-[0.85] text-hc-ink tabular-nums md:text-8xl"
               style={{ letterSpacing: "-0.06em" }}
             >
               {dayCount}
             </span>
             <span
-              className="font-display text-2xl font-extrabold text-hc-ink"
+              className="font-display text-2xl font-extrabold text-hc-muted"
               style={{ letterSpacing: "-0.03em" }}
             >
               {dayCount === 1 ? "day" : "days"}
             </span>
           </div>
-          <p className="mt-1.5 font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-ink/70">
-            since {formatSince(sinceDate)} · current streak: {stats.currentStreak}
+        </div>
+        <div className="text-right">
+          <p className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+            since
+          </p>
+          <p className="mt-1 font-display text-base font-extrabold text-hc-ink" style={{ letterSpacing: "-0.02em" }}>
+            {formatSince(sinceDate)}
           </p>
           {!hasStreak && (
-            <p className="mt-1 font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-              {isOwn ? "log your first day to start" : "no streak yet"}
+            <p className="mt-1 font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+              {isOwn ? "log day 1 to start" : "no streak yet"}
             </p>
           )}
-        </div>
-        <div className="-mb-2 shrink-0">
-          <TwoFaceMascot
-            size={84}
-            mood={hasStreak ? "celebrate" : "default"}
-            bg="#1B1726"
-          />
         </div>
       </div>
     </section>
@@ -250,9 +244,9 @@ function formatSince(date: Date) {
 }
 
 function frequencyLabel(habit: HabitDetailData) {
-  if (habit.frequencyType === "daily") return "daily · 1× / day";
+  if (habit.frequencyType === "daily") return "daily";
   if (habit.frequencyType === "weekly") {
-    return `weekly · ${habit.targetCount}× / week`;
+    return `${habit.targetCount}× / week`;
   }
   return `${habit.targetCount}× / ${habit.periodDays ?? 7} days`;
 }
@@ -269,25 +263,23 @@ function StatsRow({
   total: number;
 }) {
   const stats = [
-    { value: `${completionPct}%`, label: "completion", accent: false },
-    { value: longest.toString(), label: "longest", accent: false },
-    { value: current.toString(), label: "current", accent: true },
-    { value: total.toString(), label: "total logs", accent: false },
+    { value: `${completionPct}%`, label: "completion" },
+    { value: longest.toString(), label: "longest" },
+    { value: current.toString(), label: "current" },
+    { value: total.toString(), label: "total" },
   ];
   return (
-    <div className="grid grid-cols-4 overflow-hidden rounded-hc-3 border-hc border-hc-line bg-hc-surface">
+    <div className="grid grid-cols-4 overflow-hidden rounded-hc-3 border border-hc-line bg-hc-surface">
       {stats.map((s, i) => (
         <div
           key={s.label}
-          className={`flex flex-col items-center gap-1 px-2 py-3 text-center ${
-            i < stats.length - 1 ? "border-r border-hc-line-strong" : ""
+          className={`flex flex-col items-center gap-1 px-2 py-4 text-center ${
+            i < stats.length - 1 ? "border-r border-hc-line" : ""
           }`}
         >
           <span
-            className={`font-display text-xl font-extrabold leading-none tabular-nums ${
-              s.accent ? "text-hc-accent" : "text-hc-ink"
-            }`}
-            style={{ letterSpacing: "-0.03em" }}
+            className="font-display text-xl font-extrabold leading-none text-hc-ink tabular-nums"
+            style={{ letterSpacing: "-0.04em" }}
           >
             {s.value}
           </span>
@@ -311,53 +303,113 @@ function Heatmap({
   logIdByDay: Record<string, string>;
   todayYmd: string;
 }) {
+  // Date-range header: first column starts at the Sunday of 8 weeks ago,
+  // last column ends at this Saturday. Showing the visible window helps
+  // readers orient before they parse individual squares.
+  const firstYmd = cells[0]?.[0]?.ymd ?? null;
+  const lastCol = cells[cells.length - 1];
+  const lastYmd = lastCol?.[lastCol.length - 1]?.ymd ?? null;
+  const rangeLabel =
+    firstYmd && lastYmd
+      ? `${formatRangePart(firstYmd)} — ${formatRangePart(lastYmd)}`
+      : null;
+
+  // Mark the column where the month changes; rendered above the grid as a
+  // small label so a reader can pin "this column is december."
+  const monthMarkers = cells.map((col, idx) => {
+    const firstCell = col[0];
+    if (!firstCell) return null;
+    const monthIdx = monthOf(firstCell.ymd);
+    const prevMonth =
+      idx === 0
+        ? null
+        : monthOf(cells[idx - 1]![0]!.ymd);
+    if (idx === 0 || monthIdx !== prevMonth) {
+      return MONTH_NAMES[monthIdx];
+    }
+    return null;
+  });
+
+  // Sun..Sat day labels mirror the row order from buildHeatmap (row 0 = Sun).
+  const dayLabels = ["s", "m", "t", "w", "t", "f", "s"];
+
   return (
     <section>
-      <div className="mb-2 flex items-baseline justify-between">
+      <div className="mb-1 flex items-baseline justify-between">
         <h2
-          className="font-display text-base font-bold text-hc-ink"
-          style={{ letterSpacing: "-0.02em" }}
+          className="font-display text-base font-extrabold text-hc-ink"
+          style={{ letterSpacing: "-0.03em" }}
         >
           last 8 weeks
         </h2>
-        <span className="font-mono text-hc-eyebrow font-semibold text-hc-muted">
+        <span className="font-mono text-hc-tiny font-medium text-hc-muted">
           {totalLogs === 0 ? "no logs yet" : `${totalLogs} logs total`}
         </span>
       </div>
-      <div className="flex gap-2 rounded-hc-3 border-hc border-hc-line bg-hc-surface p-3.5">
-        <div
-          className="flex flex-col justify-around pr-1 font-mono text-hc-tiny font-semibold text-hc-muted"
-          aria-hidden
-        >
-          {["m", "w", "f"].map((d) => (
-            <span key={d}>{d}</span>
+      {rangeLabel && (
+        <p className="mb-3 font-mono text-hc-tiny font-medium text-hc-muted">
+          {rangeLabel} · oldest on the left, this week on the right
+        </p>
+      )}
+
+      <div className="rounded-hc-3 border border-hc-line bg-hc-surface p-4">
+        {/* Month markers: align to columns by sharing the same grid */}
+        <div className="mb-1.5 flex gap-1.5 pl-5">
+          {monthMarkers.map((label, i) => (
+            <span
+              key={i}
+              className="flex-1 font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow-narrow text-hc-muted"
+              aria-hidden
+            >
+              {label ?? ""}
+            </span>
           ))}
         </div>
-        <div className="grid flex-1 grid-cols-8 gap-1.5">
-          {cells.map((col, w) => (
-            <div key={w} className="grid grid-rows-7 gap-1.5">
-              {col.map((cell) => (
-                <HeatmapSquare
-                  key={cell.ymd}
-                  cell={cell}
-                  logId={logIdByDay[cell.ymd] ?? null}
-                  isToday={cell.ymd === todayYmd}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="mt-2 flex flex-wrap items-center gap-3 font-mono text-hc-tiny font-semibold text-hc-muted">
-        <Legend color="bg-hc-brand">done</Legend>
-        <Legend color="bg-hc-line">no log</Legend>
-        <span className="inline-flex items-center gap-1.5">
-          <span
+
+        <div className="flex gap-1.5">
+          {/* All seven Sun..Sat labels, one per row, perfectly aligned. */}
+          <div
+            className="grid w-3.5 grid-rows-7 gap-1.5 font-mono text-hc-tiny font-medium leading-none text-hc-muted"
             aria-hidden
-            className="size-2.5 rounded-sm bg-hc-line ring-2 ring-hc-accent ring-offset-1 ring-offset-hc-surface"
-          />
-          today
-        </span>
+          >
+            {dayLabels.map((d, i) => (
+              <span key={i} className="flex items-center justify-center">
+                {d}
+              </span>
+            ))}
+          </div>
+          <div className="grid flex-1 grid-cols-8 gap-1.5">
+            {cells.map((col, w) => (
+              <div key={w} className="grid grid-rows-7 gap-1.5">
+                {col.map((cell) => (
+                  <HeatmapSquare
+                    key={cell.ymd}
+                    cell={cell}
+                    logId={logIdByDay[cell.ymd] ?? null}
+                    isToday={cell.ymd === todayYmd}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-hc-line pt-3 font-mono text-hc-tiny font-medium text-hc-muted">
+          <div className="flex flex-wrap items-center gap-3">
+            <Legend className="bg-hc-ink dark:bg-hc-brand">logged</Legend>
+            <Legend className="bg-hc-line">missed</Legend>
+            <span className="inline-flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="size-2.5 rounded-sm bg-hc-line ring-2 ring-hc-accent ring-offset-1 ring-offset-hc-surface"
+              />
+              today
+            </span>
+          </div>
+          <span className="font-sans text-xs italic text-hc-muted">
+            tap a logged day to open it
+          </span>
+        </div>
       </div>
     </section>
   );
@@ -373,70 +425,119 @@ function HeatmapSquare({
   isToday: boolean;
 }) {
   const done = cell.count > 0;
-  const title = `${cell.ymd} · ${cell.count} log${cell.count === 1 ? "" : "s"}${isToday ? " · today" : ""}`;
-  const baseClass = `aspect-square rounded-sm ${done ? "bg-hc-brand" : "bg-hc-line"} ${isToday ? "ring-2 ring-hc-accent ring-offset-1 ring-offset-hc-surface" : ""}`;
+  const isMulti = cell.count > 1;
+  const title = `${formatTitleDate(cell.ymd)}${isToday ? " · today" : ""} · ${cell.count} log${cell.count === 1 ? "" : "s"}`;
+  const baseClass = `relative aspect-square rounded-sm ${done ? "bg-hc-ink dark:bg-hc-brand" : "bg-hc-line"} ${isToday ? "ring-2 ring-hc-accent ring-offset-1 ring-offset-hc-surface" : ""}`;
+  // Cells with multiple logs render the count inside so readers don't
+  // need to hover/long-press to learn a day was unusually productive.
+  const countBadge = isMulti ? (
+    <span
+      aria-hidden
+      className="absolute inset-0 grid place-items-center font-display text-[9px] font-extrabold leading-none text-hc-bg dark:text-hc-brand-ink"
+    >
+      {cell.count}
+    </span>
+  ) : null;
   if (logId) {
     return (
       <Link
         href={`/habit-log/${logId}`}
         title={title}
         aria-label={title}
-        className={`${baseClass} block transition-transform hover:-translate-y-px hover:ring-2 hover:ring-hc-ink`}
-      />
+        className={`${baseClass} block transition-transform hover:scale-110`}
+      >
+        {countBadge}
+      </Link>
     );
   }
-  return <span title={title} className={baseClass} aria-hidden />;
+  return (
+    <span title={title} className={baseClass} aria-hidden>
+      {countBadge}
+    </span>
+  );
 }
 
 function Legend({
-  color,
+  className,
   children,
 }: {
-  color: string;
+  className: string;
   children: React.ReactNode;
 }) {
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span
-        className={`size-2.5 rounded-sm border border-hc-line-strong ${color}`}
-        aria-hidden
-      />
+      <span className={`size-2.5 rounded-sm ${className}`} aria-hidden />
       {children}
     </span>
   );
 }
 
+const MONTH_NAMES = [
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "may",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "oct",
+  "nov",
+  "dec",
+];
+
+function monthOf(ymd: string) {
+  // ymd is "YYYY-MM-DD" — month is at chars 5..7 (1-indexed). Subtract 1
+  // to get a JS-style month index.
+  return Number.parseInt(ymd.slice(5, 7), 10) - 1;
+}
+
+function formatRangePart(ymd: string) {
+  const month = MONTH_NAMES[monthOf(ymd)];
+  const day = Number.parseInt(ymd.slice(8, 10), 10);
+  return `${month} ${day}`;
+}
+
+const TITLE_FMT = new Intl.DateTimeFormat("en", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+});
+
+function formatTitleDate(ymd: string) {
+  // `T12:00:00Z` keeps the date stable regardless of viewer timezone
+  // (matches buildHeatmap's parsing strategy).
+  const d = new Date(`${ymd}T12:00:00Z`);
+  return TITLE_FMT.format(d).toLowerCase();
+}
+
 function DescriptionCard({ description }: { description: string }) {
   return (
-    <section className="rounded-hc-3 border-hc border-hc-line bg-hc-surface p-4">
-      <p className="mb-1.5 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
+    <section className="rounded-hc-3 border border-hc-line bg-hc-surface p-5">
+      <p className="mb-2 font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
         the rule
       </p>
-      <p className="text-sm leading-relaxed text-hc-ink">{description}</p>
+      <p className="text-[15px] leading-relaxed text-hc-ink">{description}</p>
     </section>
   );
 }
 
 function OwnerCard({ owner }: { owner: HabitDetailData["owner"] }) {
   return (
-    <section className="flex items-center gap-3 rounded-hc-3 border-hc border-hc-line-strong bg-hc-surface p-3.5">
-      <div className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-hc-line bg-hc-ink">
-        {owner.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={owner.imageUrl}
-            alt={`@${owner.username} avatar`}
-            className="size-full object-cover"
-          />
-        ) : (
-          <TwoFaceMascot size={36} bg="#1B1726" />
-        )}
-      </div>
+    <section className="flex items-center gap-3 rounded-hc-3 border border-hc-line bg-hc-surface p-4">
+      <Avatar
+        imageUrl={owner.imageUrl}
+        name={owner.displayName}
+        fallbackName={owner.username}
+        size={44}
+        alt={`${owner.displayName} avatar`}
+      />
       <div className="min-w-0 flex-1">
         <p className="truncate font-sans text-sm font-bold text-hc-ink">
           {owner.displayName}
         </p>
-        <p className="truncate font-mono text-hc-meta text-hc-muted">
+        <p className="truncate font-mono text-hc-meta font-medium text-hc-muted">
           @{owner.username}
         </p>
       </div>
@@ -459,67 +560,73 @@ function RecentLogs({
 }) {
   return (
     <section>
-      <div className="mb-2.5 flex items-baseline justify-between">
+      <div className="mb-3 flex items-baseline justify-between">
         <h2
-          className="font-display text-base font-bold text-hc-ink"
-          style={{ letterSpacing: "-0.02em" }}
+          className="font-display text-base font-extrabold text-hc-ink"
+          style={{ letterSpacing: "-0.03em" }}
         >
           recent logs
         </h2>
-        <span className="font-mono text-hc-eyebrow font-semibold text-hc-muted">
+        <span className="font-mono text-hc-tiny font-medium text-hc-muted">
           {logs.length === 0
-            ? "no logs yet"
+            ? "none yet"
             : `${logs.length} log${logs.length === 1 ? "" : "s"}`}
         </span>
       </div>
       {logs.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-hc-3 border-hc border-dashed border-hc-line-strong bg-hc-surface-alt px-6 py-8 text-center">
-          <TwoFaceMascot size={56} mood="wink" bg="#1B1726" />
-          <p className="font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
+        <div className="flex flex-col items-center gap-3 rounded-hc-3 border border-dashed border-hc-line-strong bg-hc-surface-alt px-6 py-10 text-center">
+          <p className="font-display text-base font-extrabold text-hc-ink">
             no logs yet
           </p>
-          <p className="max-w-xs text-sm text-hc-ink">
-            tap the big button below and prove yourself.
+          <p className="max-w-xs text-sm text-hc-muted">
+            tap the button above to log your first day.
           </p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2.5">
+        <ul className="flex flex-col gap-2">
           {logs.map((l) => (
             <li key={l.id}>
               <Link
                 href={`/habit-log/${l.id}`}
-                className="flex items-center gap-3 rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface p-3 transition-transform hover:-translate-y-px hover:bg-hc-surface-alt"
+                className="flex items-center gap-3 rounded-hc-2 border border-hc-line bg-hc-surface p-3 transition-colors hover:bg-hc-surface-alt"
               >
-                <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-hc-2 border border-hc-line-strong bg-hc-bg text-2xl">
-                  {l.mediaUrl && l.mediaType === "photo" ? (
-                    // eslint-disable-next-line @next/next/no-img-element
+                {l.mediaUrl && l.mediaType === "photo" ? (
+                  <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-hc-2 bg-hc-ink">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={l.mediaUrl}
                       alt=""
                       className="size-full object-cover"
                     />
-                  ) : l.mediaUrl && l.mediaType === "video" ? (
-                    <span aria-hidden>▶</span>
-                  ) : (
-                    habitIcon ?? "✨"
-                  )}
-                </span>
+                  </span>
+                ) : l.mediaUrl && l.mediaType === "video" ? (
+                  <span className="grid size-12 shrink-0 place-items-center rounded-hc-2 bg-hc-ink text-hc-bg">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </span>
+                ) : (
+                  <HabitIcon value={habitIcon} size={48} />
+                )}
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="rounded bg-hc-brand px-1.5 py-px font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-brand-ink">
+                  <div className="flex items-center gap-2">
+                    <span className="font-display text-sm font-extrabold text-hc-ink">
                       day {l.dayNumber}
                     </span>
                     <RelativeTime
                       date={l.completedAt}
-                      className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted"
+                      className="font-mono text-hc-tiny font-medium text-hc-muted"
                     />
                   </div>
-                  <p className="mt-1 truncate text-sm text-hc-ink">
-                    {l.notes ?? "logged · no note"}
+                  <p className="mt-0.5 truncate text-sm text-hc-muted">
+                    {l.notes ?? "no note"}
                   </p>
                 </div>
-                <span className="shrink-0 font-mono text-hc-tiny font-semibold text-hc-accent">
-                  ♥ {l.likeCount}
+                <span className="flex shrink-0 items-center gap-1 font-mono text-hc-tiny font-semibold text-hc-muted">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                  {l.likeCount}
                 </span>
               </Link>
             </li>
@@ -530,12 +637,10 @@ function RecentLogs({
   );
 }
 
-
 /**
- * Inline action row that sits directly under `HeroCard` so the primary
+ * Inline action row that sits directly under the hero so the primary
  * affordance (log today's day) is one tap away — no scroll, no thumb-stretch
- * to a sticky bottom bar. Mirrors the pattern from the mockup hero, just
- * pulled out so it can flex naturally inside the page column.
+ * to a sticky bottom bar.
  */
 function ActionRow({
   habit,
@@ -557,7 +662,7 @@ function ActionRow({
             nextDayNumber={nextDayNumber}
           />
         ) : (
-          <span className="grid flex-1 cursor-not-allowed place-items-center rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
+          <span className="grid flex-1 cursor-not-allowed place-items-center rounded-hc-3 border border-hc-line bg-hc-surface-alt px-4 py-4 font-mono text-hc-eyebrow font-bold uppercase tracking-hc-eyebrow text-hc-muted">
             {habit.status} · no new logs
           </span>
         )
@@ -578,7 +683,7 @@ function ActionRow({
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              strokeWidth="2.2"
+              strokeWidth="1.85"
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden
@@ -590,7 +695,7 @@ function ActionRow({
       ) : (
         <Link
           href={`/profile/${habit.owner.username}`}
-          className="flex-1 rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 text-center font-display text-base font-extrabold text-hc-ink shadow-hc-stamp transition-transform hover:-translate-y-px"
+          className="flex-1 rounded-hc-3 border border-hc-line bg-hc-surface px-4 py-4 text-center font-display text-base font-extrabold text-hc-ink transition-colors hover:bg-hc-surface-alt"
           style={{ letterSpacing: "-0.02em" }}
         >
           view @{habit.owner.username}

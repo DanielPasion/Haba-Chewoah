@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
+import { Avatar } from "~/components/avatar";
+import { HabitIcon } from "~/components/habit-icon";
 import { RelativeTime } from "~/components/relative-time";
 
 import type { NotificationType } from "../../../../generated/prisma";
@@ -22,10 +23,9 @@ export type ActivityRowVM = {
 type Decoration = {
   verb: React.ReactNode;
   href: string;
-  /** Right-side accent badge (the ⚡ on chew-outs, ✦ on milestones). */
-  badge: { label: string; tone: "accent" | "brand" | "ink" } | null;
-  /** Override the default avatar with an icon (system notifs have no actor). */
-  systemIcon: string | null;
+  /** Optional accent badge sitting at the right edge — used for chewouts,
+   *  milestones, and other "this needs attention" notifications. */
+  badge: { kind: "chewout" | "milestone" | "alert" | "mention" | "succeeded" } | null;
 };
 
 function decorate(n: ActivityRowVM): Decoration {
@@ -38,93 +38,116 @@ function decorate(n: ActivityRowVM): Decoration {
         verb: "liked your log",
         href: n.habitLogId ? `/habit-log/${n.habitLogId}` : "#",
         badge: null,
-        systemIcon: null,
       };
     case "comment":
       return {
         verb: "commented on your log",
         href: n.habitLogId ? `/habit-log/${n.habitLogId}` : "#",
         badge: null,
-        systemIcon: null,
       };
     case "mention":
       return {
         verb: "mentioned you in a comment",
         href: n.habitLogId ? `/habit-log/${n.habitLogId}` : "#",
-        badge: { label: "@", tone: "ink" },
-        systemIcon: null,
+        badge: { kind: "mention" },
       };
     case "follow":
       return {
         verb: "started following you",
         href: actorHandle ? `/profile/${actorHandle}` : "#",
         badge: null,
-        systemIcon: null,
       };
     case "chewout":
       return {
         verb: (
           <>
-            chewed you out about <span className="italic">"{habitName}"</span>
+            chewed you out about <span className="italic">&ldquo;{habitName}&rdquo;</span>
           </>
         ),
         href: n.habit ? `/habit/${n.habit.id}` : "#",
-        badge: { label: "⚡", tone: "accent" },
-        systemIcon: null,
+        badge: { kind: "chewout" },
       };
     case "reminder":
       return {
         verb: (
           <>
-            time to log <span className="italic">"{habitName}"</span>
+            time to log <span className="italic">&ldquo;{habitName}&rdquo;</span>
           </>
         ),
         href: n.habit ? `/habit/${n.habit.id}` : "#",
         badge: null,
-        systemIcon: n.habit?.icon ?? "⏰",
       };
     case "streak_at_risk":
       return {
         verb: (
           <>
-            your <span className="italic">"{habitName}"</span> streak ends at midnight
+            your <span className="italic">&ldquo;{habitName}&rdquo;</span> streak ends at midnight
           </>
         ),
         href: n.habit ? `/habit/${n.habit.id}` : "#",
-        badge: { label: "!", tone: "accent" },
-        systemIcon: n.habit?.icon ?? "⏳",
+        badge: { kind: "alert" },
       };
     case "streak_milestone":
       return {
         verb: (
           <>
-            milestone hit on <span className="italic">"{habitName}"</span>
+            milestone hit on <span className="italic">&ldquo;{habitName}&rdquo;</span>
           </>
         ),
         href: n.habit ? `/habit/${n.habit.id}` : "#",
-        badge: { label: "✦", tone: "brand" },
-        systemIcon: n.habit?.icon ?? "✦",
+        badge: { kind: "milestone" },
       };
     case "habit_succeeded":
       return {
         verb: (
           <>
-            you finished <span className="italic">"{habitName}"</span>
+            you finished <span className="italic">&ldquo;{habitName}&rdquo;</span>
           </>
         ),
         href: n.habit ? `/habit/${n.habit.id}` : "#",
-        badge: { label: "✓", tone: "brand" },
-        systemIcon: n.habit?.icon ?? "🏁",
+        badge: { kind: "succeeded" },
       };
     default:
-      return { verb: "had activity", href: "#", badge: null, systemIcon: null };
+      return { verb: "had activity", href: "#", badge: null };
   }
 }
 
+const BADGE_GLYPH: Record<NonNullable<Decoration["badge"]>["kind"], React.ReactNode> = {
+  chewout: (
+    <path d="M13 2L3 14h9l-1 8 10-12h-9z" fill="currentColor" />
+  ),
+  milestone: (
+    <path
+      d="M12 2l2.5 5.5L20 8.5l-4 4 1 6L12 15l-5 3.5 1-6-4-4 5.5-1z"
+      fill="currentColor"
+    />
+  ),
+  alert: <path d="M12 4v10M12 18.5v1.5" />,
+  mention: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M16 12v1.5a2.5 2.5 0 0 1-5 0V8M8 12a4 4 0 1 1 8 0" />
+    </>
+  ),
+  succeeded: <path d="M5 12l5 5 9-11" />,
+};
+
+const BADGE_CLASS: Record<NonNullable<Decoration["badge"]>["kind"], string> = {
+  chewout: "bg-hc-accent text-hc-accent-ink",
+  milestone: "bg-hc-brand text-hc-brand-ink",
+  alert: "bg-hc-accent text-hc-accent-ink",
+  mention: "bg-hc-ink text-hc-bg",
+  succeeded: "bg-hc-ink text-hc-bg",
+};
+
 /**
- * Single source of truth for "render one notification" — used by both the
- * desktop right-rail and the /notifications page so the verbs/icons stay
- * in sync. Variant `compact` strips bullets the right-rail can't fit.
+ * Single source of truth for "render one notification". Used by both the
+ * desktop right-rail and the /notifications page so verbs/icons stay
+ * in sync.
+ *
+ * System notifs (reminder/streak/milestone/habit_succeeded) have no actor —
+ * we show the related habit's icon as the avatar slot so the row still
+ * feels anchored to a recognisable thing.
  */
 export function ActivityRow({
   notification: n,
@@ -135,70 +158,70 @@ export function ActivityRow({
 }) {
   const d = decorate(n);
   const isFull = variant === "full";
-
-  // System notifs (reminder/streak/milestone/habit_succeeded) have no actor;
-  // show the habit's icon instead of an avatar so the row still feels
-  // anchored to a thing the user can recognize.
-  const showSystemIcon = !n.actor && d.systemIcon;
+  const showHabitIcon = !n.actor && n.habit;
 
   return (
     <Link
       href={d.href}
-      className={`flex items-center gap-2.5 transition-colors hover:opacity-90 ${
+      className={`flex items-center gap-3 transition-colors ${
         isFull
-          ? `rounded-hc-2 border-hc border-hc-line-strong bg-hc-surface px-3 py-3 hover:bg-hc-surface-alt ${
-              !n.isRead ? "border-hc-ink shadow-hc-soft" : ""
+          ? `rounded-hc-2 border border-hc-line bg-hc-surface px-3 py-3 hover:bg-hc-surface-alt ${
+              !n.isRead ? "border-hc-line-strong" : ""
             }`
-          : ""
+          : "rounded-hc-2 px-2 py-1.5 hover:bg-hc-surface"
       }`}
     >
-      <span
-        className={`grid shrink-0 place-items-center overflow-hidden rounded-full border border-hc-line bg-hc-ink ${
-          isFull ? "size-10" : "size-8"
-        }`}
-      >
-        {showSystemIcon ? (
-          <span className="text-base" aria-hidden>
-            {d.systemIcon}
-          </span>
-        ) : n.actor?.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={n.actor.imageUrl} alt="" className="size-full object-cover" />
-        ) : (
-          <TwoFaceMascot size={isFull ? 36 : 28} bg="#1B1726" />
-        )}
-      </span>
+      {showHabitIcon ? (
+        <HabitIcon value={n.habit!.icon} size={isFull ? 38 : 32} />
+      ) : (
+        <Avatar
+          imageUrl={n.actor?.imageUrl ?? null}
+          name={n.actor?.displayName ?? "someone"}
+          fallbackName={n.actor?.username ?? undefined}
+          size={isFull ? 38 : 32}
+          alt={n.actor?.displayName ?? "system"}
+        />
+      )}
+
       <div
-        className={`min-w-0 flex-1 font-sans leading-snug text-hc-ink ${
+        className={`min-w-0 flex-1 leading-snug text-hc-ink ${
           isFull ? "text-sm" : "text-xs"
         }`}
       >
-        {n.actor ? (
-          <span className="font-bold">
-            {n.actor.username ? `@${n.actor.username}` : n.actor.displayName}
-          </span>
-        ) : null}
-        {n.actor ? " " : null}
-        {d.verb}{" "}
-        <span className="font-mono text-hc-tiny font-semibold text-hc-muted">
+        {n.actor && (
+          <>
+            <span className="font-bold">
+              {n.actor.username ? `@${n.actor.username}` : n.actor.displayName}
+            </span>{" "}
+          </>
+        )}
+        <span className={n.actor ? "" : "text-hc-ink/85"}>{d.verb}</span>{" "}
+        <span className="font-mono text-hc-tiny font-medium text-hc-muted">
           · <RelativeTime date={n.createdAt} />
         </span>
       </div>
+
       {d.badge && (
         <span
           aria-hidden
-          className={`grid size-6 shrink-0 place-items-center rounded-full font-mono text-hc-tiny font-bold ${
-            d.badge.tone === "accent"
-              ? "bg-hc-accent text-hc-accent-ink"
-              : d.badge.tone === "brand"
-                ? "bg-hc-brand text-hc-brand-ink"
-                : "bg-hc-ink text-hc-brand"
-          }`}
+          className={`grid size-6 shrink-0 place-items-center rounded-full ${BADGE_CLASS[d.badge.kind]}`}
         >
-          {d.badge.label}
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.85"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {BADGE_GLYPH[d.badge.kind]}
+          </svg>
         </span>
       )}
-      {isFull && !n.isRead && (
+
+      {isFull && !n.isRead && !d.badge && (
         <span
           aria-label="unread"
           className="size-2 shrink-0 rounded-full bg-hc-accent"

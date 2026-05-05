@@ -35,6 +35,10 @@ export type FollowListUser = {
   username: string;
   displayName: string;
   imageUrl: string | null;
+  /** Whether the *viewer* (session user) currently follows this row. */
+  isFollowing: boolean;
+  /** True when the row is the viewer themself — UIs hide the follow button. */
+  isSelf: boolean;
 };
 
 const FOLLOW_LIST_LIMIT = 200;
@@ -119,18 +123,37 @@ export async function getFollowListAction(input: {
     follower?: { id: string; username: string | null; name: string | null; image: string | null };
     following?: { id: string; username: string | null; name: string | null; image: string | null };
   };
-  const users: FollowListUser[] = (rows as FollowRow[])
+  const flat = (rows as FollowRow[])
     .map((r) => (parsed.data.kind === "followers" ? r.follower : r.following))
     .filter(
       (u): u is { id: string; username: string; name: string | null; image: string | null } =>
         Boolean(u?.username),
-    )
-    .map((u) => ({
-      id: u.id,
-      username: u.username,
-      displayName: u.name ?? u.username,
-      imageUrl: u.image,
-    }));
+    );
+
+  // Look up which of these rows the *viewer* already follows in a single
+  // round-trip. `isFollowing` is per-row state that drives the inline
+  // follow-button on each modal row.
+  const targetIds = flat.map((u) => u.id);
+  const viewerFollows =
+    targetIds.length === 0
+      ? []
+      : await db.follow.findMany({
+          where: {
+            followerId: session.user.id,
+            followingId: { in: targetIds },
+          },
+          select: { followingId: true },
+        });
+  const followingSet = new Set(viewerFollows.map((f) => f.followingId));
+
+  const users: FollowListUser[] = flat.map((u) => ({
+    id: u.id,
+    username: u.username,
+    displayName: u.name ?? u.username,
+    imageUrl: u.image,
+    isFollowing: followingSet.has(u.id),
+    isSelf: u.id === session.user.id,
+  }));
 
   return { ok: true, users };
 }

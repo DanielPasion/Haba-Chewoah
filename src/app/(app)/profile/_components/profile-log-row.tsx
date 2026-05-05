@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { HabitIcon } from "~/components/habit-icon";
 import { RelativeTime } from "~/components/relative-time";
 
 import { deleteHabitLogAction } from "../../habit-log/_actions";
@@ -24,13 +25,10 @@ export type ProfileLogRow = {
 };
 
 /**
- * Profile "logs" tab card. Mirrors `.claude/ui/project/profile-page.jsx`
- * `LogCard` — header with habit + day-N + relative time, optional media
- * preview, the note body, and a footer of like/comment counts plus a
- * delete affordance for own logs.
- *
- * Tapping the header / media / note opens the full log detail. Delete is
- * its own button outside the link so we don't nest interactive elements.
+ * Profile "logs" tab row. Editorial layout: media-as-thumbnail when present,
+ * inline icon when not. The header reads habit · day · time as text, no
+ * coloured chips. Action footer (likes/comments/delete) sits on a quiet
+ * divider line.
  */
 export function ProfileLogRow({
   log,
@@ -61,13 +59,11 @@ export function ProfileLogRow({
   const hasMedia = log.mediaUrl !== null && log.mediaType !== null;
 
   return (
-    <article className="overflow-hidden rounded-hc-3 border border-hc-line bg-hc-surface shadow-hc-soft">
+    <article className="overflow-hidden rounded-hc-3 border border-hc-line bg-hc-surface">
       <Link
         href={`/habit-log/${log.id}`}
         className="flex flex-col transition-colors hover:bg-hc-surface-alt md:flex-row md:items-stretch"
       >
-        {/* Media — full-bleed on mobile, fixed-width thumbnail on desktop so
-            the row stays scannable while scrolling. */}
         {hasMedia && (
           <div className="overflow-hidden border-b border-hc-line bg-hc-ink md:order-1 md:w-32 md:shrink-0 md:border-b-0 md:border-l md:border-hc-line">
             {log.mediaType === "video" ? (
@@ -90,55 +86,50 @@ export function ProfileLogRow({
         )}
 
         <div className="min-w-0 flex-1">
-          <header className="flex items-center justify-between gap-3 px-3.5 pt-3 pb-1.5">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <span className="grid size-8 shrink-0 place-items-center rounded-hc-2 border border-hc-line-strong bg-hc-bg text-sm">
-                {log.habit.icon ?? "✨"}
-              </span>
+          <header className="flex items-center justify-between gap-3 px-4 pb-1.5 pt-3.5">
+            <div className="flex min-w-0 items-center gap-3">
+              <HabitIcon value={log.habit.icon} size={32} />
               <div className="min-w-0">
                 <div className="truncate font-sans text-sm font-bold text-hc-ink">
-                  {log.habit.name}{" "}
-                  <span className="font-medium text-hc-muted">
-                    · day {log.dayNumber}
-                  </span>
+                  {log.habit.name}
                 </div>
-                <RelativeTime
-                  date={log.completedAt}
-                  className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted"
-                />
+                <div className="font-mono text-hc-tiny font-medium text-hc-muted">
+                  day {log.dayNumber} ·{" "}
+                  <RelativeTime
+                    date={log.completedAt}
+                    className="font-mono text-hc-tiny font-medium text-hc-muted"
+                  />
+                </div>
               </div>
             </div>
             {log.isLocked && (
-              <span className="shrink-0 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-muted">
-                🔒 folder
+              <span className="shrink-0 font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+                private
               </span>
             )}
           </header>
 
           {log.notes && (
-            <p className="line-clamp-3 px-4 pt-1 pb-2 text-sm leading-snug text-hc-ink">
+            <p className="line-clamp-3 px-4 pb-3 pt-1 text-sm leading-relaxed text-hc-ink">
               {log.notes}
             </p>
           )}
           {!log.notes && !hasMedia && (
-            <p className="px-4 pt-1 pb-2 font-mono text-hc-meta text-hc-muted">
+            <p className="px-4 pb-3 pt-1 font-sans text-sm italic text-hc-muted">
               checked in.
             </p>
           )}
         </div>
       </Link>
 
-      <div className="flex items-center gap-4 border-t border-hc-line/50 px-4 py-2 font-mono text-hc-meta font-semibold text-hc-muted">
+      <div className="flex items-center gap-4 border-t border-hc-line px-4 py-2.5 text-sm font-medium text-hc-muted">
         <span className="flex items-center gap-1.5">
           <svg
             width="14"
             height="14"
             viewBox="0 0 24 24"
             fill="currentColor"
-            stroke="currentColor"
-            strokeWidth="1.6"
             aria-hidden
-            className="text-hc-accent"
           >
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
@@ -151,7 +142,7 @@ export function ProfileLogRow({
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="1.85"
             strokeLinecap="round"
             strokeLinejoin="round"
             aria-hidden
@@ -165,7 +156,7 @@ export function ProfileLogRow({
             type="button"
             onClick={onDelete}
             disabled={pending}
-            className="ml-auto font-mono text-hc-meta font-semibold uppercase tracking-hc-eyebrow text-hc-muted hover:text-hc-accent disabled:opacity-60"
+            className="ml-auto font-sans text-xs font-semibold text-hc-muted hover:text-hc-accent disabled:opacity-60"
           >
             {pending ? "deleting…" : "delete"}
           </button>
@@ -174,4 +165,3 @@ export function ProfileLogRow({
     </article>
   );
 }
-

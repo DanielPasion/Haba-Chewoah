@@ -2,8 +2,6 @@
 
 import { useRef, useState } from "react";
 
-import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
-
 const ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 const MAX_BYTES = 4 * 1024 * 1024;
 
@@ -87,7 +85,7 @@ export function AvatarUploader({
         type="button"
         onClick={() => inputRef.current?.click()}
         aria-label="upload avatar"
-        className="grid size-28 place-items-center overflow-hidden rounded-full border-hc border-hc-ink bg-hc-ink shadow-hc transition-transform hover:scale-hc-hover"
+        className="grid size-28 place-items-center overflow-hidden rounded-full border border-hc-line-strong bg-hc-surface-alt text-hc-muted transition-colors hover:bg-hc-surface"
       >
         {previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -97,7 +95,20 @@ export function AvatarUploader({
             className="size-full object-cover"
           />
         ) : (
-          <TwoFaceMascot size={104} bg="#1B1726" />
+          <svg
+            width="36"
+            height="36"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <circle cx="12" cy="13" r="4" />
+          </svg>
         )}
       </button>
 
@@ -146,8 +157,8 @@ function StatusLine({ status }: { status: Status }) {
   }
   if (status.state === "ready") {
     return (
-      <span className="font-mono text-hc-eyebrow uppercase tracking-hc-eyebrow text-hc-brand-strong">
-        {status.objectKey ? "✓ uploaded" : "current photo"}
+      <span className="font-mono text-hc-eyebrow uppercase tracking-hc-eyebrow text-hc-muted">
+        {status.objectKey ? "uploaded" : "current photo"}
       </span>
     );
   }

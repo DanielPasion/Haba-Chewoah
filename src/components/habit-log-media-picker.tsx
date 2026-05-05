@@ -181,10 +181,17 @@ export function HabitLogMediaPicker({
           >
             ×
           </button>
-          <div className="absolute bottom-2 left-2 rounded-full bg-hc-ink/80 px-2.5 py-1 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-bg backdrop-blur">
-            {ready.kind === "video"
-              ? `▶ ${formatDuration(ready.durationMs ?? 0)}`
-              : "📷 photo"}
+          <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-hc-ink/80 px-2.5 py-1 font-mono text-hc-tiny font-bold uppercase tracking-hc-eyebrow text-hc-bg backdrop-blur">
+            {ready.kind === "video" ? (
+              <>
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                {formatDuration(ready.durationMs ?? 0)}
+              </>
+            ) : (
+              "photo"
+            )}
           </div>
         </div>
       ) : (
@@ -248,12 +255,12 @@ function PickButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex flex-col items-start gap-0.5 rounded-hc-2 border-hc border-dashed border-hc-line-strong bg-hc-surface px-3 py-2.5 text-left transition-colors hover:bg-hc-surface-alt disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex flex-col items-start gap-0.5 rounded-hc-2 border border-dashed border-hc-line-strong bg-hc-surface px-3 py-3 text-left transition-colors hover:bg-hc-surface-alt disabled:cursor-not-allowed disabled:opacity-50"
     >
       <span className="font-sans text-hc-button font-bold text-hc-ink">
-        + {label}
+        {label}
       </span>
-      <span className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
+      <span className="font-mono text-hc-tiny font-medium text-hc-muted">
         {hint}
       </span>
     </button>
@@ -277,8 +284,8 @@ function StatusLine({ status }: { status: Status }) {
   }
   if (status.state === "ready") {
     return (
-      <span className="font-mono text-hc-eyebrow uppercase tracking-hc-eyebrow text-hc-brand-strong">
-        ✓ ready to post
+      <span className="font-mono text-hc-eyebrow uppercase tracking-hc-eyebrow text-hc-muted">
+        ready to post
       </span>
     );
   }

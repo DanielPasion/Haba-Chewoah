@@ -28,12 +28,20 @@
   --color-hc-line: rgb(31 27 46 / 0.08);
   --color-hc-line-strong: rgb(31 27 46 / 0.16);
 
-  --shadow-hc: 0 1px 2px rgb(31 27 46 / 0.04),
-    0 6px 18px rgb(31 27 46 / 0.05);
-  --shadow-hc-soft: 0 1px 2px rgb(31 27 46 / 0.04);
-  --shadow-hc-lg: 0 2px 4px rgb(31 27 46 / 0.05),
-    0 12px 32px rgb(31 27 46 / 0.08);
+  --shadow-hc: 0 1px 2px rgb(31 27 46 / 0.03),
+    0 4px 14px rgb(31 27 46 / 0.04);
+  --shadow-hc-soft: 0 1px 2px rgb(31 27 46 / 0.03);
+  --shadow-hc-lg: 0 2px 4px rgb(31 27 46 / 0.04),
+    0 18px 40px rgb(31 27 46 / 0.08);
   --shadow-hc-stamp: 4px 4px 0 #1f1b2e;
+
+  /* Surface tints for category icon chips. Subtle washes so the icon
+     reads first, the colour second. */
+  --color-hc-tint-body: #ecf0e8;
+  --color-hc-tint-mind: #ece8f0;
+  --color-hc-tint-fuel: #f0ebe0;
+  --color-hc-tint-soul: #f0e6ea;
+  --color-hc-tint-default: #efece4;
 
   --font-display: var(--font-bricolage), "Bricolage Grotesque", system-ui,
     sans-serif;
@@ -111,6 +119,12 @@
   --shadow-hc-soft: 0 1px 2px rgb(0 0 0 / 0.3);
   --shadow-hc-lg: 0 2px 4px rgb(0 0 0 / 0.3), 0 12px 32px rgb(0 0 0 / 0.4);
   --shadow-hc-stamp: 4px 4px 0 #efeae0;
+
+  --color-hc-tint-body: rgb(159 196 145 / 0.14);
+  --color-hc-tint-mind: rgb(178 161 215 / 0.14);
+  --color-hc-tint-fuel: rgb(205 178 121 / 0.14);
+  --color-hc-tint-soul: rgb(218 163 184 / 0.14);
+  --color-hc-tint-default: rgb(239 234 224 / 0.06);
 }
 
 /* `dark:*` variant follows `[data-theme="dark"]` instead of media-query. */

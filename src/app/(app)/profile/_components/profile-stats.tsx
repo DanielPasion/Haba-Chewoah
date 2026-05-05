@@ -30,14 +30,14 @@ export function ProfileStats({
   >(null);
 
   const valueClass = `font-display font-extrabold leading-none text-hc-ink ${
-    isDesktop ? "text-2xl" : "text-lg"
+    isDesktop ? "text-2xl" : "text-xl"
   }`;
   const labelClass =
-    "mt-1 font-mono text-hc-tiny font-semibold uppercase tracking-widest text-hc-muted";
+    "mt-1 font-mono text-hc-tiny font-medium uppercase tracking-hc-eyebrow text-hc-muted";
 
   return (
     <>
-      <div className={`flex flex-wrap ${isDesktop ? "gap-7" : "gap-5"}`}>
+      <div className={`flex flex-wrap ${isDesktop ? "gap-8" : "gap-6"}`}>
         {stats.map((s) => {
           const clickable =
             s.label === "followers" || s.label === "following";
@@ -49,21 +49,20 @@ export function ProfileStats({
                 onClick={() =>
                   setOpenModal(s.label as "followers" | "following")
                 }
-                className="cursor-pointer text-left transition-transform hover:-translate-y-[1px]"
+                className="cursor-pointer text-left"
               >
-                <div
-                  className={valueClass}
-                  style={{ letterSpacing: "-0.02em" }}
-                >
+                <div className={valueClass} style={{ letterSpacing: "-0.03em" }}>
                   {s.value.toLocaleString()}
                 </div>
-                <div className={labelClass}>{s.label}</div>
+                <div className={`${labelClass} hover:text-hc-ink`}>
+                  {s.label}
+                </div>
               </button>
             );
           }
           return (
             <div key={s.label}>
-              <div className={valueClass} style={{ letterSpacing: "-0.02em" }}>
+              <div className={valueClass} style={{ letterSpacing: "-0.03em" }}>
                 {s.value.toLocaleString()}
               </div>
               <div className={labelClass}>{s.label}</div>
