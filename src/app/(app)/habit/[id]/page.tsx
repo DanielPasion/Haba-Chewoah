@@ -61,6 +61,7 @@ export default async function HabitDetailPage({ params }: { params: Params }) {
       targetCount: true,
       periodDays: true,
       isPublic: true,
+      status: true,
       startDate: true,
       createdAt: true,
       userId: true,
@@ -70,6 +71,7 @@ export default async function HabitDetailPage({ params }: { params: Params }) {
           username: true,
           name: true,
           image: true,
+          timezone: true,
         },
       },
     },
@@ -79,6 +81,30 @@ export default async function HabitDetailPage({ params }: { params: Params }) {
 
   const isOwn = habit.userId === session.user.id;
   if (!isOwn && !habit.isPublic) notFound();
+
+  // Pull logs for streak/heatmap math + the recent-logs strip. The
+  // (habit_id, completed_at) index makes the bounded slice cheap; the
+  // unbounded fetch for stats stays in the same query batch (tiny per
+  // habit). NOTES.md §6 walks through the streak rules.
+  const [allLogs, recentLogs] = await Promise.all([
+    db.habitLog.findMany({
+      where: { habitId: habit.id },
+      select: { completedAt: true },
+    }),
+    db.habitLog.findMany({
+      where: { habitId: habit.id },
+      orderBy: { completedAt: "desc" },
+      take: 8,
+      select: {
+        id: true,
+        completedAt: true,
+        notes: true,
+        mediaUrl: true,
+        mediaType: true,
+        _count: { select: { likes: true, comments: true } },
+      },
+    }),
+  ]);
 
   return (
     <HabitDetailView
@@ -92,6 +118,7 @@ export default async function HabitDetailPage({ params }: { params: Params }) {
         targetCount: habit.targetCount,
         periodDays: habit.periodDays,
         isPublic: habit.isPublic,
+        status: habit.status,
         startDate: habit.startDate,
         createdAt: habit.createdAt,
         owner: {
@@ -99,8 +126,19 @@ export default async function HabitDetailPage({ params }: { params: Params }) {
           username: habit.user.username,
           displayName: habit.user.name ?? habit.user.username,
           imageUrl: habit.user.image,
+          timezone: habit.user.timezone,
         },
       }}
+      logs={allLogs}
+      recentLogs={recentLogs.map((l) => ({
+        id: l.id,
+        completedAt: l.completedAt,
+        notes: l.notes,
+        mediaUrl: l.mediaUrl,
+        mediaType: l.mediaType,
+        likeCount: l._count.likes,
+        commentCount: l._count.comments,
+      }))}
     />
   );
 }

@@ -20,6 +20,7 @@ CREATE TYPE report_target_type AS ENUM ('user', 'comment', 'habit_log');
 CREATE TYPE report_status AS ENUM ('pending', 'reviewed', 'dismissed');
 CREATE TYPE notification_type AS ENUM ('follow', 'like', 'comment');
 CREATE TYPE device_platform AS ENUM ('ios', 'android', 'web');
+CREATE TYPE media_type AS ENUM ('photo', 'video');
 
 -- ============================================================
 -- USERS
@@ -153,12 +154,31 @@ CREATE INDEX habit_schedules_habit_id_idx ON habit_schedules (habit_id);
 -- ============================================================
 
 CREATE TABLE habit_logs (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  habit_id      uuid NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
-  user_id       uuid NOT NULL REFERENCES users(id)  ON DELETE CASCADE,
-  completed_at  timestamptz NOT NULL,
-  notes         text,
-  created_at    timestamptz NOT NULL DEFAULT now()
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  habit_id           uuid NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
+  user_id            uuid NOT NULL REFERENCES users(id)  ON DELETE CASCADE,
+  completed_at       timestamptz NOT NULL,
+  notes              text,
+
+  -- Optional R2-hosted attachment. See .claude/db/NOTES.md §17.
+  media_url          text,
+  media_type         media_type,
+  media_duration_ms  int,
+
+  created_at         timestamptz NOT NULL DEFAULT now(),
+
+  -- url and type travel together
+  CONSTRAINT media_pair_consistent CHECK (
+    (media_url IS NULL AND media_type IS NULL)
+    OR (media_url IS NOT NULL AND media_type IS NOT NULL)
+  ),
+  -- video must carry a duration; photo must not
+  CONSTRAINT media_duration_matches_type CHECK (
+    (media_type IS NULL AND media_duration_ms IS NULL)
+    OR (media_type = 'photo' AND media_duration_ms IS NULL)
+    OR (media_type = 'video' AND media_duration_ms IS NOT NULL
+        AND media_duration_ms > 0 AND media_duration_ms <= 15000)
+  )
 );
 
 CREATE INDEX habit_logs_habit_id_idx              ON habit_logs (habit_id);

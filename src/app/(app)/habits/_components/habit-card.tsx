@@ -11,6 +11,8 @@ export type HabitCardData = {
   targetCount: number;
   periodDays: number | null;
   isPublic: boolean;
+  currentStreak: number;
+  totalLogs: number;
 };
 
 export function HabitCard({ habit }: { habit: HabitCardData }) {
@@ -53,7 +55,9 @@ export function HabitCard({ habit }: { habit: HabitCardData }) {
 
       <div className="mt-auto flex items-baseline justify-between border-t border-hc-line pt-2.5">
         <span className="font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-          day 0 · no logs yet
+          {habit.totalLogs === 0
+            ? "day 0 · no logs yet"
+            : `day ${habit.currentStreak} · ${habit.totalLogs} log${habit.totalLogs === 1 ? "" : "s"}`}
         </span>
         <span className="font-mono text-hc-tiny font-bold text-hc-ink">
           open →

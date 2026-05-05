@@ -6,6 +6,10 @@ import { z } from "zod";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import {
+  deleteHabitLogMediaObject,
+  ownedHabitLogMediaKeyFromPublicUrl,
+} from "~/server/r2";
 
 import { FrequencyType } from "../../../../generated/prisma";
 
@@ -194,6 +198,19 @@ export async function deleteHabitAction(
   const session = await auth();
   if (!session?.user) return { ok: false, message: "not signed in" };
 
+  // Enumerate media URLs first — once the habit row is gone the cascade
+  // wipes habit_logs and we lose the URLs needed to find the R2 keys.
+  // NOTES.md §17 cleanup contract: habit deletion must enumerate child
+  // log media and delete the R2 objects in the same action.
+  const mediaUrls = (
+    await db.habitLog.findMany({
+      where: { habitId, userId: session.user.id, mediaUrl: { not: null } },
+      select: { mediaUrl: true },
+    })
+  )
+    .map((l) => l.mediaUrl)
+    .filter((u): u is string => u !== null);
+
   // `deleteMany` instead of `delete` so a missing/foreign row is a no-op
   // rather than P2025. The where-clause enforces ownership.
   const result = await db.habit.deleteMany({
@@ -201,6 +218,14 @@ export async function deleteHabitAction(
   });
   if (result.count === 0) {
     return { ok: false, message: "habit not found" };
+  }
+
+  // Best-effort R2 cleanup after the DB commit. A storage failure here
+  // must not flip the user's "habit deleted" outcome (matches the
+  // avatar/log delete contract).
+  for (const url of mediaUrls) {
+    const key = ownedHabitLogMediaKeyFromPublicUrl(url, session.user.id);
+    if (key) await deleteHabitLogMediaObject(key);
   }
 
   revalidatePath("/habits");

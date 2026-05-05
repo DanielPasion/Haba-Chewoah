@@ -125,3 +125,132 @@ export const AVATAR_LIMITS = {
   maxBytes: AVATAR_MAX_BYTES,
   acceptMime: Array.from(ALLOWED_AVATAR_MIME),
 } as const;
+
+// ============================================================
+// Habit-log media (photo + short video). Mirrors the avatar pattern:
+// time-limited presigned PUT, server-issued object key, ownership prefix
+// guard. Limits + the R2 cleanup contract live in
+// `.claude/db/NOTES.md §17`.
+// ============================================================
+
+const ALLOWED_PHOTO_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+const ALLOWED_VIDEO_MIME = new Set([
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
+]);
+const MEDIA_MIME_TO_EXT: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "video/mp4": "mp4",
+  "video/quicktime": "mov",
+  "video/webm": "webm",
+};
+
+const PHOTO_MAX_BYTES = 8 * 1024 * 1024; // 8 MB
+const VIDEO_MAX_BYTES = 30 * 1024 * 1024; // 30 MB — headroom for 15s @ ~16Mbps
+export const VIDEO_MAX_DURATION_MS = 15_000;
+
+const MEDIA_PRESIGN_EXPIRES_SECONDS = 600; // 10 min — videos take longer
+
+export type HabitLogMediaKind = "photo" | "video";
+
+export type HabitLogMediaUploadGrant = {
+  uploadUrl: string;
+  objectKey: string;
+  publicUrl: string;
+  kind: HabitLogMediaKind;
+  maxBytes: number;
+};
+
+export async function presignHabitLogMediaUpload({
+  userId,
+  contentType,
+}: {
+  userId: string;
+  contentType: string;
+}): Promise<HabitLogMediaUploadGrant> {
+  const kind: HabitLogMediaKind | null = ALLOWED_PHOTO_MIME.has(contentType)
+    ? "photo"
+    : ALLOWED_VIDEO_MIME.has(contentType)
+      ? "video"
+      : null;
+  if (!kind) {
+    throw new Error(`unsupported media content-type: ${contentType}`);
+  }
+
+  const ext = MEDIA_MIME_TO_EXT[contentType]!;
+  const objectKey = `habit-logs/${userId}/${crypto.randomUUID()}.${ext}`;
+  const maxBytes = kind === "photo" ? PHOTO_MAX_BYTES : VIDEO_MAX_BYTES;
+
+  const command = new PutObjectCommand({
+    Bucket: env.R2_BUCKET,
+    Key: objectKey,
+    ContentType: contentType,
+    ContentLength: undefined,
+  });
+
+  const uploadUrl = await getSignedUrl(r2, command, {
+    expiresIn: MEDIA_PRESIGN_EXPIRES_SECONDS,
+  });
+
+  return {
+    uploadUrl,
+    objectKey,
+    publicUrl: `${env.R2_PUBLIC_URL}/${objectKey}`,
+    kind,
+    maxBytes,
+  };
+}
+
+export function isOwnedHabitLogMediaKey(
+  objectKey: string,
+  userId: string,
+): boolean {
+  return (
+    objectKey.startsWith(`habit-logs/${userId}/`) &&
+    !objectKey.includes("..") &&
+    objectKey.length < 200
+  );
+}
+
+export function ownedHabitLogMediaKeyFromPublicUrl(
+  url: string,
+  userId: string,
+): string | null {
+  const prefix = `${env.R2_PUBLIC_URL}/`;
+  if (!url.startsWith(prefix)) return null;
+  const key = url.slice(prefix.length);
+  return isOwnedHabitLogMediaKey(key, userId) ? key : null;
+}
+
+// Fire-and-forget — same contract as `deleteAvatarObject`. R2 cleanup
+// must not mask the real error from the caller.
+export async function deleteHabitLogMediaObject(
+  objectKey: string,
+): Promise<void> {
+  try {
+    await r2.send(
+      new DeleteObjectCommand({ Bucket: env.R2_BUCKET, Key: objectKey }),
+    );
+  } catch (err) {
+    console.warn("[r2] habit-log media delete failed", { objectKey, err });
+  }
+}
+
+export const HABIT_LOG_MEDIA_LIMITS = {
+  photo: {
+    maxBytes: PHOTO_MAX_BYTES,
+    acceptMime: Array.from(ALLOWED_PHOTO_MIME),
+  },
+  video: {
+    maxBytes: VIDEO_MAX_BYTES,
+    maxDurationMs: VIDEO_MAX_DURATION_MS,
+    acceptMime: Array.from(ALLOWED_VIDEO_MIME),
+  },
+} as const;
