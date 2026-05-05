@@ -113,7 +113,7 @@ function Header({
   habitName: string;
 }) {
   return (
-    <header className="sticky top-14 z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
+    <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
       <Link
         href={isOwn ? `/habit/${habitId}` : `/profile/${ownerUsername}`}
         aria-label="back"

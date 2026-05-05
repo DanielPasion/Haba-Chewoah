@@ -29,16 +29,25 @@ export async function DesktopRightRail({
   timezone: string;
 }) {
   const todayYmd = localYmd(new Date(), timezone);
+  // 48-hour window covers "today" in any timezone — enough for the
+  // logged-today check without pulling the full per-habit history (which
+  // grew unbounded as users logged more entries).
+  const recentLogsCutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
   const [habits, notifications] = await Promise.all([
     db.habit.findMany({
       where: { userId, status: "active" },
       orderBy: [{ createdAt: "desc" }],
+      take: 8,
       select: {
         id: true,
         name: true,
         icon: true,
-        logs: { select: { completedAt: true } },
+        logs: {
+          where: { completedAt: { gte: recentLogsCutoff } },
+          select: { completedAt: true },
+        },
+        _count: { select: { logs: true } },
       },
     }),
     db.notification.findMany({
@@ -57,20 +66,18 @@ export async function DesktopRightRail({
     }),
   ]);
 
-  // For each active habit, compute "logged today?" + a current-streak day
-  // count for the secondary label. We only walk the logs once per habit.
-  const todayItems = habits.slice(0, 8).map((h) => {
-    let total = 0;
-    let loggedToday = false;
-    for (const l of h.logs) {
-      total += 1;
-      if (localYmd(l.completedAt, timezone) === todayYmd) loggedToday = true;
-    }
+  // Logs in the 48h window only — enough to derive "logged today" without
+  // pulling full history. `_count.logs` separately answers "any logs ever?"
+  // for the empty-state branch.
+  const todayItems = habits.map((h) => {
+    const loggedToday = h.logs.some(
+      (l) => localYmd(l.completedAt, timezone) === todayYmd,
+    );
     return {
       id: h.id,
       name: h.name,
       icon: h.icon,
-      total,
+      total: h._count.logs,
       loggedToday,
     };
   });

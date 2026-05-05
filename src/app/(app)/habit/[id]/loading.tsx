@@ -5,7 +5,7 @@
 export default function HabitDetailLoading() {
   return (
     <div className="-mx-5 -my-6 flex flex-col gap-5 pb-2 md:-mx-8 md:-my-8 md:gap-6">
-      <header className="sticky top-14 z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
+      <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
         <span className="size-9 shrink-0 animate-pulse rounded-full bg-hc-line-strong" />
         <Bar className="h-4 w-40" />
       </header>

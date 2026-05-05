@@ -47,6 +47,23 @@ export default async function UserProfilePage({ params }: { params: Params }) {
 
   const isOwn = user.id === session.user.id;
 
+  // §9: profiles are hidden from blocked users in either direction. Same
+  // app-layer gate that `feed/page.tsx` and the comment/like queries enforce.
+  // Returns 404 (not a "you're blocked" page) so the existence of the
+  // account isn't leaked to the blocker either.
+  if (!isOwn) {
+    const block = await db.block.findFirst({
+      where: {
+        OR: [
+          { blockerId: session.user.id, blockedId: user.id },
+          { blockerId: user.id, blockedId: session.user.id },
+        ],
+      },
+      select: { blockerId: true },
+    });
+    if (block) notFound();
+  }
+
   // Habits: own profile shows everything (incl. private + archived); other
   // profiles show only public + active habits, mirroring the feed gate.
   // Private logs are filtered the same way — even if a public log row got
@@ -87,7 +104,12 @@ export default async function UserProfilePage({ params }: { params: Params }) {
     db.habitLog.findMany({
       where: {
         userId: user.id,
-        ...(isOwn ? {} : { habit: { isPublic: true } }),
+        // Match the habit filter exactly so day-N computation can rely on
+        // `habits[n].logs` (already fetched above) instead of issuing a
+        // second unbounded query for the full log history.
+        ...(isOwn
+          ? {}
+          : { habit: { isPublic: true, status: "active" as const } }),
       },
       orderBy: { completedAt: "desc" },
       take: PROFILE_LOG_LIMIT,
@@ -142,22 +164,19 @@ export default async function UserProfilePage({ params }: { params: Params }) {
     };
   });
 
-  // Day-N for each log row, computed from the *full* log history per habit
-  // (matches feed/log-detail semantics). Bucket all logs by habitId once so
-  // we don't redo the formatting per row.
-  const ownerLogs = await db.habitLog.findMany({
-    where: { userId: user.id },
-    select: { habitId: true, completedAt: true },
-  });
+  // Day-N for each log row, derived from `habits[n].logs` already fetched
+  // above. Avoids a second unbounded `findMany({ where: { userId } })`
+  // that previously pulled every log the user had ever made just to bucket
+  // them by day. The habit + log filters now match (public+active when not
+  // own), so every log in `logsRaw` has its history available here.
   const dayCountsByHabit = new Map<string, Map<string, number>>();
-  for (const l of ownerLogs) {
-    const ymd = localYmd(l.completedAt, user.timezone);
-    let m = dayCountsByHabit.get(l.habitId);
-    if (!m) {
-      m = new Map();
-      dayCountsByHabit.set(l.habitId, m);
+  for (const h of habits) {
+    const m = new Map<string, number>();
+    for (const l of h.logs) {
+      const ymd = localYmd(l.completedAt, user.timezone);
+      m.set(ymd, (m.get(ymd) ?? 0) + 1);
     }
-    m.set(ymd, (m.get(ymd) ?? 0) + 1);
+    dayCountsByHabit.set(h.id, m);
   }
 
   const logRows: ProfileLogRow[] = logsRaw.map((l) => ({

@@ -4,7 +4,11 @@ import { redirect } from "next/navigation";
 
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
 import { buttonClass } from "~/components/ui";
-import { dayNumberForLog, localYmd } from "~/lib/habit-stats";
+import {
+  computeHabitStats,
+  dayNumberForLog,
+  localYmd,
+} from "~/lib/habit-stats";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
 
@@ -53,7 +57,22 @@ export default async function FeedPage() {
           id: true,
           name: true,
           icon: true,
-          logs: { select: { completedAt: true } },
+          frequencyType: true,
+          targetCount: true,
+          periodDays: true,
+          startDate: true,
+          // Bound the per-habit history to a year so the query stops
+          // growing as users log more. `computeHabitStats` walks backward
+          // from today through consecutive days, so anything older than
+          // the longest plausible streak (365d) doesn't affect the answer.
+          logs: {
+            where: {
+              completedAt: {
+                gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
+              },
+            },
+            select: { completedAt: true },
+          },
         },
       }),
     ]);
@@ -61,17 +80,23 @@ export default async function FeedPage() {
   const todayYmd = localYmd(new Date(), myTimezone);
 
   const todayItems: TodayStreak[] = myActiveHabits.map((h) => {
-    let total = 0;
-    let loggedToday = false;
-    for (const l of h.logs) {
-      total += 1;
-      if (localYmd(l.completedAt, myTimezone) === todayYmd) loggedToday = true;
-    }
+    const stats = computeHabitStats({
+      logs: h.logs,
+      timezone: myTimezone,
+      startDate: h.startDate,
+      frequencyType: h.frequencyType,
+      targetCount: h.targetCount,
+      periodDays: h.periodDays,
+    });
+    const loggedToday = (stats.dayCounts.get(todayYmd) ?? 0) > 0;
     return {
       id: h.id,
       name: h.name,
       icon: h.icon,
-      day: total,
+      // "day N" = current-streak day number (matches feed cards / log
+      // detail / habit detail). Total log count would be misleading: a
+      // habit with 100 logs but a 3-day streak should show "day 3".
+      day: stats.currentStreak,
       done: loggedToday,
     };
   });

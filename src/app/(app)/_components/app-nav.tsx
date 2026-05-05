@@ -146,8 +146,15 @@ export function AppMobileTopBar({
 }: {
   hasUnreadNotifications?: boolean;
 }) {
+  // `viewport-fit=cover` lets the page render behind the iOS status bar /
+  // dynamic island. Pad by `env(safe-area-inset-top)` so the row's contents
+  // sit below the notch instead of being clipped by it. The header itself
+  // keeps `top-0` because the safe-area padding is part of its own height.
   return (
-    <header className="sticky top-0 z-20 border-b border-hc-line bg-hc-bg/90 backdrop-blur md:hidden">
+    <header
+      className="sticky top-0 z-20 border-b border-hc-line bg-hc-bg/90 backdrop-blur md:hidden"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
       <div className="relative flex items-center justify-between px-5 py-3">
         <Link href="/feed">
           <LogoText size={16} />
@@ -198,9 +205,13 @@ export function AppMobileTabBar() {
   // Three equal-width grid slots so the center FAB sits at the geometric
   // center of the bar regardless of the outer tab labels' widths.
   // `justify-around` would skew the FAB right when "home" is shorter than
-  // "profile" (or vice versa).
+  // "profile" (or vice versa). Bottom padding respects iOS home-indicator
+  // safe area so the bar doesn't sit underneath it.
   return (
-    <nav className="sticky bottom-0 z-10 grid grid-cols-3 items-center border-t border-hc-line bg-hc-surface px-4 pt-2.5 pb-2 md:hidden">
+    <nav
+      className="sticky bottom-0 z-10 grid grid-cols-3 items-center border-t border-hc-line bg-hc-surface px-4 pt-2.5 md:hidden"
+      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+    >
       <div className="flex justify-center">
         <MobileTabLink item={MOBILE_TAB_ITEMS[0]!} pathname={pathname} />
       </div>
