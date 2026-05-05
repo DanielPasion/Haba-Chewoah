@@ -73,6 +73,7 @@ export function HabitLogDetailView({
         isOwn={isOwn}
         habitId={log.habit.id}
         ownerUsername={log.owner.username}
+        habitName={log.habit.name}
       />
 
       <div className="mx-auto flex w-full max-w-180 flex-col gap-4 px-5 md:px-8 md:gap-5">
@@ -103,18 +104,20 @@ function Header({
   isOwn,
   habitId,
   ownerUsername,
+  habitName,
 }: {
   logId: string;
   isOwn: boolean;
   habitId: string;
   ownerUsername: string;
+  habitName: string;
 }) {
   return (
-    <header className="sticky top-14 z-10 flex items-center justify-between border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
+    <header className="sticky top-14 z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/90 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
       <Link
         href={isOwn ? `/habit/${habitId}` : `/profile/${ownerUsername}`}
         aria-label="back"
-        className="grid size-9 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink shadow-hc-soft hover:bg-hc-surface-alt"
+        className="grid size-9 shrink-0 place-items-center rounded-full border border-hc-line bg-hc-surface text-hc-ink shadow-hc-soft hover:bg-hc-surface-alt"
       >
         <svg
           width="16"
@@ -130,9 +133,12 @@ function Header({
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
       </Link>
-      <span className="font-mono text-hc-eyebrow font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-        /habit-log/{logId.slice(0, 8)}
-      </span>
+      <h1
+        className="min-w-0 flex-1 truncate font-display text-base font-extrabold leading-none text-hc-ink"
+        style={{ letterSpacing: "-0.02em" }}
+      >
+        {habitName} · log
+      </h1>
       <LogActions logId={logId} habitId={habitId} isOwn={isOwn} />
     </header>
   );

@@ -133,7 +133,6 @@ export async function createHabitAction(
     select: { id: true },
   });
 
-  revalidatePath("/habits");
   revalidatePath(`/profile/${session.user.username}`);
   redirect(`/habit/${habit.id}`);
 }
@@ -182,7 +181,6 @@ export async function updateHabitAction(
     },
   });
 
-  revalidatePath("/habits");
   revalidatePath(`/habit/${habitId}`);
   revalidatePath(`/profile/${session.user.username}`);
   redirect(`/habit/${habitId}`);
@@ -228,9 +226,8 @@ export async function deleteHabitAction(
     if (key) await deleteHabitLogMediaObject(key);
   }
 
-  revalidatePath("/habits");
   if (session.user.username) {
     revalidatePath(`/profile/${session.user.username}`);
   }
-  redirect("/habits");
+  redirect("/profile");
 }

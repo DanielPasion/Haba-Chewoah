@@ -1,10 +1,9 @@
 import { TwoFaceMascot } from "~/components/brand/two-face-mascot";
-import { SettingsButton } from "~/components/settings-button";
 
-import { signOutAction } from "../../_actions";
+import { type HabitCardData } from "../../habit/_components/habit-card";
 import { ProfileActions } from "./profile-actions";
 import { ProfileAvatar } from "./profile-avatar";
-import { ProfileSearchBar } from "./profile-search-bar";
+import { type ProfileLogRow } from "./profile-log-row";
 import { ProfileStats } from "./profile-stats";
 import { ProfileTabs } from "./profile-tabs";
 
@@ -31,16 +30,24 @@ export function ProfileView({
   user,
   isOwn,
   isFollowing,
+  habits,
+  logs,
+  topStreak,
+  totalLogs,
 }: {
   user: ProfileViewUser;
   isOwn: boolean;
   isFollowing: boolean;
+  habits: HabitCardData[];
+  logs: ProfileLogRow[];
+  topStreak: number;
+  totalLogs: number;
 }) {
   const stats = [
     { label: "followers", value: user.followers },
     { label: "following", value: user.following },
-    { label: "top streak", value: 0 },
-    { label: "total logs", value: 0 },
+    { label: "top streak", value: topStreak },
+    { label: "total logs", value: totalLogs },
   ];
 
   // Cancels the (app) layout's <main> padding so the desktop banner can go
@@ -52,12 +59,16 @@ export function ProfileView({
         isOwn={isOwn}
         isFollowing={isFollowing}
         stats={stats}
+        habits={habits}
+        logs={logs}
       />
       <DesktopProfile
         user={user}
         isOwn={isOwn}
         isFollowing={isFollowing}
         stats={stats}
+        habits={habits}
+        logs={logs}
       />
     </div>
   );
@@ -68,28 +79,19 @@ function MobileProfile({
   isOwn,
   isFollowing,
   stats,
+  habits,
+  logs,
 }: {
   user: ProfileViewUser;
   isOwn: boolean;
   isFollowing: boolean;
   stats: { label: string; value: number }[];
+  habits: HabitCardData[];
+  logs: ProfileLogRow[];
 }) {
   return (
     <div className="md:hidden">
-      <header className="flex items-center justify-between px-5 pt-5 pb-3">
-        <span className="font-mono text-hc-meta font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-          /profile/{isOwn ? "me" : user.username}
-        </span>
-        {isOwn && (
-          <SettingsButton signOutAction={signOutAction} variant="topbar" />
-        )}
-      </header>
-
-      <div className="px-5 pb-3">
-        <ProfileSearchBar />
-      </div>
-
-      <section className="flex flex-col gap-4 px-5 pb-5">
+      <section className="flex flex-col gap-4 px-5 pt-5 pb-5">
         <div className="flex items-start gap-4">
           <ProfileAvatar
             imageUrl={user.imageUrl}
@@ -110,7 +112,12 @@ function MobileProfile({
           <p className="text-sm leading-relaxed text-hc-ink">{user.bio}</p>
         )}
 
-        <ProfileStats stats={stats} variant="mobile" />
+        <ProfileStats
+          stats={stats}
+          variant="mobile"
+          userId={user.id}
+          username={user.username}
+        />
 
         <ProfileActions
           isOwn={isOwn}
@@ -120,7 +127,7 @@ function MobileProfile({
         />
       </section>
 
-      <ProfileTabs isOwn={isOwn} />
+      <ProfileTabs isOwn={isOwn} habits={habits} logs={logs} />
     </div>
   );
 }
@@ -130,11 +137,15 @@ function DesktopProfile({
   isOwn,
   isFollowing,
   stats,
+  habits,
+  logs,
 }: {
   user: ProfileViewUser;
   isOwn: boolean;
   isFollowing: boolean;
   stats: { label: string; value: number }[];
+  habits: HabitCardData[];
+  logs: ProfileLogRow[];
 }) {
   return (
     <div className="hidden md:block">
@@ -194,11 +205,16 @@ function DesktopProfile({
         )}
 
         <div className="mt-5">
-          <ProfileStats stats={stats} variant="desktop" />
+          <ProfileStats
+            stats={stats}
+            variant="desktop"
+            userId={user.id}
+            username={user.username}
+          />
         </div>
 
         <div className="mt-5">
-          <ProfileTabs isOwn={isOwn} />
+          <ProfileTabs isOwn={isOwn} habits={habits} logs={logs} />
         </div>
 
         <div className="h-10" />

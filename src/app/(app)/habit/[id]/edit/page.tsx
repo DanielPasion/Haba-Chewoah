@@ -58,9 +58,6 @@ export default async function EditHabitPage({ params }: { params: Params }) {
     <div className="-mx-5 -my-6 md:-mx-8 md:-my-8">
       <div className="mx-auto flex w-full max-w-115 flex-col gap-7 px-5 py-8 md:px-8 md:py-10">
         <div className="flex flex-col gap-2">
-          <p className="font-mono text-hc-meta font-semibold uppercase tracking-hc-eyebrow text-hc-muted">
-            /habit/{habit.id.slice(0, 8)}/edit
-          </p>
           <h1
             className="font-display text-3xl font-extrabold leading-none text-hc-ink"
             style={{ letterSpacing: "-0.04em" }}
