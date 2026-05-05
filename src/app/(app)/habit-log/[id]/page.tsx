@@ -158,6 +158,10 @@ export default async function HabitLogPage({ params }: { params: Params }) {
           : {}),
       },
       orderBy: { createdAt: "asc" },
+      // Cap to keep one viral log from dumping thousands of comments into
+      // a single RSC payload. 200 covers every realistic case for v1; if
+      // a log ever needs more, paginate via a "load older" affordance.
+      take: 200,
       select: {
         id: true,
         content: true,

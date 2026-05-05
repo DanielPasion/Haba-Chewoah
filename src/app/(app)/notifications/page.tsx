@@ -23,8 +23,33 @@ export default async function NotificationsPage() {
   const session = await auth();
   if (!session?.user) redirect("/auth/signin");
 
+  // §9: hide notifications from blocked actors. The fanout helper already
+  // suppresses NEW notifications when a block exists, but rows created
+  // BEFORE the block was put in place stay in the table — read-side
+  // filtering handles those. Either-direction block hides the actor
+  // (matches the symmetric rule used by ensureLogVisible / feed).
+  const [blocksByMe, blocksOfMe] = await Promise.all([
+    db.block.findMany({
+      where: { blockerId: session.user.id },
+      select: { blockedId: true },
+    }),
+    db.block.findMany({
+      where: { blockedId: session.user.id },
+      select: { blockerId: true },
+    }),
+  ]);
+  const hiddenActorIds = [
+    ...blocksByMe.map((b) => b.blockedId),
+    ...blocksOfMe.map((b) => b.blockerId),
+  ];
+
   const notifications = await db.notification.findMany({
-    where: { userId: session.user.id },
+    where: {
+      userId: session.user.id,
+      ...(hiddenActorIds.length > 0
+        ? { OR: [{ actorId: null }, { actorId: { notIn: hiddenActorIds } }] }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
     take: PAGE_LIMIT,
     select: {

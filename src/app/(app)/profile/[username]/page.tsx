@@ -47,21 +47,24 @@ export default async function UserProfilePage({ params }: { params: Params }) {
 
   const isOwn = user.id === session.user.id;
 
-  // §9: profiles are hidden from blocked users in either direction. Same
-  // app-layer gate that `feed/page.tsx` and the comment/like queries enforce.
-  // Returns 404 (not a "you're blocked" page) so the existence of the
-  // account isn't leaked to the blocker either.
+  // §9 split-direction enforcement:
+  //  - `theyBlockedMe`  → 404 (don't reveal the account exists at all).
+  //  - `iAmBlockingThem` → render a stripped-down profile so the viewer
+  //    can unblock; we still hide the target's content below.
+  let iAmBlockingThem = false;
   if (!isOwn) {
-    const block = await db.block.findFirst({
+    const blocks = await db.block.findMany({
       where: {
         OR: [
           { blockerId: session.user.id, blockedId: user.id },
           { blockerId: user.id, blockedId: session.user.id },
         ],
       },
-      select: { blockerId: true },
+      select: { blockerId: true, blockedId: true },
     });
-    if (block) notFound();
+    const theyBlockedMe = blocks.some((b) => b.blockerId === user.id);
+    if (theyBlockedMe) notFound();
+    iAmBlockingThem = blocks.some((b) => b.blockerId === session.user.id);
   }
 
   // Habits: own profile shows everything (incl. private + archived); other
@@ -200,6 +203,7 @@ export default async function UserProfilePage({ params }: { params: Params }) {
     <ProfileView
       isOwn={isOwn}
       isFollowing={isFollowing}
+      isBlockingThem={iAmBlockingThem}
       user={{
         id: user.id,
         username: user.username,
@@ -208,10 +212,13 @@ export default async function UserProfilePage({ params }: { params: Params }) {
         followers: user._count.followers,
         following: user._count.following,
       }}
-      habits={habitCards}
-      logs={logRows}
-      topStreak={topStreak}
-      totalLogs={totalLogs}
+      // While I'm blocking them, hide their habits + logs but keep the
+      // identity row + unblock control reachable. §9 says existing
+      // content "should be filtered from view" for the blocker.
+      habits={iAmBlockingThem ? [] : habitCards}
+      logs={iAmBlockingThem ? [] : logRows}
+      topStreak={iAmBlockingThem ? 0 : topStreak}
+      totalLogs={iAmBlockingThem ? 0 : totalLogs}
     />
   );
 }

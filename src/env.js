@@ -20,12 +20,17 @@ export const env = createEnv({
     // Web Push (VAPID). Generate once via `npx web-push generate-vapid-keys`
     // and reuse forever — rotating invalidates every active subscription.
     // Public key is also exposed to the client; private key stays server-side.
+    // Marked optional in the type, but the superRefine below makes them
+    // required when NODE_ENV === "production". A prod deploy missing these
+    // would silently disable push delivery.
     VAPID_PUBLIC_KEY: z.string().min(1).optional(),
     VAPID_PRIVATE_KEY: z.string().min(1).optional(),
     VAPID_SUBJECT: z.string().min(1).optional(),
 
     // Shared secret for cron endpoints (Netlify scheduled functions hit
-    // these). Send as `Authorization: Bearer <secret>`.
+    // these). Send as `Authorization: Bearer <secret>`. Required in prod
+    // (see superRefine) — when missing, the route fails-open and accepts
+    // anonymous calls, which would let any internet caller spam pushes.
     CRON_SECRET: z.string().min(1).optional(),
   },
 
@@ -53,4 +58,27 @@ export const env = createEnv({
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,
+
+  // Production-only requirements: VAPID + CRON_SECRET. Marking them
+  // `.optional()` above lets local dev run without configuring push or a
+  // cron secret; this onValidationError-like guard makes prod fail loudly
+  // if either is missing instead of failing open (cron route exposed) or
+  // failing silent (push delivery disabled).
+  onValidationError: (issues) => {
+    console.error("[env] invalid environment variables", issues);
+    throw new Error("invalid env vars — see logs");
+  },
 });
+
+if (
+  process.env.NODE_ENV === "production" &&
+  !process.env.SKIP_ENV_VALIDATION
+) {
+  const required = ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT", "CRON_SECRET", "NEXT_PUBLIC_VAPID_PUBLIC_KEY"];
+  const missing = required.filter((k) => !process.env[k]);
+  if (missing.length > 0) {
+    throw new Error(
+      `missing required production env vars: ${missing.join(", ")}`,
+    );
+  }
+}

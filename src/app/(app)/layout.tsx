@@ -27,20 +27,39 @@ export default async function AppLayout({
   const username = session.user.username;
   const displayName = session.user.name ?? username;
 
-  // Pull viewer-scoped chrome data once at the layout level — both pieces
-  // (notif unread dot, right rail timezone) are shared by every (app) page,
-  // and batching them here means every page render only sees one auth+user
-  // round-trip rather than each page re-fetching the same fields.
-  const [me, unreadCount] = await Promise.all([
+  // Pull viewer-scoped chrome data once at the layout level — every (app)
+  // page reads timezone + the unread badge, so batching here keeps each
+  // page render to one round-trip. Block-aware: §9 says blocked actors'
+  // notifications are filtered from view, so the unread count must match
+  // what /notifications and the right rail actually show.
+  const [me, blocksByMe, blocksOfMe] = await Promise.all([
     db.user.findUnique({
       where: { id: session.user.id },
       select: { timezone: true },
     }),
-    db.notification.count({
-      where: { userId: session.user.id, isRead: false },
+    db.block.findMany({
+      where: { blockerId: session.user.id },
+      select: { blockedId: true },
+    }),
+    db.block.findMany({
+      where: { blockedId: session.user.id },
+      select: { blockerId: true },
     }),
   ]);
   const timezone = me?.timezone ?? "UTC";
+  const hiddenActorIds = [
+    ...blocksByMe.map((b) => b.blockedId),
+    ...blocksOfMe.map((b) => b.blockerId),
+  ];
+  const unreadCount = await db.notification.count({
+    where: {
+      userId: session.user.id,
+      isRead: false,
+      ...(hiddenActorIds.length > 0
+        ? { OR: [{ actorId: null }, { actorId: { notIn: hiddenActorIds } }] }
+        : {}),
+    },
+  });
 
   return (
     <div className="flex min-h-dvh w-full bg-hc-bg">

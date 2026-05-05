@@ -379,3 +379,159 @@ export async function chewOutAction(habitId: string): Promise<ChewOutResult> {
 
   return { ok: true };
 }
+
+// ============================================================
+// CHEW-OUT (profile-level)
+// ============================================================
+// The mockup's profile-page chew-out button is one tap, no habit picker —
+// so we let the server pick. Strategy: find the recipient's *first*
+// active public habit they haven't logged today, oldest-streak first
+// (`createdAt asc`) so longstanding habits get the buzz. Falls back to
+// "they're already done for today" when nothing's eligible.
+//
+// Refusals mirror `chewOutAction` (blocked, none active+public, all
+// logged today, cooldown). The result type adds `noEligibleHabit` so the
+// client can render the "all done" state distinctly from a real error.
+
+export type ChewOutOnProfileResult =
+  | { ok: true; habitName: string; habitId: string }
+  | {
+      ok: false;
+      message: string;
+      cooldown?: boolean;
+      noEligibleHabit?: boolean;
+    };
+
+export async function chewOutOnProfileAction(input: {
+  targetUserId: string;
+}): Promise<ChewOutOnProfileResult> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, message: "not signed in" };
+  if (
+    typeof input?.targetUserId !== "string" ||
+    !UUID_RE.test(input.targetUserId)
+  ) {
+    return { ok: false, message: "invalid target" };
+  }
+  const targetUserId = input.targetUserId;
+  if (targetUserId === session.user.id) {
+    return { ok: false, message: "can't chew out yourself" };
+  }
+
+  // §9: blocks in either direction hide the target. Returning a generic
+  // "user not found" matches the convention in `toggleFollowAction` —
+  // don't reveal block status to either party.
+  const block = await db.block.findFirst({
+    where: {
+      OR: [
+        { blockerId: session.user.id, blockedId: targetUserId },
+        { blockerId: targetUserId, blockedId: session.user.id },
+      ],
+    },
+    select: { blockerId: true },
+  });
+  if (block) return { ok: false, message: "user not found" };
+
+  const target = await db.user.findUnique({
+    where: { id: targetUserId },
+    select: { id: true, username: true, timezone: true },
+  });
+  if (!target?.username) return { ok: false, message: "user not found" };
+
+  // Pull all active public habits + their last 48h of logs in one shot;
+  // we'll filter "logged today" + "already-chewed today" in JS.
+  const tz = target.timezone;
+  const todayYmd = localYmd(new Date(), tz);
+  const dayDate = new Date(`${todayYmd}T00:00:00Z`);
+  const recentLogsCutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
+  const habits = await db.habit.findMany({
+    where: { userId: target.id, isPublic: true, status: "active" },
+    orderBy: [{ createdAt: "asc" }],
+    select: {
+      id: true,
+      name: true,
+      logs: {
+        where: { completedAt: { gte: recentLogsCutoff } },
+        select: { completedAt: true },
+      },
+    },
+  });
+  if (habits.length === 0) {
+    return {
+      ok: false,
+      noEligibleHabit: true,
+      message: "no active habits to buzz",
+    };
+  }
+
+  // Sender's prior chew-outs to this user today, so we can skip habits
+  // already buzzed in the same loop instead of round-tripping per habit.
+  const priorChewouts = await db.chewout.findMany({
+    where: {
+      senderId: session.user.id,
+      recipientId: target.id,
+      day: dayDate,
+    },
+    select: { habitId: true },
+  });
+  const alreadyBuzzed = new Set(priorChewouts.map((c) => c.habitId));
+
+  const eligible = habits.find((h) => {
+    if (alreadyBuzzed.has(h.id)) return false;
+    const loggedToday = h.logs.some(
+      (l) => localYmd(l.completedAt, tz) === todayYmd,
+    );
+    return !loggedToday;
+  });
+
+  if (!eligible) {
+    // All public habits are either logged-today or already buzzed today.
+    // Distinct from "no habits" so the UI can phrase it as "they're done"
+    // vs "no public habits".
+    return {
+      ok: false,
+      noEligibleHabit: true,
+      message: "they're already done for today",
+    };
+  }
+
+  try {
+    await db.chewout.create({
+      data: {
+        senderId: session.user.id,
+        recipientId: target.id,
+        habitId: eligible.id,
+        day: dayDate,
+      },
+    });
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      return {
+        ok: false,
+        cooldown: true,
+        message: "you already buzzed them about that one",
+      };
+    }
+    throw err;
+  }
+
+  const senderHandle = session.user.username ?? "someone";
+  await createNotification({
+    recipientId: target.id,
+    actorId: session.user.id,
+    type: NotificationType.chewout,
+    habitId: eligible.id,
+    pushTitle: `@${senderHandle} chewed you out`,
+    pushBody: `finish "${eligible.name}" before the day ends`,
+    pushUrl: `/habit/${eligible.id}`,
+  });
+
+  revalidatePath(`/habit/${eligible.id}`);
+  revalidatePath(`/profile/${target.username}`);
+
+  return { ok: true, habitName: eligible.name, habitId: eligible.id };
+}

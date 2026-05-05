@@ -16,7 +16,11 @@ import {
   publicUrlForKey,
 } from "~/server/r2";
 
-import { MediaType, NotificationType } from "../../../../generated/prisma";
+import {
+  MediaType,
+  NotificationType,
+  Prisma,
+} from "../../../../generated/prisma";
 
 // Same regex used by the comment renderer (`comment-section.tsx`); kept in
 // sync with NOTES.md §4 (3–32 chars of [A-Za-z0-9_]). The `(?<=^|\s)`
@@ -344,16 +348,32 @@ export async function toggleLikeAction(
 
   let liked: boolean;
   if (existing) {
-    await db.like.delete({
-      where: {
-        userId_habitLogId: { userId: session.user.id, habitLogId: log.id },
-      },
+    // `deleteMany` instead of `delete` so a concurrent unlike (count=0)
+    // is a no-op rather than P2025. Same pattern as `toggleFollowAction`.
+    await db.like.deleteMany({
+      where: { userId: session.user.id, habitLogId: log.id },
     });
     liked = false;
   } else {
-    await db.like.create({
-      data: { userId: session.user.id, habitLogId: log.id },
-    });
+    try {
+      await db.like.create({
+        data: { userId: session.user.id, habitLogId: log.id },
+      });
+    } catch (err) {
+      // Concurrent double-tap: two requests both observe `existing=null`,
+      // both try to create. The second hits the (userId, habitLogId)
+      // unique. End state is "liked", so report success. Mirrors the
+      // P2002 handling in `toggleFollowAction`.
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        const likeCount = await db.like.count({ where: { habitLogId: log.id } });
+        revalidatePath(`/habit-log/${log.id}`);
+        return { ok: true, liked: true, likeCount };
+      }
+      throw err;
+    }
     liked = true;
 
     // Notification creation is best-effort: a duplicate or transient
