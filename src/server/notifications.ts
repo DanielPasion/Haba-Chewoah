@@ -3,6 +3,7 @@ import "server-only";
 import webpush from "web-push";
 
 import { env } from "~/env";
+import { localYmd } from "~/lib/habit-stats";
 
 import { NotificationType, Prisma } from "../../generated/prisma";
 import { db } from "./db";
@@ -196,4 +197,131 @@ async function sendPushToUser(userId: string, payload: PushPayload) {
 // the createNotification wrapper (it does its own row insert + cooldown).
 export async function fanoutPush(userId: string, payload: PushPayload) {
   await sendPushToUser(userId, payload);
+}
+
+/**
+ * Fan out a `follow_log` notification to every follower of `actorId`,
+ * skipping anyone the actor blocks (or who blocks the actor).
+ *
+ * Why a dedicated helper instead of a `Promise.all` over `createNotification`:
+ * a popular user with N followers would issue N block-check queries via
+ * `createNotification`'s per-call guard. We collapse those to a single
+ * block lookup + a single `createMany` insert, then fire pushes
+ * individually (best-effort). Push fanout stays non-blocking — the action
+ * returns as soon as the rows are written.
+ *
+ * Caller is responsible for gating on `habit.isPublic` / `habit.status`.
+ * Private or archived habits should not produce follower notifications
+ * (it would leak the private activity that the visibility model otherwise
+ * hides from the feed).
+ */
+export async function fanoutLogToFollowers(input: {
+  actorId: string;
+  actorHandle: string;
+  habitId: string;
+  habitName: string;
+  habitLogId: string;
+}): Promise<{ recipientCount: number }> {
+  const { actorId, actorHandle, habitId, habitName, habitLogId } = input;
+
+  // Followers of the actor + bidirectional blocks involving the actor +
+  // the actor's timezone (used to bucket notifs by *the actor's* local
+  // day for dedup). All independent — parallelize.
+  const [follows, blocksByActor, blocksOfActor, actor] = await Promise.all([
+    db.follow.findMany({
+      where: { followingId: actorId },
+      select: { followerId: true },
+    }),
+    db.block.findMany({
+      where: { blockerId: actorId },
+      select: { blockedId: true },
+    }),
+    db.block.findMany({
+      where: { blockedId: actorId },
+      select: { blockerId: true },
+    }),
+    db.user.findUnique({
+      where: { id: actorId },
+      select: { timezone: true },
+    }),
+  ]);
+
+  if (follows.length === 0) return { recipientCount: 0 };
+
+  const blockedSet = new Set<string>([
+    ...blocksByActor.map((b) => b.blockedId),
+    ...blocksOfActor.map((b) => b.blockerId),
+  ]);
+  const followerIds = follows
+    .map((f) => f.followerId)
+    .filter((id) => !blockedSet.has(id) && id !== actorId);
+
+  if (followerIds.length === 0) return { recipientCount: 0 };
+
+  // Per-day dedup: a user logging the same habit ten times in a day
+  // would otherwise spam every follower with ten notifications + ten
+  // pushes. Bucketing by the actor's local day means the first log of
+  // the day fans out, subsequent logs of that habit on the same day
+  // don't. Crossing midnight in the actor's TZ resets the bucket so
+  // the next day's first log notifies again.
+  //
+  // The unique key `(userId, habitId, type, localDay)` enforces this at
+  // the DB level. We *also* pre-query existing rows so we can suppress
+  // push fanout for already-notified followers — `createMany` doesn't
+  // tell us which rows it skipped.
+  const actorLocalDay = localYmd(new Date(), actor?.timezone ?? "UTC");
+
+  const existing = await db.notification.findMany({
+    where: {
+      userId: { in: followerIds },
+      habitId,
+      type: NotificationType.follow_log,
+      // Postgres `date` accepts the ISO string directly; matches the
+      // create path (createNotification passes `localDayYmd` as a string).
+      localDay: actorLocalDay,
+    },
+    select: { userId: true },
+  });
+  const alreadyNotified = new Set(existing.map((e) => e.userId));
+  const recipientIds = followerIds.filter((id) => !alreadyNotified.has(id));
+
+  if (recipientIds.length === 0) return { recipientCount: 0 };
+
+  // `skipDuplicates: true` is belt-and-braces — the pre-query already
+  // filtered, but a concurrent fanout (same actor logging twice in
+  // quick succession) could race past it.
+  try {
+    await db.notification.createMany({
+      data: recipientIds.map((recipientId) => ({
+        userId: recipientId,
+        actorId,
+        type: NotificationType.follow_log,
+        habitId,
+        habitLogId,
+        localDay: actorLocalDay,
+      })),
+      skipDuplicates: true,
+    });
+  } catch (err) {
+    console.warn("[notif] follow_log fanout insert failed", {
+      actorId,
+      habitLogId,
+      err,
+    });
+    return { recipientCount: 0 };
+  }
+
+  // Push fanout is best-effort and runs in the background — the action
+  // shouldn't wait for hundreds of round-trips to push providers. We
+  // intentionally don't `await` the loop.
+  const pushPayload: PushPayload = {
+    title: `@${actorHandle} just logged`,
+    body: habitName,
+    url: `/habit-log/${habitLogId}`,
+  };
+  for (const recipientId of recipientIds) {
+    void sendPushToUser(recipientId, pushPayload);
+  }
+
+  return { recipientCount: recipientIds.length };
 }

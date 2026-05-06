@@ -57,6 +57,16 @@ function decorate(n: ActivityRowVM): Decoration {
         href: actorHandle ? `/profile/${actorHandle}` : "#",
         badge: null,
       };
+    case "follow_log":
+      return {
+        verb: (
+          <>
+            logged <span className="italic">&ldquo;{habitName}&rdquo;</span>
+          </>
+        ),
+        href: n.habitLogId ? `/habit-log/${n.habitLogId}` : "#",
+        badge: null,
+      };
     case "chewout":
       return {
         verb: (

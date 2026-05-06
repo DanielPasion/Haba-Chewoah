@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
-import { createNotification } from "~/server/notifications";
+import { createNotification, fanoutLogToFollowers } from "~/server/notifications";
 import {
   type HabitLogMediaUploadGrant,
   VIDEO_MAX_DURATION_MS,
@@ -156,7 +156,7 @@ export async function createHabitLogAction(
   // must clean it up — see `failWithCleanup` below.
   const habit = await db.habit.findUnique({
     where: { id: habitId },
-    select: { id: true, userId: true, status: true },
+    select: { id: true, userId: true, status: true, isPublic: true, name: true },
   });
 
   // The reject helper deletes a successfully-uploaded R2 object whenever
@@ -228,6 +228,29 @@ export async function createHabitLogAction(
   revalidatePath(`/habit/${habit.id}`);
   revalidatePath("/feed");
   revalidatePath(`/profile/${session.user.username}`);
+
+  // Fan a `follow_log` notification out to each follower so anyone who
+  // opted to follow this user sees their new logs land in real time.
+  // Gated on `isPublic` because private habits aren't visible from the
+  // feed / other-user profile — surfacing a notification about one would
+  // leak activity the visibility model otherwise hides. Best-effort: a
+  // failure here must not roll back the log itself.
+  if (habit.isPublic) {
+    try {
+      await fanoutLogToFollowers({
+        actorId: session.user.id,
+        actorHandle: session.user.username,
+        habitId: habit.id,
+        habitName: habit.name,
+        habitLogId: createdId,
+      });
+    } catch (err) {
+      console.warn("[notif] follow_log fanout failed", {
+        habitLogId: createdId,
+        err,
+      });
+    }
+  }
 
   return { ok: true, habitLogId: createdId };
 }

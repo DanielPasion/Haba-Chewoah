@@ -157,7 +157,8 @@ function EmptyState() {
         all quiet
       </p>
       <p className="max-w-xs text-sm text-hc-muted">
-        likes, comments, follows, and mentions will land here.
+        likes, comments, follows, mentions, and logs from people you follow
+        will land here.
       </p>
     </div>
   );
