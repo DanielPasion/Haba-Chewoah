@@ -111,6 +111,7 @@ export default async function UserProfilePage({ params }: { params: Params }) {
         name: true,
         icon: true,
         description: true,
+        status: true,
         frequencyType: true,
         targetCount: true,
         periodDays: true,
@@ -221,6 +222,22 @@ export default async function UserProfilePage({ params }: { params: Params }) {
       ? { completedAt: lastRaw.completedAt.toISOString(), id: lastRaw.id }
       : null;
 
+  // Today's progress for the share-sheet — only the viewer's own active
+  // habits, with a simple done/not-done flag in the owner's local TZ.
+  // Reuses `dayCountsByHabit` (already built for day-N) instead of issuing
+  // another query.
+  const todayShareItems = isOwn
+    ? (() => {
+        const todayYmd = localYmd(new Date(), user.timezone);
+        return habits
+          .filter((h) => h.status === "active")
+          .map((h) => ({
+            name: h.name,
+            done: (dayCountsByHabit.get(h.id)?.get(todayYmd) ?? 0) > 0,
+          }));
+      })()
+    : null;
+
   return (
     <ProfileView
       isOwn={isOwn}
@@ -243,6 +260,7 @@ export default async function UserProfilePage({ params }: { params: Params }) {
       initialLogsCursor={iAmBlockingThem ? null : initialLogsCursor}
       topStreak={iAmBlockingThem ? 0 : topStreak}
       totalLogs={iAmBlockingThem ? 0 : totalLogs}
+      todayShareItems={todayShareItems}
     />
   );
 }

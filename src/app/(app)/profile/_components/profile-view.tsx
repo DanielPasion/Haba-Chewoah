@@ -1,6 +1,6 @@
 import { type HabitCardData } from "../../habit/_components/habit-card";
 import { type ProfileLogsCursor } from "../_data";
-import { ProfileActions } from "./profile-actions";
+import { ProfileActions, type TodayShareItem } from "./profile-actions";
 import { ProfileAvatar } from "./profile-avatar";
 import { type ProfileLogRow } from "./profile-log-row";
 import { ProfileStats } from "./profile-stats";
@@ -37,6 +37,7 @@ export function ProfileView({
   initialLogsCursor,
   topStreak,
   totalLogs,
+  todayShareItems = null,
 }: {
   user: ProfileViewUser;
   isOwn: boolean;
@@ -47,6 +48,8 @@ export function ProfileView({
   initialLogsCursor: ProfileLogsCursor | null;
   topStreak: number;
   totalLogs: number;
+  /** Active habits + done-today flag for the share button. Own profile only. */
+  todayShareItems?: TodayShareItem[] | null;
 }) {
   const stats = [
     { label: "followers", value: user.followers },
@@ -68,6 +71,7 @@ export function ProfileView({
         habits={habits}
         logs={logs}
         initialLogsCursor={initialLogsCursor}
+        todayShareItems={todayShareItems}
       />
       <DesktopProfile
         user={user}
@@ -78,6 +82,7 @@ export function ProfileView({
         habits={habits}
         logs={logs}
         initialLogsCursor={initialLogsCursor}
+        todayShareItems={todayShareItems}
       />
     </div>
   );
@@ -92,6 +97,7 @@ function MobileProfile({
   habits,
   logs,
   initialLogsCursor,
+  todayShareItems,
 }: {
   user: ProfileViewUser;
   isOwn: boolean;
@@ -101,6 +107,7 @@ function MobileProfile({
   habits: HabitCardData[];
   logs: ProfileLogRow[];
   initialLogsCursor: ProfileLogsCursor | null;
+  todayShareItems: TodayShareItem[] | null;
 }) {
   const seedName = user.displayName?.trim() || user.username;
   return (
@@ -146,6 +153,7 @@ function MobileProfile({
           isBlockingThem={isBlockingThem}
           targetUserId={user.id}
           username={user.username}
+          todayShareItems={todayShareItems}
         />
       </section>
 
@@ -169,6 +177,7 @@ function DesktopProfile({
   habits,
   logs,
   initialLogsCursor,
+  todayShareItems,
 }: {
   user: ProfileViewUser;
   isOwn: boolean;
@@ -178,6 +187,7 @@ function DesktopProfile({
   habits: HabitCardData[];
   logs: ProfileLogRow[];
   initialLogsCursor: ProfileLogsCursor | null;
+  todayShareItems: TodayShareItem[] | null;
 }) {
   const seedName = user.displayName?.trim() || user.username;
   return (
@@ -218,6 +228,7 @@ function DesktopProfile({
               isBlockingThem={isBlockingThem}
               targetUserId={user.id}
               username={user.username}
+              todayShareItems={todayShareItems}
             />
           </div>
         </div>

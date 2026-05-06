@@ -18,6 +18,8 @@ import {
 const ICON_BASE_CLASS =
   "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-hc-2 border-hc border-hc-ink bg-transparent px-3 py-2 font-sans text-hc-button font-bold leading-none text-hc-ink transition-transform hover:bg-hc-ink hover:text-hc-brand dark:hover:bg-hc-brand dark:hover:text-hc-brand-ink";
 
+export type TodayShareItem = { name: string; done: boolean };
+
 /**
  * Action row under the identity block. Renders edit/share for own profile,
  * follow/share for others.
@@ -28,12 +30,18 @@ export function ProfileActions({
   isBlockingThem = false,
   targetUserId,
   username,
+  todayShareItems = null,
 }: {
   isOwn: boolean;
   isFollowing: boolean;
   isBlockingThem?: boolean;
   targetUserId: string;
   username: string;
+  /**
+   * When set, the share button copies a Wordle-style "today's habits"
+   * digest instead of just the profile URL. Only meaningful for own profile.
+   */
+  todayShareItems?: TodayShareItem[] | null;
 }) {
   if (isOwn) {
     return (
@@ -44,7 +52,7 @@ export function ProfileActions({
         >
           edit profile
         </Link>
-        <ShareButton username={username} />
+        <ShareButton username={username} todayShareItems={todayShareItems} />
         <SettingsButton signOutAction={signOutAction} variant="action" />
       </div>
     );
@@ -132,21 +140,53 @@ function FollowButton({
   );
 }
 
-function ShareButton({ username }: { username: string }) {
+function buildTodayShareText(items: TodayShareItem[], origin: string) {
+  // Wordle-style daily digest: ✅ for done, ❌ for not, with the app URL as
+  // a footer so screenshots/copies always trace back to the product.
+  const lines = items.map((it) => `${it.done ? "✅" : "❌"} ${it.name}`);
+  return [...lines, origin].join("\n");
+}
+
+function ShareButton({
+  username,
+  todayShareItems = null,
+}: {
+  username: string;
+  todayShareItems?: TodayShareItem[] | null;
+}) {
   const [copied, setCopied] = useState(false);
+
+  // When today's items are available (own profile w/ at least one active
+  // habit), the share button copies a daily digest instead of a profile
+  // link. Falls through to URL share for anyone else, or for own profile
+  // with no active habits — they have nothing meaningful to broadcast.
+  const sharingToday =
+    Array.isArray(todayShareItems) && todayShareItems.length > 0;
 
   async function onClick() {
     if (typeof window === "undefined") return;
-    const url = `${window.location.origin}/profile/${username}`;
+
+    const profileUrl = `${window.location.origin}/profile/${username}`;
+    const sharePayload = sharingToday
+      ? {
+          title: "today's habits · haba-chewoah",
+          text: buildTodayShareText(todayShareItems!, window.location.origin),
+        }
+      : { title: `@${username} on Haba-Chewoah`, url: profileUrl };
+    const clipboardText = sharingToday ? sharePayload.text! : profileUrl;
 
     // Native share-sheet on capable mobile browsers; fall back to clipboard so
     // desktop and unsupported environments still get a working share.
     const navAny = navigator as Navigator & {
-      share?: (data: { title: string; url: string }) => Promise<void>;
+      share?: (data: {
+        title?: string;
+        text?: string;
+        url?: string;
+      }) => Promise<void>;
     };
     if (typeof navAny.share === "function") {
       try {
-        await navAny.share({ title: `@${username} on Haba-Chewoah`, url });
+        await navAny.share(sharePayload);
         return;
       } catch {
         // User dismissed the sheet or it failed; fall through to clipboard.
@@ -154,21 +194,24 @@ function ShareButton({ username }: { username: string }) {
     }
 
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(clipboardText);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
       // Clipboard blocked (insecure context, denied perm) — last resort.
-      window.prompt("copy this link", url);
+      window.prompt("copy this", clipboardText);
     }
   }
+
+  const idleLabel = sharingToday ? "share today's habits" : "share profile";
+  const copiedLabel = sharingToday ? "copied" : "link copied";
 
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label="share profile"
-      title={copied ? "link copied" : "share profile"}
+      aria-label={idleLabel}
+      title={copied ? copiedLabel : idleLabel}
       className={ICON_BASE_CLASS}
     >
       {copied ? (
@@ -200,7 +243,7 @@ function ShareButton({ username }: { username: string }) {
           <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
         </svg>
       )}
-      <span className="sr-only">{copied ? "link copied" : "share"}</span>
+      <span className="sr-only">{copied ? copiedLabel : idleLabel}</span>
     </button>
   );
 }
