@@ -97,7 +97,7 @@ export default async function FeedPage() {
 
       <div className="mx-auto flex w-full max-w-180 flex-col gap-3 px-3 md:px-8">
         {firstPage.items.length === 0 ? (
-          <EmptyState />
+          <EmptyState username={session.user.username} />
         ) : (
           <FeedList
             initialItems={firstPage.items}
@@ -109,7 +109,7 @@ export default async function FeedPage() {
   );
 }
 
-function EmptyState() {
+function EmptyState({ username }: { username: string }) {
   return (
     <div className="flex flex-col items-center gap-5 rounded-hc-3 border border-dashed border-hc-line-strong bg-hc-surface-alt px-6 py-14 text-center">
       <TwoFaceMascot size={72} mood="wink" bg="#1B1726" />
@@ -126,7 +126,7 @@ function EmptyState() {
         </p>
       </div>
       <Link
-        href="/profile"
+        href={`/profile/${username}`}
         className={buttonClass({ variant: "primary", size: "md" })}
       >
         log something

@@ -48,26 +48,53 @@ const EXPLORE_OUTLINE = (
   </>
 );
 
-const NAV_ITEMS: NavItem[] = [
-  {
-    href: "/feed",
-    label: "home",
-    icon: HOME_OUTLINE,
-    iconActive: HOME_FILLED,
-  },
-  { href: "/explore", label: "explore", icon: EXPLORE_OUTLINE },
-  {
-    href: "/profile",
-    label: "profile",
-    icon: PROFILE_OUTLINE,
-    iconActive: PROFILE_FILLED,
-  },
-];
-
-const MOBILE_TAB_ITEMS: NavItem[] = [NAV_ITEMS[0]!, NAV_ITEMS[2]!];
+// Profile links route directly to `/profile/<username>` (the canonical URL)
+// instead of bouncing through `/profile`'s server-side redirect — otherwise
+// the closest matching loading.tsx during the redirect transition is the
+// generic (app) feed skeleton, which flashes a skeleton that doesn't look
+// like a profile page at all.
+function buildNavItems(username: string): NavItem[] {
+  return [
+    {
+      href: "/feed",
+      label: "home",
+      icon: HOME_OUTLINE,
+      iconActive: HOME_FILLED,
+    },
+    { href: "/explore", label: "explore", icon: EXPLORE_OUTLINE },
+    {
+      href: `/profile/${username}`,
+      label: "profile",
+      icon: PROFILE_OUTLINE,
+      iconActive: PROFILE_FILLED,
+    },
+  ];
+}
 
 function isActive(pathname: string, href: string) {
+  if (href.startsWith("/profile/")) {
+    // Only highlight the profile tab on *your own* profile (and its
+    // sub-routes like /profile/edit). Treating any /profile/* as active
+    // makes the tab claim aria-current="page" while viewing strangers,
+    // and turns the active-tap branch (preventDefault + refresh) into a
+    // dead-end — re-tapping while on @bob's profile should navigate you
+    // home, not refresh @bob.
+    return pathname === href || pathname.startsWith(`${href}/`) || pathname === "/profile";
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+// Re-tapping the already-active tab scrolls back to the top *and* refreshes
+// the route — same affordance as Twitter/Instagram. `behavior: "smooth"` only
+// when the user isn't scrolled too far; for very long feeds an instant jump
+// reads as more responsive than a 2-second smooth scroll.
+function scrollPageToTop() {
+  if (typeof window === "undefined") return;
+  const behavior: ScrollBehavior =
+    window.scrollY > 1800 || window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "auto"
+      : "smooth";
+  window.scrollTo({ top: 0, behavior });
 }
 
 function NavIcon({
@@ -106,6 +133,7 @@ export function AppSidebar({
   signOutAction: () => Promise<void>;
 }) {
   const pathname = usePathname();
+  const navItems = buildNavItems(username);
   return (
     <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-1 overflow-y-auto border-r border-hc-line bg-hc-bg px-4 pb-4 pt-6 md:flex">
       <Link href="/feed" className="px-3 pb-6 pt-1">
@@ -113,7 +141,7 @@ export function AppSidebar({
       </Link>
 
       <ul className="flex flex-col gap-0.5">
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active = isActive(pathname, item.href);
           return (
             <li key={item.href}>
@@ -127,7 +155,7 @@ export function AppSidebar({
 
       <div className="flex items-center gap-3 rounded-hc-2 border border-hc-line bg-hc-surface p-2.5">
         <Link
-          href="/profile"
+          href={`/profile/${username}`}
           className="flex min-w-0 flex-1 items-center gap-3 rounded-hc-1 transition-colors"
         >
           <Avatar
@@ -161,6 +189,7 @@ function NavSidebarLink({ item, active }: { item: NavItem; active: boolean }) {
       onClick={(e) => {
         if (!active) return;
         e.preventDefault();
+        scrollPageToTop();
         startTransition(() => router.refresh());
       }}
       aria-current={active ? "page" : undefined}
@@ -262,6 +291,7 @@ function ExploreIconLink() {
       onClick={(e) => {
         if (!active) return;
         e.preventDefault();
+        scrollPageToTop();
         startTransition(() => router.refresh());
       }}
       aria-current={active ? "page" : undefined}
@@ -306,8 +336,9 @@ function NotificationBell({ hasUnread }: { hasUnread: boolean }) {
   );
 }
 
-export function AppMobileTabBar() {
+export function AppMobileTabBar({ username }: { username: string }) {
   const pathname = usePathname();
+  const navItems = buildNavItems(username);
   // Three equal-width grid slots so the center FAB sits at the geometric
   // centre regardless of label widths. The `before:` extends the surface
   // upward so the elevated FAB sits over an opaque backdrop instead of
@@ -318,13 +349,13 @@ export function AppMobileTabBar() {
       style={{ paddingBottom: "max(0.4rem, env(safe-area-inset-bottom))" }}
     >
       <div className="relative z-10 flex justify-center">
-        <MobileTabLink item={MOBILE_TAB_ITEMS[0]!} pathname={pathname} />
+        <MobileTabLink item={navItems[0]!} pathname={pathname} />
       </div>
       <div className="relative z-10 flex justify-center">
         <MobileAddButton variant="fab" />
       </div>
       <div className="relative z-10 flex justify-center">
-        <MobileTabLink item={MOBILE_TAB_ITEMS[1]!} pathname={pathname} />
+        <MobileTabLink item={navItems[2]!} pathname={pathname} />
       </div>
     </nav>
   );
@@ -346,6 +377,7 @@ function MobileTabLink({
       onClick={(e) => {
         if (!active) return;
         e.preventDefault();
+        scrollPageToTop();
         startTransition(() => router.refresh());
       }}
       aria-current={active ? "page" : undefined}
