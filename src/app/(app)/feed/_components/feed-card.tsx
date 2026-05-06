@@ -28,7 +28,19 @@ export type FeedItem = {
   dayNumber: number;
 };
 
-export function FeedCard({ item }: { item: FeedItem }) {
+export function FeedCard({
+  item,
+  priority = false,
+}: {
+  item: FeedItem;
+  /**
+   * The first cards in the feed render above the fold, so the browser
+   * should fetch their media immediately rather than wait for layout +
+   * lazy-load thresholds. Caller decides which cards qualify (typically
+   * the top 2–3).
+   */
+  priority?: boolean;
+}) {
   const hasMedia = item.mediaUrl !== null && item.mediaType !== null;
 
   return (
@@ -94,7 +106,7 @@ export function FeedCard({ item }: { item: FeedItem }) {
                 className="aspect-[4/5] w-full object-cover"
                 muted
                 playsInline
-                preload="metadata"
+                preload={priority ? "auto" : "metadata"}
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
@@ -102,6 +114,9 @@ export function FeedCard({ item }: { item: FeedItem }) {
                 src={item.mediaUrl!}
                 alt=""
                 className="aspect-[4/5] w-full object-cover"
+                loading={priority ? "eager" : "lazy"}
+                decoding="async"
+                fetchPriority={priority ? "high" : "auto"}
               />
             )}
             {item.mediaType === "video" && (

@@ -96,8 +96,8 @@ export function FeedList({
 
   return (
     <div className="flex flex-col gap-3">
-      {items.map((item) => (
-        <FeedCard key={item.id} item={item} />
+      {items.map((item, index) => (
+        <FeedCard key={item.id} item={item} priority={index < 2} />
       ))}
 
       {cursor ? (
