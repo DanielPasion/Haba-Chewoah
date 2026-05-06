@@ -73,9 +73,13 @@ function buildNavItems(username: string): NavItem[] {
 
 function isActive(pathname: string, href: string) {
   if (href.startsWith("/profile/")) {
-    // Treat any /profile/* route as "profile" so visiting another user
-    // still highlights the tab — pathname-equality alone wouldn't.
-    return pathname === "/profile" || pathname.startsWith("/profile/");
+    // Only highlight the profile tab on *your own* profile (and its
+    // sub-routes like /profile/edit). Treating any /profile/* as active
+    // makes the tab claim aria-current="page" while viewing strangers,
+    // and turns the active-tap branch (preventDefault + refresh) into a
+    // dead-end — re-tapping while on @bob's profile should navigate you
+    // home, not refresh @bob.
+    return pathname === href || pathname.startsWith(`${href}/`) || pathname === "/profile";
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }

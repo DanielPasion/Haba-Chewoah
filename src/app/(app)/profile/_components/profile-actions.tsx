@@ -171,6 +171,12 @@ function ShareButton({
       ? {
           title: "today's habits · haba-chewoah",
           text: buildTodayShareText(todayShareItems!, window.location.origin),
+          // Include the profile URL so the native share sheet has a real
+          // link target (drives attribution back to the sharer's profile).
+          // The text already contains the bare origin for users who paste
+          // the digest into a context that strips the URL field (e.g.
+          // plain SMS).
+          url: profileUrl,
         }
       : { title: `@${username} on Haba-Chewoah`, url: profileUrl };
     const clipboardText = sharingToday ? sharePayload.text! : profileUrl;
