@@ -60,6 +60,10 @@ enum NotificationType {
   // `chewout` — a follower hit "chew out" on your active habit before
   // end-of-day. Cooldown enforced by the `chewouts` table, not here.
   chewout
+  // `follow_log` — a user you follow added a new log on a public habit.
+  // habitId + habitLogId are both set; localDay stays NULL (user-action
+  // notif). Private/archived habits do NOT fan this out.
+  follow_log
   // System-fired (cron). actor_id is NULL on these.
   reminder
   streak_at_risk
