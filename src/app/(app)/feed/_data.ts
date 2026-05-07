@@ -5,7 +5,7 @@ import { db } from "~/server/db";
 
 import type { FeedItem } from "./_components/feed-card";
 
-export const FEED_PAGE_SIZE = 30;
+export const FEED_PAGE_SIZE = 5;
 
 export type FeedCursor = {
   // ISO string so the cursor crosses the wire cleanly. Pair `completedAt`

@@ -96,7 +96,7 @@ export function FeedCard({
       {hasMedia && (
         <Link
           href={`/habit-log/${item.id}`}
-          className="block"
+          className={`block ${item.notes ? "" : "mt-3"}`}
           aria-label="open log"
         >
           <div className="relative overflow-hidden border-y border-hc-line bg-hc-ink">
