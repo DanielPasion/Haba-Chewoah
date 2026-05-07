@@ -11,6 +11,8 @@ import {
   AppSidebar,
 } from "./_components/app-nav";
 import { DesktopRightRail } from "./_components/desktop-right-rail";
+import { PullToRefresh } from "./_components/pull-to-refresh";
+import { TimezoneSync } from "./_components/timezone-sync";
 
 // Pages nested under (app) should still call auth() themselves — layout gating
 // alone isn't enough when the cost of a leak is private content.
@@ -71,10 +73,13 @@ export default async function AppLayout({
       <div className="flex min-w-0 flex-1 flex-col">
         <AppMobileTopBar hasUnreadNotifications={unreadCount > 0} />
         <AppDesktopTopBar hasUnreadNotifications={unreadCount > 0} />
-        <main className="flex-1 px-5 py-6 md:px-8 md:py-8">{children}</main>
+        <main className="flex-1 px-5 py-6 md:px-8 md:py-8">
+          <PullToRefresh>{children}</PullToRefresh>
+        </main>
         <AppMobileTabBar username={username} />
       </div>
       <DesktopRightRail userId={session.user.id} timezone={timezone} />
+      <TimezoneSync serverTimezone={timezone} />
     </div>
   );
 }

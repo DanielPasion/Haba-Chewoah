@@ -77,6 +77,8 @@ export function HabitLogDetailView({
         habitId={log.habit.id}
         ownerUsername={log.owner.username}
         habitName={log.habit.name}
+        completedAt={log.completedAt}
+        notes={log.notes}
       />
 
       <div className="mx-auto flex w-full max-w-130 flex-col gap-4 px-5 md:px-8 md:gap-5">
@@ -109,12 +111,16 @@ function Header({
   habitId,
   ownerUsername,
   habitName,
+  completedAt,
+  notes,
 }: {
   logId: string;
   isOwn: boolean;
   habitId: string;
   ownerUsername: string;
   habitName: string;
+  completedAt: Date;
+  notes: string | null;
 }) {
   return (
     <header className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-10 flex items-center gap-3 border-b border-hc-line bg-hc-bg/85 px-5 py-3 backdrop-blur md:top-0 md:px-8 md:py-4">
@@ -127,7 +133,13 @@ function Header({
       >
         {habitName}
       </h1>
-      <LogActions logId={logId} habitId={habitId} isOwn={isOwn} />
+      <LogActions
+        logId={logId}
+        habitId={habitId}
+        isOwn={isOwn}
+        completedAt={completedAt}
+        notes={notes}
+      />
     </header>
   );
 }

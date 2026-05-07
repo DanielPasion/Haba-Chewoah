@@ -1,7 +1,9 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { isValidTimezone } from "~/lib/timezones";
 import { signOut } from "~/server/auth";
 
 import { auth } from "~/server/auth";
@@ -84,6 +86,38 @@ export async function deletePushSubscriptionAction(input: {
   await db.pushSubscription.deleteMany({
     where: { endpoint: input.endpoint, userId: session.user.id },
   });
+  return { ok: true };
+}
+
+// Auto-detected timezone from the browser. Fired from the (app) layout's
+// client-side `TimezoneSync` once per session when the detected zone
+// differs from the stored one — silent and idempotent. Validated against
+// IANA via `isValidTimezone` so a tampered POST can't poison the field.
+export async function syncDetectedTimezoneAction(
+  detected: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, message: "not signed in" };
+  if (!isValidTimezone(detected)) {
+    return { ok: false, message: "invalid timezone" };
+  }
+
+  const me = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: { timezone: true, username: true },
+  });
+  if (!me || me.timezone === detected) return { ok: true };
+
+  await db.user.update({
+    where: { id: session.user.id },
+    data: { timezone: detected },
+  });
+
+  // Streaks + day labels render off the user's timezone everywhere they
+  // appear. Revalidating these paths makes sure the next render uses the
+  // newly-detected zone instead of the stale UTC default.
+  revalidatePath("/feed");
+  if (me.username) revalidatePath(`/profile/${me.username}`);
   return { ok: true };
 }
 

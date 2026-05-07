@@ -4,18 +4,24 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { deleteHabitLogAction } from "../_actions";
+import { EditLogSheet } from "./edit-log-sheet";
 
 export function LogActions({
   logId,
   habitId,
   isOwn,
+  completedAt,
+  notes,
 }: {
   logId: string;
   habitId: string;
   isOwn: boolean;
+  completedAt: Date;
+  notes: string | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [pending, startTransition] = useTransition();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -77,13 +83,31 @@ export function LogActions({
         <div className="absolute right-0 top-11 z-20 w-44 overflow-hidden rounded-hc-2 border border-hc-line bg-hc-surface shadow-hc-lg">
           <button
             type="button"
+            onClick={() => {
+              setOpen(false);
+              setEditing(true);
+            }}
+            className="block w-full px-4 py-2.5 text-left font-sans text-sm font-semibold text-hc-ink hover:bg-hc-surface-alt"
+          >
+            edit log
+          </button>
+          <button
+            type="button"
             onClick={onDelete}
             disabled={pending}
-            className="block w-full px-4 py-2.5 text-left font-sans text-sm font-semibold text-hc-accent hover:bg-hc-surface-alt disabled:opacity-60"
+            className="block w-full border-t border-hc-line px-4 py-2.5 text-left font-sans text-sm font-semibold text-hc-accent hover:bg-hc-surface-alt disabled:opacity-60"
           >
             {pending ? "deleting…" : "delete log"}
           </button>
         </div>
+      )}
+      {editing && (
+        <EditLogSheet
+          logId={logId}
+          initialCompletedAt={completedAt}
+          initialNotes={notes}
+          onClose={() => setEditing(false)}
+        />
       )}
     </div>
   );

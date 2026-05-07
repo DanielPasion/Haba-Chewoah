@@ -303,34 +303,33 @@ function Heatmap({
   logIdByDay: Record<string, string>;
   todayYmd: string;
 }) {
-  // Date-range header: first column starts at the Sunday of 8 weeks ago,
-  // last column ends at this Saturday. Showing the visible window helps
-  // readers orient before they parse individual squares.
+  // Calendar-style flow: each row is one week, days flow left-to-right
+  // (Sun → Sat). buildHeatmap returns cells[w][d] where w = week index
+  // (oldest first) and d = day-of-week (0=Sun..6=Sat) — so we render the
+  // outer array as rows and the inner as columns.
   const firstYmd = cells[0]?.[0]?.ymd ?? null;
-  const lastCol = cells[cells.length - 1];
-  const lastYmd = lastCol?.[lastCol.length - 1]?.ymd ?? null;
+  const lastRow = cells[cells.length - 1];
+  const lastYmd = lastRow?.[lastRow.length - 1]?.ymd ?? null;
   const rangeLabel =
     firstYmd && lastYmd
       ? `${formatRangePart(firstYmd)} — ${formatRangePart(lastYmd)}`
       : null;
 
-  // Mark the column where the month changes; rendered above the grid as a
-  // small label so a reader can pin "this column is december."
-  const monthMarkers = cells.map((col, idx) => {
-    const firstCell = col[0];
+  // Month label per row: the first cell whose month differs from the row
+  // above gets the abbreviation. Keeps the left rail readable without
+  // crowding every row.
+  const monthMarkers = cells.map((row, idx) => {
+    const firstCell = row[0];
     if (!firstCell) return null;
     const monthIdx = monthOf(firstCell.ymd);
     const prevMonth =
-      idx === 0
-        ? null
-        : monthOf(cells[idx - 1]![0]!.ymd);
+      idx === 0 ? null : monthOf(cells[idx - 1]![0]!.ymd);
     if (idx === 0 || monthIdx !== prevMonth) {
       return MONTH_NAMES[monthIdx];
     }
     return null;
   });
 
-  // Sun..Sat day labels mirror the row order from buildHeatmap (row 0 = Sun).
   const dayLabels = ["s", "m", "t", "w", "t", "f", "s"];
 
   return (
@@ -348,40 +347,38 @@ function Heatmap({
       </div>
       {rangeLabel && (
         <p className="mb-3 font-mono text-hc-tiny font-medium text-hc-muted">
-          {rangeLabel} · oldest on the left, this week on the right
+          {rangeLabel} · oldest on top, this week on the bottom
         </p>
       )}
 
       <div className="rounded-hc-3 border border-hc-line bg-hc-surface p-4">
-        {/* Month markers: align to columns by sharing the same grid */}
-        <div className="mb-1.5 flex gap-1.5 pl-5">
-          {monthMarkers.map((label, i) => (
-            <span
-              key={i}
-              className="flex-1 font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow-narrow text-hc-muted"
-              aria-hidden
-            >
-              {label ?? ""}
-            </span>
-          ))}
-        </div>
-
-        <div className="flex gap-1.5">
-          {/* All seven Sun..Sat labels, one per row, perfectly aligned. */}
-          <div
-            className="grid w-3.5 grid-rows-7 gap-1.5 font-mono text-hc-tiny font-medium leading-none text-hc-muted"
-            aria-hidden
-          >
+        {/* Day-of-week header: Sun → Sat, aligned over the 7 day columns. */}
+        <div className="mb-1.5 flex gap-1.5">
+          <span aria-hidden className="w-8 shrink-0" />
+          <div className="grid flex-1 grid-cols-7 gap-1.5">
             {dayLabels.map((d, i) => (
-              <span key={i} className="flex items-center justify-center">
+              <span
+                key={i}
+                aria-hidden
+                className="text-center font-mono text-hc-tiny font-medium leading-none text-hc-muted"
+              >
                 {d}
               </span>
             ))}
           </div>
-          <div className="grid flex-1 grid-cols-8 gap-1.5">
-            {cells.map((col, w) => (
-              <div key={w} className="grid grid-rows-7 gap-1.5">
-                {col.map((cell) => (
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          {cells.map((row, w) => (
+            <div key={w} className="flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className="w-8 shrink-0 font-mono text-hc-tiny font-semibold uppercase tracking-hc-eyebrow-narrow text-hc-muted"
+              >
+                {monthMarkers[w] ?? ""}
+              </span>
+              <div className="grid flex-1 grid-cols-7 gap-1.5">
+                {row.map((cell) => (
                   <HeatmapSquare
                     key={cell.ymd}
                     cell={cell}
@@ -390,8 +387,8 @@ function Heatmap({
                   />
                 ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-hc-line pt-3 font-mono text-hc-tiny font-medium text-hc-muted">

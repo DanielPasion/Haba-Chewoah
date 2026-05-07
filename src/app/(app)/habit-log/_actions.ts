@@ -256,6 +256,85 @@ export async function createHabitLogAction(
 }
 
 // ============================================================
+// UPDATE LOG
+// ============================================================
+
+const UpdateLogSchema = z.object({
+  habitLogId: z.string().regex(UUID_RE, "invalid log id"),
+  // ISO-8601 instant. The client builds it from `<input type="date">` +
+  // `<input type="time">` interpreted in its own zone, then `.toISOString()`s
+  // before submit so the server doesn't need to know the viewer's tz.
+  completedAt: z
+    .string()
+    .min(1)
+    .max(40)
+    .refine((v) => !Number.isNaN(Date.parse(v)), "invalid date"),
+  notes: z
+    .string()
+    .trim()
+    .max(2000, "note is too long")
+    .optional()
+    .transform((v) => (v && v.length > 0 ? v : null)),
+});
+
+export type UpdateHabitLogResult =
+  | { ok: true; habitLogId: string }
+  | { ok: false; message: string };
+
+export async function updateHabitLogAction(
+  formData: FormData,
+): Promise<UpdateHabitLogResult> {
+  const session = await auth();
+  if (!session?.user) return { ok: false, message: "not signed in" };
+
+  const parsed = UpdateLogSchema.safeParse({
+    habitLogId: formData.get("habitLogId"),
+    completedAt: formData.get("completedAt"),
+    notes: formData.get("notes"),
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "invalid input",
+    };
+  }
+  const { habitLogId, completedAt, notes } = parsed.data;
+
+  const log = await db.habitLog.findUnique({
+    where: { id: habitLogId },
+    select: { id: true, userId: true, habitId: true },
+  });
+  if (!log || log.userId !== session.user.id) {
+    return { ok: false, message: "log not found" };
+  }
+
+  // `new Date(parsed.completedAt)` is safe — the schema's `.refine` already
+  // verified the string is parseable. Reject futures: a log dated tomorrow
+  // would inflate streaks and mess with the heatmap's "isFuture" mask.
+  // The 5-minute slack tolerates normal NTP drift on user devices so a
+  // phone whose clock is a few minutes fast doesn't get a spurious error
+  // editing a log to the current time.
+  const completedAtDate = new Date(completedAt);
+  if (completedAtDate.getTime() > Date.now() + 5 * 60_000) {
+    return { ok: false, message: "can't backdate to the future" };
+  }
+
+  await db.habitLog.update({
+    where: { id: log.id },
+    data: { completedAt: completedAtDate, notes },
+  });
+
+  revalidatePath(`/habit/${log.habitId}`);
+  revalidatePath(`/habit-log/${log.id}`);
+  revalidatePath("/feed");
+  if (session.user.username) {
+    revalidatePath(`/profile/${session.user.username}`);
+  }
+
+  return { ok: true, habitLogId: log.id };
+}
+
+// ============================================================
 // DELETE LOG
 // ============================================================
 

@@ -159,8 +159,10 @@ export type HeatmapCell = {
   isFuture: boolean;
 };
 
-// Builds an 8-week (56-day) grid ending today, oriented as week columns
-// (Sun..Sat rows) so the UI can render it as a simple grid of squares.
+// Builds an 8-week (56-day) grid ending today. Returns an array of weeks,
+// oldest first, where each week is 7 cells in Sun→Sat order. The detail
+// view renders the outer array as rows and the inner array as columns
+// (calendar-style left-to-right day flow).
 export function buildHeatmap({
   dayCounts,
   timezone,
@@ -180,21 +182,21 @@ export function buildHeatmap({
   const totalDays = weeks * 7;
   const firstDayYmd = ymdAddDays(lastDayYmd, -(totalDays - 1));
 
-  const columns: HeatmapCell[][] = [];
+  const rows: HeatmapCell[][] = [];
   let cursor = firstDayYmd;
   for (let w = 0; w < weeks; w += 1) {
-    const col: HeatmapCell[] = [];
+    const week: HeatmapCell[] = [];
     for (let d = 0; d < 7; d += 1) {
-      col.push({
+      week.push({
         ymd: cursor,
         count: dayCounts.get(cursor) ?? 0,
         isFuture: cursor > today,
       });
       cursor = ymdAddDays(cursor, 1);
     }
-    columns.push(col);
+    rows.push(week);
   }
-  return columns;
+  return rows;
 }
 
 // "Day N" relative to the current run of consecutive local days containing

@@ -84,10 +84,11 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-// Re-tapping the already-active tab scrolls back to the top *and* refreshes
-// the route — same affordance as Twitter/Instagram. `behavior: "smooth"` only
-// when the user isn't scrolled too far; for very long feeds an instant jump
-// reads as more responsive than a 2-second smooth scroll.
+// Re-tapping the already-active tab scrolls back to the top — refresh is
+// reserved for the explicit pull-to-refresh gesture so swapping between
+// tabs feels instant and the cached RSC payload is reused. `behavior:
+// "smooth"` only when the user isn't scrolled too far; for very long feeds
+// an instant jump reads as more responsive than a 2-second smooth scroll.
 function scrollPageToTop() {
   if (typeof window === "undefined") return;
   const behavior: ScrollBehavior =
@@ -181,8 +182,6 @@ export function AppSidebar({
 }
 
 function NavSidebarLink({ item, active }: { item: NavItem; active: boolean }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
   return (
     <Link
       href={item.href}
@@ -190,7 +189,6 @@ function NavSidebarLink({ item, active }: { item: NavItem; active: boolean }) {
         if (!active) return;
         e.preventDefault();
         scrollPageToTop();
-        startTransition(() => router.refresh());
       }}
       aria-current={active ? "page" : undefined}
       className={`flex items-center gap-3 rounded-hc-2 px-3 py-2.5 font-sans text-sm transition-colors ${
@@ -203,9 +201,6 @@ function NavSidebarLink({ item, active }: { item: NavItem; active: boolean }) {
         {active && item.iconActive ? item.iconActive : item.icon}
       </NavIcon>
       <span className="flex-1 capitalize">{item.label}</span>
-      {active && pending && (
-        <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-hc-accent" />
-      )}
     </Link>
   );
 }
@@ -280,8 +275,6 @@ export function AppMobileTopBar({
 
 function ExploreIconLink() {
   const pathname = usePathname();
-  const router = useRouter();
-  const [, startTransition] = useTransition();
   const active = isActive(pathname, "/explore");
   return (
     <Link
@@ -292,7 +285,6 @@ function ExploreIconLink() {
         if (!active) return;
         e.preventDefault();
         scrollPageToTop();
-        startTransition(() => router.refresh());
       }}
       aria-current={active ? "page" : undefined}
       className={`grid size-9 shrink-0 place-items-center rounded-full transition-colors ${
@@ -368,8 +360,6 @@ function MobileTabLink({
   item: NavItem;
   pathname: string;
 }) {
-  const router = useRouter();
-  const [, startTransition] = useTransition();
   const active = isActive(pathname, item.href);
   return (
     <Link
@@ -378,7 +368,6 @@ function MobileTabLink({
         if (!active) return;
         e.preventDefault();
         scrollPageToTop();
-        startTransition(() => router.refresh());
       }}
       aria-current={active ? "page" : undefined}
       aria-label={item.label}
