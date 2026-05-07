@@ -311,8 +311,11 @@ export async function updateHabitLogAction(
   // `new Date(parsed.completedAt)` is safe — the schema's `.refine` already
   // verified the string is parseable. Reject futures: a log dated tomorrow
   // would inflate streaks and mess with the heatmap's "isFuture" mask.
+  // The 5-minute slack tolerates normal NTP drift on user devices so a
+  // phone whose clock is a few minutes fast doesn't get a spurious error
+  // editing a log to the current time.
   const completedAtDate = new Date(completedAt);
-  if (completedAtDate.getTime() > Date.now() + 60_000) {
+  if (completedAtDate.getTime() > Date.now() + 5 * 60_000) {
     return { ok: false, message: "can't backdate to the future" };
   }
 
