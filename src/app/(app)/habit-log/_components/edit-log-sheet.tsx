@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 
 import { buttonClass } from "~/components/ui";
 
@@ -35,6 +36,7 @@ export function EditLogSheet({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const initial = toLocalDateTimeParts(initialCompletedAt);
   const [date, setDate] = useState(initial.date);
@@ -43,6 +45,7 @@ export function EditLogSheet({
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
+    setMounted(true);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     function onKey(e: KeyboardEvent) {
@@ -83,7 +86,12 @@ export function EditLogSheet({
     });
   }
 
-  return (
+  // Portal to <body> so the fixed-position modal escapes any backdrop-filter
+  // ancestor (e.g. the sticky page header) — those create a containing block
+  // for fixed descendants and clip the sheet on mobile.
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
@@ -187,6 +195,7 @@ export function EditLogSheet({
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
