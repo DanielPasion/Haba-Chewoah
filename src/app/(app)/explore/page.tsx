@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { getViewerContext } from "~/server/viewer";
 
 import { ExploreList, type ExploreUser } from "./_components/explore-list";
 
@@ -16,31 +17,15 @@ export default async function ExplorePage() {
   if (!session.user.username) redirect("/create-account");
 
   // §9 block-aware listing — hide users blocked in either direction so the
-  // viewer never lands on a profile that's going to 404 on them.
-  const [blocksByMe, blocksOfMe, follows] = await Promise.all([
-    db.block.findMany({
-      where: { blockerId: session.user.id },
-      select: { blockedId: true },
-    }),
-    db.block.findMany({
-      where: { blockedId: session.user.id },
-      select: { blockerId: true },
-    }),
-    db.follow.findMany({
-      where: { followerId: session.user.id },
-      select: { followingId: true },
-    }),
-  ]);
-  const hidden = new Set([
-    ...blocksByMe.map((b) => b.blockedId),
-    ...blocksOfMe.map((b) => b.blockerId),
-  ]);
-  const followingSet = new Set(follows.map((f) => f.followingId));
+  // viewer never lands on a profile that's going to 404 on them. Block +
+  // follow sets come from the shared per-request viewer context.
+  const viewer = await getViewerContext(session.user.id);
+  const followingSet = viewer.followingSet;
 
   const users = await db.user.findMany({
     where: {
       username: { not: null },
-      id: { notIn: Array.from(hidden) },
+      id: { notIn: viewer.hiddenActorIds },
     },
     orderBy: { createdAt: "desc" },
     take: PAGE_SIZE,

@@ -8,7 +8,12 @@ export type ViewerContext = {
   userId: string;
   timezone: string;
   hiddenActorIds: string[];
+  // Symmetric block set — anyone hidden in either direction.
   blockedSet: Set<string>;
+  // Strict-direction subsets so callers can ask "am I blocking them?"
+  // vs. "did they block me?" without re-querying the DB.
+  iAmBlockingSet: Set<string>;
+  blockingMeSet: Set<string>;
   followingIds: string[];
   followingSet: Set<string>;
 };
@@ -39,16 +44,17 @@ export const getViewerContext = cache(
         select: { followingId: true },
       }),
     ]);
-    const hiddenActorIds = [
-      ...blocksByMe.map((b) => b.blockedId),
-      ...blocksOfMe.map((b) => b.blockerId),
-    ];
+    const iAmBlockingIds = blocksByMe.map((b) => b.blockedId);
+    const blockingMeIds = blocksOfMe.map((b) => b.blockerId);
+    const hiddenActorIds = [...iAmBlockingIds, ...blockingMeIds];
     const followingIds = follows.map((f) => f.followingId);
     return {
       userId,
       timezone: me?.timezone ?? "UTC",
       hiddenActorIds,
       blockedSet: new Set(hiddenActorIds),
+      iAmBlockingSet: new Set(iAmBlockingIds),
+      blockingMeSet: new Set(blockingMeIds),
       followingIds,
       followingSet: new Set(followingIds),
     };

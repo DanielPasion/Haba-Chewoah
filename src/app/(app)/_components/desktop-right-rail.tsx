@@ -3,6 +3,7 @@ import Link from "next/link";
 import { HabitIcon } from "~/components/habit-icon";
 import { localYmd } from "~/lib/habit-stats";
 import { db } from "~/server/db";
+import { getViewerContext } from "~/server/viewer";
 
 import { ActivityRow, type ActivityRowVM } from "./activity-row";
 
@@ -35,24 +36,10 @@ export async function DesktopRightRail({
   const recentLogsCutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
   // §9: filter blocked actors from the activity feed — same rule the
-  // /notifications page applies. Pulled in parallel with the rail data so
-  // we don't add a sequential round-trip.
-  const [blocksByMe, blocksOfMe, ...rest] = await Promise.all([
-    db.block.findMany({
-      where: { blockerId: userId },
-      select: { blockedId: true },
-    }),
-    db.block.findMany({
-      where: { blockedId: userId },
-      select: { blockerId: true },
-    }),
-    Promise.resolve(null),
-  ]);
-  void rest;
-  const hiddenActorIds = [
-    ...blocksByMe.map((b) => b.blockedId),
-    ...blocksOfMe.map((b) => b.blockerId),
-  ];
+  // /notifications page applies. Block set comes from the per-request
+  // viewer context shared with the layout + page.
+  const viewer = await getViewerContext(userId);
+  const hiddenActorIds = viewer.hiddenActorIds;
 
   const [habits, notifications] = await Promise.all([
     db.habit.findMany({
