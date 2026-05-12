@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { computeHabitStats, dayNumberForLog, localYmd } from "~/lib/habit-stats";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { getViewerContext } from "~/server/viewer";
 
 import { type HabitCardData } from "../../habit/_components/habit-card";
 import { PROFILE_LOG_PAGE_SIZE, type ProfileLogsCursor } from "../_data";
@@ -65,20 +66,13 @@ export default async function UserProfilePage({ params }: { params: Params }) {
   //  - `theyBlockedMe`  → 404 (don't reveal the account exists at all).
   //  - `iAmBlockingThem` → render a stripped-down profile so the viewer
   //    can unblock; we still hide the target's content below.
+  // Both checks are pure set lookups against the per-request viewer
+  // context — no extra DB round-trip needed.
+  const viewer = await getViewerContext(session.user.id);
   let iAmBlockingThem = false;
   if (!isOwn) {
-    const blocks = await db.block.findMany({
-      where: {
-        OR: [
-          { blockerId: session.user.id, blockedId: user.id },
-          { blockerId: user.id, blockedId: session.user.id },
-        ],
-      },
-      select: { blockerId: true, blockedId: true },
-    });
-    const theyBlockedMe = blocks.some((b) => b.blockerId === user.id);
-    if (theyBlockedMe) notFound();
-    iAmBlockingThem = blocks.some((b) => b.blockerId === session.user.id);
+    if (viewer.blockingMeSet.has(user.id)) notFound();
+    iAmBlockingThem = viewer.iAmBlockingSet.has(user.id);
   }
 
   // Habits: own profile shows everything (incl. private + archived); other
@@ -89,20 +83,11 @@ export default async function UserProfilePage({ params }: { params: Params }) {
     ? { userId: user.id }
     : { userId: user.id, isPublic: true, status: "active" as const };
 
-  const [isFollowing, habits, logsRaw] = await Promise.all([
-    isOwn
-      ? Promise.resolve(false)
-      : db.follow
-          .findUnique({
-            where: {
-              followerId_followingId: {
-                followerId: session.user.id,
-                followingId: user.id,
-              },
-            },
-            select: { followerId: true },
-          })
-          .then(Boolean),
+  // `isFollowing` is a set lookup against the per-request viewer context
+  // — no extra DB round-trip needed.
+  const isFollowing = isOwn ? false : viewer.followingSet.has(user.id);
+
+  const [habits, logsRaw] = await Promise.all([
     db.habit.findMany({
       where: habitWhere,
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],

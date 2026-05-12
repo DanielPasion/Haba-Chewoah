@@ -7,6 +7,7 @@ import { buttonClass } from "~/components/ui";
 import { computeHabitStats, localYmd } from "~/lib/habit-stats";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { getViewerContext } from "~/server/viewer";
 
 import { loadInitialFeed } from "./_data";
 import { FeedList } from "./_components/feed-list";
@@ -23,13 +24,10 @@ export default async function FeedPage() {
   if (!session.user.username) redirect("/create-account");
 
   // Pull viewer chrome (timezone + active habits for the streaks strip)
-  // in parallel with the first feed page. The feed loader handles its
-  // own follow/block lookups so we only do one round-trip pair here.
-  const [me, myActiveHabits, firstPage] = await Promise.all([
-    db.user.findUnique({
-      where: { id: session.user.id },
-      select: { timezone: true },
-    }),
+  // in parallel with the first feed page. `getViewerContext` is wrapped
+  // in React.cache, so it shares its round-trip with the layout call.
+  const [viewer, myActiveHabits, firstPage] = await Promise.all([
+    getViewerContext(session.user.id),
     db.habit.findMany({
       where: { userId: session.user.id, status: "active" },
       orderBy: { createdAt: "desc" },
@@ -57,7 +55,7 @@ export default async function FeedPage() {
     }),
     loadInitialFeed(session.user.id),
   ]);
-  const myTimezone = me?.timezone ?? "UTC";
+  const myTimezone = viewer.timezone;
   const todayYmd = localYmd(new Date(), myTimezone);
 
   const todayItems: TodayStreak[] = myActiveHabits.map((h) => {

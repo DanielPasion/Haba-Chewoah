@@ -2,6 +2,7 @@ import "server-only";
 
 import { dayNumberForLog, localYmd } from "~/lib/habit-stats";
 import { db } from "~/server/db";
+import { getViewerContext } from "~/server/viewer";
 
 import type { FeedItem } from "./_components/feed-card";
 
@@ -37,27 +38,10 @@ export async function loadFeedSlice({
   before: FeedCursor | null;
   limit: number;
 }): Promise<{ items: FeedItem[]; nextCursor: FeedCursor | null }> {
-  const [follows, blocksByMe, blocksOfMe] = await Promise.all([
-    db.follow.findMany({
-      where: { followerId: viewerId },
-      select: { followingId: true },
-    }),
-    db.block.findMany({
-      where: { blockerId: viewerId },
-      select: { blockedId: true },
-    }),
-    db.block.findMany({
-      where: { blockedId: viewerId },
-      select: { blockerId: true },
-    }),
-  ]);
-  const blockedSet = new Set([
-    ...blocksByMe.map((b) => b.blockedId),
-    ...blocksOfMe.map((b) => b.blockerId),
-  ]);
+  const viewer = await getViewerContext(viewerId);
   const visibleAuthorIds = [
-    ...new Set([viewerId, ...follows.map((f) => f.followingId)]),
-  ].filter((id) => !blockedSet.has(id));
+    ...new Set([viewerId, ...viewer.followingIds]),
+  ].filter((id) => !viewer.blockedSet.has(id));
 
   if (visibleAuthorIds.length === 0) {
     return { items: [], nextCursor: null };

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { env } from "~/env";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { getViewerContext } from "~/server/viewer";
 
 import { ActivityRow, type ActivityRowVM } from "../_components/activity-row";
 import { PushToggle } from "../_components/push-toggle";
@@ -28,20 +29,8 @@ export default async function NotificationsPage() {
   // BEFORE the block was put in place stay in the table — read-side
   // filtering handles those. Either-direction block hides the actor
   // (matches the symmetric rule used by ensureLogVisible / feed).
-  const [blocksByMe, blocksOfMe] = await Promise.all([
-    db.block.findMany({
-      where: { blockerId: session.user.id },
-      select: { blockedId: true },
-    }),
-    db.block.findMany({
-      where: { blockedId: session.user.id },
-      select: { blockerId: true },
-    }),
-  ]);
-  const hiddenActorIds = [
-    ...blocksByMe.map((b) => b.blockedId),
-    ...blocksOfMe.map((b) => b.blockerId),
-  ];
+  const viewer = await getViewerContext(session.user.id);
+  const hiddenActorIds = viewer.hiddenActorIds;
 
   const notifications = await db.notification.findMany({
     where: {
