@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { getMyActiveHabitIds, getViewerContext } from "~/server/viewer";
 
 import { signOutAction } from "./_actions";
 import {
@@ -11,6 +12,7 @@ import {
   AppSidebar,
 } from "./_components/app-nav";
 import { DesktopRightRail } from "./_components/desktop-right-rail";
+import { PrefetchRoutes } from "./_components/prefetch-routes";
 import { PullToRefresh } from "./_components/pull-to-refresh";
 import { TimezoneSync } from "./_components/timezone-sync";
 
@@ -30,35 +32,29 @@ export default async function AppLayout({
   const displayName = session.user.name ?? username;
 
   // Pull viewer-scoped chrome data once at the layout level — every (app)
-  // page reads timezone + the unread badge, so batching here keeps each
+  // page reads timezone + block/follow sets, so batching here keeps each
   // page render to one round-trip. Block-aware: §9 says blocked actors'
   // notifications are filtered from view, so the unread count must match
   // what /notifications and the right rail actually show.
-  const [me, blocksByMe, blocksOfMe] = await Promise.all([
-    db.user.findUnique({
-      where: { id: session.user.id },
-      select: { timezone: true },
-    }),
-    db.block.findMany({
-      where: { blockerId: session.user.id },
-      select: { blockedId: true },
-    }),
-    db.block.findMany({
-      where: { blockedId: session.user.id },
-      select: { blockerId: true },
-    }),
+  //
+  // `getViewerContext` is wrapped in React.cache, so the layout, the page,
+  // and the right rail share a single DB round-trip per request.
+  const [viewer, habitIds] = await Promise.all([
+    getViewerContext(session.user.id),
+    getMyActiveHabitIds(session.user.id),
   ]);
-  const timezone = me?.timezone ?? "UTC";
-  const hiddenActorIds = [
-    ...blocksByMe.map((b) => b.blockedId),
-    ...blocksOfMe.map((b) => b.blockerId),
-  ];
+  const timezone = viewer.timezone;
   const unreadCount = await db.notification.count({
     where: {
       userId: session.user.id,
       isRead: false,
-      ...(hiddenActorIds.length > 0
-        ? { OR: [{ actorId: null }, { actorId: { notIn: hiddenActorIds } }] }
+      ...(viewer.hiddenActorIds.length > 0
+        ? {
+            OR: [
+              { actorId: null },
+              { actorId: { notIn: viewer.hiddenActorIds } },
+            ],
+          }
         : {}),
     },
   });
@@ -80,6 +76,7 @@ export default async function AppLayout({
       </div>
       <DesktopRightRail userId={session.user.id} timezone={timezone} />
       <TimezoneSync serverTimezone={timezone} />
+      <PrefetchRoutes username={username} habitIds={habitIds} />
     </div>
   );
 }

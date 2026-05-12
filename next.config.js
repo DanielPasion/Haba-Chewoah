@@ -66,13 +66,15 @@ const config = {
   },
   images: { remotePatterns },
   experimental: {
-    // Keep recently-visited dynamic pages in the client router cache so
-    // toggling between feed and profile via the bottom tab doesn't refetch
-    // every time. `router.refresh()` (used by the active-tab tap) and
-    // `revalidatePath` after mutations still bust this cache.
+    // Keep recently-visited dynamic pages in the client router cache for
+    // a long window so toggling between feed / explore / profile /
+    // notifications via the tab bar is instant. `router.refresh()` (used
+    // by the active-tab tap + pull-to-refresh) and `revalidatePath` /
+    // `revalidateTag` after mutations still bust this cache, so freshness
+    // on actual writes is preserved.
     staleTimes: {
-      dynamic: 30,
-      static: 180,
+      dynamic: 600,
+      static: 900,
     },
   },
 };

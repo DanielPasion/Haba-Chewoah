@@ -7,6 +7,7 @@ import { buttonClass } from "~/components/ui";
 import { computeHabitStats, localYmd } from "~/lib/habit-stats";
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { getViewerContext } from "~/server/viewer";
 
 import { loadInitialFeed } from "./_data";
 import { FeedList } from "./_components/feed-list";
